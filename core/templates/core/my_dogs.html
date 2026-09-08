@@ -1,0 +1,123 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="bg-white border-bottom py-4">
+    <div class="container d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3" data-aos="fade-down">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">My Dogs</h2>
+            <p class="text-muted mb-0 small">Manage your registered dog profiles and their breeding settings.</p>
+        </div>
+        <div>
+            <a href="{% url 'add_dog' %}" class="btn btn-warning fw-bold rounded-pill shadow-sm px-4 hover-lift">
+                <i class="fas fa-plus-circle me-1"></i> Register New Dog
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- My Dogs Grid -->
+<section class="py-5" style="background-color: var(--bg-light); min-height: 60vh;">
+    <div class="container">
+        
+        <div class="row g-4">
+            {% for dog in dogs %}
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|add:'1' }}00">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden hover-lift bg-white">
+                        
+                        <!-- Image Container -->
+                        <div class="position-relative bg-light text-center" style="height: 200px; overflow: hidden;">
+                            {% if dog.images.first %}
+                                <img src="{{ dog.images.first.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ dog.name }}" style="transition: transform 0.5s ease;">
+                            {% else %}
+                                <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-secondary-subtle">
+                                    <i class="fas fa-dog fa-4x text-muted opacity-50"></i>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Badges -->
+                            <div class="position-absolute top-0 start-0 w-100 p-3 d-flex justify-content-between align-items-start">
+                                <span class="badge bg-dark text-white fw-semibold rounded-pill py-2 px-3 shadow-sm">
+                                    <i class="fas fa-paw text-warning me-1"></i> {{ dog.breed }}
+                                </span>
+                                {% if dog.kci_registered %}
+                                    <span class="badge bg-success text-white fw-bold rounded-pill shadow-sm px-3 py-2" title="KCI Registered">
+                                        <i class="fas fa-check-circle me-1"></i> Verified
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h4 class="fw-bold mb-0 text-dark">{{ dog.name }}</h4>
+                                <span class="badge bg-light text-secondary border px-2 py-1 text-capitalize">
+                                    {% if dog.gender|lower == 'male' %}
+                                        <i class="fas fa-mars text-primary fw-bold"></i>
+                                    {% else %}
+                                        <i class="fas fa-venus text-danger fw-bold"></i>
+                                    {% endif %} 
+                                    {{ dog.gender }}
+                                    {% if dog.is_available %}
+    <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1">
+        Status: Available
+    </span>
+{% else %}
+    <span class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1">
+        Status: Hidden
+    </span>
+{% endif %}
+                                </span>
+                            </div>
+                            
+                            <p class="text-muted small mb-3">
+                                <i class="fas fa-map-marker-alt text-danger me-1"></i> 
+                                {{ dog.city }}{% if dog.state %}, {{ dog.state }}{% endif %}
+                            </p>
+                            
+                            <div class="d-flex flex-wrap gap-2 mb-4">
+                                <span class="badge bg-primary-subtle text-primary border-0 rounded-3 px-2 py-1 small">
+                                    Age: {{ dog.age_years }} yrs
+                                </span>
+                                <span class="badge bg-primary-subtle text-primary border-0 rounded-3 px-2 py-1 small">
+                                    Status: {% if dog.is_available %}Active{% else %}Hidden{% endif %}
+                                </span>
+                            </div>
+                            
+                            <!-- Quick Management Actions -->
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'dog_detail' dog.id %}" class="btn btn-outline-primary btn-sm flex-grow-1 fw-bold rounded-pill">
+                                    View
+                                </a>
+                                <a href="{% url 'edit_dog' dog.id %}" class="btn btn-outline-secondary btn-sm fw-bold rounded-pill px-3" title="Edit Profile">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'delete_dog' dog.id %}" class="btn btn-outline-danger btn-sm fw-bold rounded-pill px-3" title="Delete Profile">
+                                    <i class="fas fa-trash-alt"></i>
+                                </a>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+            {% empty %}
+                <!-- Empty State -->
+                <div class="col-12 text-center py-5" data-aos="fade-up">
+                    <div class="bg-white p-5 rounded-4 shadow-sm mx-auto" style="max-width: 500px;">
+                        <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4" style="width: 80px; height: 80px;">
+                            <i class="fas fa-dog fa-2x"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark">No dogs registered yet</h4>
+                        <p class="text-muted mb-4">Add your first dog to K9Match to start finding the perfect breeding partners.</p>
+                        <a href="{% url 'add_dog' %}" class="btn btn-warning btn-lg fw-bold rounded-pill px-4 shadow-sm hover-lift">
+                            <i class="fas fa-plus-circle me-1"></i> Register Your Dog
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+    </div>
+</section>
+{% endblock %}

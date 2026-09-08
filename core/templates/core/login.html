@@ -1,0 +1,70 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="bg-primary text-white text-center py-4 px-3">
+                    <div class="display-6 mb-2">🐾</div>
+                    <h3 class="fw-bold mb-1">Welcome Back</h3>
+                    <p class="small text-white-50 mb-0">Log in to manage your dogs & matches</p>
+                </div>
+
+                <div class="card-body p-4 p-md-5 bg-white">
+                    {% if form.errors %}
+                        <div class="alert alert-danger alert-dismissible fade show rounded-3 small py-2" role="alert">
+                            <i class="fas fa-exclamation-circle me-1"></i> Invalid username or password.
+                            <button type="button" class="btn-close btn-close-white small" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endif %}
+
+                    {% if messages %}
+                    <div class="mb-3">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags|default:'danger' }} alert-dismissible fade show rounded-3 shadow-sm d-flex align-items-center" role="alert">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <div>{{ message }}</div>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                        {% endif %}
+
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-secondary">Username</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-user"></i></span>
+                                <input type="text" name="username" class="form-control bg-light border-start-0 ps-0" placeholder="Enter your username" required autofocus>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small fw-bold text-secondary">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-lock"></i></span>
+                                <input type="password" name="password" class="form-control bg-light border-start-0 ps-0" placeholder="Enter your password" required>
+                            </div>
+                        </div>
+
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary py-2 fw-bold rounded-3 shadow-sm">
+                                <i class="fas fa-sign-in-alt me-1"></i> Log In
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-4 pt-2 border-top">
+                        <p class="small text-muted mb-0">
+                            Don't have an account? 
+                            <a href="{% url 'register' %}" class="text-primary fw-bold text-decoration-none">Sign up here</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

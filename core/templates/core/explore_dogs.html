@@ -1,0 +1,102 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<!-- Page Header -->
+<section class="bg-white border-bottom py-5">
+    <div class="container text-center" data-aos="fade-down">
+        <h1 class="display-5 fw-bold text-dark mb-3">Find the Perfect Match</h1>
+        <p class="lead text-muted mx-auto" style="max-width: 600px;">
+            Browse verified dog profiles from responsible owners in your area. Use the filters to find the exact breed and lineage you are looking for.
+        </p>
+    </div>
+</section>
+
+<!-- Dog Grid Directory -->
+<section class="py-5" style="background-color: var(--bg-light);">
+    <div class="container">
+        
+        <!-- The ROW container must be OUTSIDE the for loop so cards share the same row -->
+        <div class="row g-4">
+            
+            {% for dog in dogs %}
+                <!-- Each dog gets a column in the grid -->
+                <div class="col-md-6 col-lg-4" data-aos="fade-up">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden hover-lift bg-white">
+                        
+                        <!-- Image Container -->
+                        <div class="position-relative bg-light text-center" style="height: 240px; overflow: hidden;">
+                            {% if dog.images.first %}
+                                <img src="{{ dog.images.first.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ dog.name }}" style="transition: transform 0.5s ease;">
+                            {% else %}
+                                <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-secondary-subtle">
+                                    <i class="fas fa-dog fa-5x text-muted opacity-50"></i>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Badges -->
+                            <div class="position-absolute top-0 start-0 w-100 p-3 d-flex justify-content-between align-items-start">
+                                <span class="badge bg-dark text-white fw-semibold rounded-pill py-2 px-3 shadow-sm">
+                                    <i class="fas fa-paw text-warning me-1"></i> {{ dog.breed }}
+                                </span>
+                                {% if dog.kci_registered %}
+                                    <span class="badge bg-success text-white fw-bold rounded-pill shadow-sm d-flex align-items-center px-3 py-2" title="KCI Registered">
+                                        <i class="fas fa-check-circle me-1"></i> Verified
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Card Body -->
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h4 class="fw-bold mb-0 text-dark">{{ dog.name }}</h4>
+                                <span class="badge bg-light text-secondary border px-2 py-1 text-capitalize">
+                                    {% if dog.gender|lower == 'male' %}
+                                        <i class="fas fa-mars text-primary fw-bold fs-6 me-1"></i>
+                                    {% else %}
+                                        <i class="fas fa-venus text-danger fw-bold fs-6 me-1"></i>
+                                    {% endif %} 
+                                    {{ dog.gender }}
+                                </span>
+                            </div>
+                            
+                            <!-- Location -->
+                            <p class="text-muted small mb-3">
+                                <i class="fas fa-map-marker-alt text-danger me-1"></i> 
+                                {{ dog.city }}{% if dog.state %}, {{ dog.state }}{% endif %}
+                            </p>
+
+                            <!-- Age & Weight Badges -->
+                            <div class="d-flex flex-wrap gap-2 mb-4">
+                                <span class="badge bg-primary-subtle text-primary border-0 rounded-3 px-2 py-1 small">
+                                    Age: {{ dog.age_years }} yrs {% if dog.age_months %}{{ dog.age_months }} mo{% endif %}
+                                </span>
+                                {% if dog.weight %}
+                                    <span class="badge bg-primary-subtle text-primary border-0 rounded-3 px-2 py-1 small">
+                                        Weight: {{ dog.weight }} {{ dog.weight_unit }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                            <a href="{% url 'dog_detail' dog.id %}" class="btn btn-outline-primary w-100 fw-bold rounded-pill">
+                                View Full Profile
+                            </a>
+                        </div>
+                        
+                    </div>
+                </div>
+            {% empty %}
+                <!-- Empty State -->
+                <div class="col-12 text-center py-5" data-aos="fade-up">
+                    <div class="bg-white p-5 rounded-4 shadow-sm mx-auto" style="max-width: 500px;">
+                        <i class="fas fa-search-minus fa-4x text-muted mb-3"></i>
+                        <h4 class="fw-bold text-dark">No dogs found</h4>
+                        <p class="text-muted">There are currently no dogs registered on the platform. Check back later!</p>
+                        <a href="{% url 'add_dog' %}" class="btn btn-primary fw-bold rounded-pill px-4 mt-2">Be the First to Register</a>
+                    </div>
+                </div>
+            {% endfor %}
+            
+        </div>
+    </div>
+</section>
+{% endblock %}

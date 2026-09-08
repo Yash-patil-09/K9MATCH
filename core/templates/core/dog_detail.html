@@ -1,0 +1,206 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    
+    <!-- Breadcrumb & Back Button -->
+    <div class="mb-4 d-flex justify-content-between align-items-center" data-aos="fade-down">
+        <a href="{% url 'explore_dogs' %}" class="btn btn-sm btn-outline-secondary rounded-pill fw-bold px-3">
+            <i class="fas fa-arrow-left me-1"></i> Back to Directory
+        </a>
+        {% if request.user == dog.owner %}
+            <span class="badge bg-primary-subtle text-primary border px-3 py-2 rounded-pill">
+                <i class="fas fa-user-shield me-1"></i> You own this profile
+            </span>
+        {% endif %}
+    </div>
+
+    <div class="row g-5">
+        <!-- LEFT COLUMN: Image & Quick Stats -->
+        <div class="col-lg-5" data-aos="fade-right">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden sticky-top" style="top: 100px;">
+                {% if dog.images.first %}
+                    <img src="{{ dog.images.first.image.url }}" class="w-100 object-fit-cover" alt="{{ dog.name }}" style="height: 450px;">
+                {% else %}
+                    <div class="w-100 d-flex align-items-center justify-content-center bg-light" style="height: 450px;">
+                        <i class="fas fa-dog fa-7x text-muted opacity-25"></i>
+                    </div>
+                {% endif %}
+                
+                <!-- Quick Stats Footer on Image -->
+                <div class="bg-white p-3 border-top d-flex justify-content-around text-center">
+                    <div>
+                        <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Age</small>
+                        <span class="fw-bold text-dark">{{ dog.age_years }} yrs {% if dog.age_months %}{{ dog.age_months }} mo{% endif %}</span>
+                    </div>
+                    <div class="border-start border-end px-4">
+                        <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Weight</small>
+                        <span class="fw-bold text-dark">
+                            {% if dog.weight %}
+                                {{ dog.weight }} {{ dog.weight_unit }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Gender</small>
+                        <span class="fw-bold text-dark text-capitalize">
+                            {% if dog.gender|lower == 'male' %}
+                                <i class="fas fa-mars text-primary"></i>
+                            {% else %}
+                                <i class="fas fa-venus text-danger"></i>
+                            {% endif %}
+                            {{ dog.gender }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Details & Actions -->
+        <div class="col-lg-7" data-aos="fade-left" data-aos-delay="100">
+            
+            <!-- Header Section -->
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h1 class="display-4 fw-bolder text-dark mb-1">{{ dog.name }}</h1>
+                    <h5 class="text-muted fw-normal mb-3">
+                        <i class="fas fa-paw text-warning me-2"></i>
+                        {{ dog.breed }} 
+                        {% if dog.breed_type == 'crossbreed' and dog.secondary_breed %}
+                            x {{ dog.secondary_breed }}
+                        {% endif %}
+                    </h5>
+                </div>
+                
+                {% if dog.kci_registered %}
+                    <span class="badge bg-success text-white fw-bold rounded-pill shadow-sm px-3 py-2 fs-6">
+                        <i class="fas fa-check-circle me-1"></i> Verified Pedigree
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- Location & Owner -->
+            <div class="d-flex flex-wrap gap-3 mb-4 p-3 bg-white rounded-4 shadow-sm border">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-light text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block lh-1">Location</small>
+                        <span class="fw-bold text-dark">{{ dog.city }}{% if dog.state %}, {{ dog.state }}{% endif %}</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 ms-md-4">
+                    <div class="bg-light text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block lh-1">Owner</small>
+                        <span class="fw-bold text-dark">{{ dog.owner.username }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bio Section -->
+            <div class="mb-4">
+                <h5 class="fw-bold text-dark mb-3">About {{ dog.name }}</h5>
+                <div class="p-4 bg-white rounded-4 shadow-sm border text-muted" style="line-height: 1.7;">
+                    {{ dog.bio|default:"This owner hasn't written a bio yet. Reach out to learn more!"|linebreaks }}
+                </div>
+            </div>
+
+            <!-- Health & Breeding Info -->
+            <div class="mb-5">
+                <h5 class="fw-bold text-dark mb-3">Health & Breeding Terms</h5>
+                <ul class="list-group list-group-flush rounded-4 shadow-sm border overflow-hidden">
+                    <li class="list-group-item p-3 d-flex justify-content-between align-items-center bg-white">
+                        <span class="text-muted"><i class="fas fa-certificate text-primary me-2"></i> KCI Registration</span>
+                        <span class="fw-bold text-dark">
+                            {% if dog.kci_registered %}Yes ({{ dog.kci_number }}){% else %}No{% endif %}
+                        </span>
+                    </li>
+                    <li class="list-group-item p-3 d-flex justify-content-between align-items-center bg-white">
+                        <span class="text-muted"><i class="fas fa-syringe text-primary me-2"></i> Vaccinated</span>
+                        <span class="fw-bold {% if dog.is_vaccinated %}text-success{% else %}text-danger{% endif %}">
+                            {% if dog.is_vaccinated %}<i class="fas fa-check"></i> Up to date{% else %}<i class="fas fa-times"></i> No / Unknown{% endif %}
+                        </span>
+                    </li>
+                    <li class="list-group-item p-3 d-flex justify-content-between align-items-center bg-white">
+                        <span class="text-muted"><i class="fas fa-handshake text-primary me-2"></i> Mating Terms</span>
+                        <span class="fw-bold text-dark text-capitalize">{{ dog.get_mating_terms_display }}</span>
+                    </li>
+                    <li class="list-group-item p-3 d-flex justify-content-between align-items-center bg-white">
+                        <span class="text-muted"><i class="fas fa-car text-primary me-2"></i> Travel Range</span>
+                        <span class="fw-bold text-dark">{{ dog.get_travel_range_display }}</span>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div class="d-grid gap-2 d-md-flex justify-content-md-start pt-3 border-top">
+                {% if request.user == dog.owner %}
+                    <a href="{% url 'edit_dog' dog.id %}" class="btn btn-primary btn-lg fw-bold rounded-pill px-5 hover-lift">
+                        <i class="fas fa-edit me-2"></i> Edit Profile
+                    </a>
+                    <a href="{% url 'delete_dog' dog.id %}" class="btn btn-outline-danger btn-lg fw-bold rounded-pill px-4 hover-lift">
+                        <i class="fas fa-trash-alt"></i>
+                    </a>
+                {% else %}
+                    <!-- Like / Request Match Button for other owners -->
+                    <button type="button" class="btn btn-danger btn-lg fw-bold rounded-pill px-5 shadow-lg hover-lift" data-bs-toggle="modal" data-bs-target="#matchModal">
+                        <i class="fas fa-heart me-2"></i> Request Match
+                    </button>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Match Request Modal -->
+<div class="modal fade" id="matchModal" tabindex="-1" aria-labelledby="matchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-danger text-white px-4 py-3 border-0">
+                <h5 class="modal-title fw-bold" id="matchModalLabel"><i class="fas fa-heart text-white me-2"></i> Match Request</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form method="POST" action="{% url 'send_match_request' dog.id %}">
+                {% csrf_token %}
+                <div class="modal-body p-4 bg-light">
+                    <div class="text-center mb-4">
+                        <p class="text-muted mb-0">Send a breeding proposal to <strong>{{ dog.owner.username }}</strong> for <strong>{{ dog.name }}</strong>.</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark small text-uppercase">Select Your Dog</label>
+                        <select name="sender_dog" class="form-select form-select-lg border-0 shadow-sm" required>
+                            <option value="" disabled selected>Choose your dog to pair...</option>
+                            {% for my_dog in user_dogs %}
+                                <option value="{{ my_dog.id }}">{{ my_dog.name }} ({{ my_dog.breed }})</option>
+                            {% empty %}
+                                <option value="" disabled>No registered dogs found. Please register a dog first.</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark small text-uppercase">Intro Message (Optional)</label>
+                        <textarea name="message" class="form-control border-0 shadow-sm" rows="3" placeholder="Hi! I saw {{ dog.name }} and think our dogs would be a great match..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="modal-footer bg-white border-0 p-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary fw-bold rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4 shadow-sm hover-lift">
+                        <i class="fas fa-paper-plane me-1"></i> Send Proposal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

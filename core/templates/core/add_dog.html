@@ -1,0 +1,537 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<style>
+    /* 1. Force modern styling on standard Django form fields */
+    #dog-form input:not([type="radio"]):not([type="checkbox"]):not([type="hidden"]), 
+    #dog-form textarea, 
+    #dog-form select {
+        background-color: #f8f9fa !important;
+        border: 1px solid transparent !important;
+        border-radius: 0.5rem !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+        padding: 0.6rem 1rem !important;
+        width: 100%;
+        transition: all 0.2s ease-in-out;
+    }
+
+    /* Add a subtle blue glow when typing */
+    #dog-form input:focus, #dog-form textarea:focus, #dog-form select:focus {
+        background-color: #ffffff !important;
+        border: 1px solid #0d6efd !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+        outline: none;
+    }
+
+    /* 2. Format the outer wrappers */
+    .ts-control, .choices__inner {
+        background-color: #f8f9fa !important;
+        border: 1px solid transparent !important;
+        border-radius: 0.5rem !important;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+        padding: 0.6rem 1rem !important;
+        min-height: 45px;
+        display: flex;
+        align-items: center;
+    }
+
+    .ts-wrapper.focus .ts-control, .choices.is-focused .choices__inner {
+        background-color: #ffffff !important;
+        border: 1px solid #0d6efd !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+    }
+
+    /* 3. THE MAGIC FIX: Remove styling from the internal search boxes */
+    #dog-form .ts-control input,
+    #dog-form .choices__inner input {
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        outline: none !important;
+    }
+</style>
+<!-- Tom Select CSS & JS (For Breed Search) -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+<!-- Choices.js CSS & JS (For State/City Search) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+<!-- Premium UI Wrapper -->
+<section class="py-5" style="background-color: var(--bg-light); min-height: 80vh;">
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-10">
+                
+                <div class="card border-0 shadow-lg rounded-4 overflow-hidden" data-aos="fade-up">
+                    
+                    <!-- Form Header -->
+                    <div class="card-header bg-primary text-white p-4 border-0 text-center">
+                        <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                            <i class="fas fa-dog"></i>
+                        </div>
+                        <h3 class="fw-bold mb-1">{% if is_edit %}Update{% else %}Register{% endif %} Your Dog</h3>
+                        <p class="text-white-50 small mb-0">Fill in the details below to create a comprehensive breeding profile.</p>
+                    </div>
+
+                    <!-- Form Body -->
+                    <div class="card-body p-4 p-md-5 bg-white">
+
+                        <!-- Form Errors Alert -->
+                        {% if form.errors or image_form.errors %}
+                            <div class="alert alert-danger shadow-sm rounded-3 mb-4">
+                                <h5 class="fw-bold mb-2"><i class="fas fa-exclamation-triangle me-2"></i>Please fix the following errors:</h5>
+                                <ul class="mb-0">
+                                    {% for field in form %}
+                                        {% for error in field.errors %}
+                                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for field in image_form %}
+                                        {% for error in field.errors %}
+                                            <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+
+                        <!-- EXACT ORIGINAL FORM STARTS HERE -->
+                        <form method="POST" enctype="multipart/form-data" id="dog-form">
+                            {% csrf_token %}
+
+                            <!-- Basic Details -->
+                            <h5 class="text-primary fw-bold mb-3"><i class="fas fa-info-circle me-2"></i>Basic Details</h5>
+                            <div class="row g-3">
+                                <!-- Dog Name -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Dog Name <span class="text-danger">*</span></label>
+                                    {{ form.name }}
+                                </div>
+
+                                <!-- Breed Type (Purebred / Crossbreed) -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Breed Type <span class="text-danger">*</span></label>
+                                    {{ form.breed_type }}
+                                </div>
+
+                                <!-- Primary Breed Field -->
+                                <div class="col-md-6 position-relative" id="primary-breed-container">
+                                    <label class="form-label fw-bold" id="primary-breed-label">Breed <span class="text-danger">*</span></label>
+                                    <!-- Hardcoded input so it never disappears -->
+                                    <input type="text" name="breed" class="form-control" placeholder="Type or click to search breed..." required>
+                                </div>
+
+                                <!-- Age & Gender -->
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Age (Years) <span class="text-danger">*</span></label>
+                                    {{ form.age_years }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold">Age (Months) <span class="text-danger">*</span></label>
+                                    {{ form.age_months }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Gender <span class="text-danger">*</span></label>
+                                    {{ form.gender }}
+                                </div>
+
+                                <!-- Location -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">State <span class="text-danger">*</span></label>
+                                    {{ form.state }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">City <span class="text-danger">*</span></label>
+                                    {{ form.city }}
+                                </div>
+                            </div>
+
+                            <hr class="my-4 text-muted opacity-25">
+
+                            <!-- Physical Attributes -->
+                            <h5 class="text-primary fw-bold mb-3"><i class="fas fa-weight me-2"></i>Physical Attributes</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Weight Unit</label>
+                                    {{ form.weight_unit }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Weight Value</label>
+                                    {{ form.weight }}
+                                </div>
+                            </div>
+
+                            <hr class="my-4 text-muted opacity-25">
+
+                            <!-- Health & Pedigree -->
+                            <h5 class="text-primary fw-bold mb-3"><i class="fas fa-notes-medical me-2"></i>Health & Pedigree</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold d-block">Fully Vaccinated? <span class="text-danger">*</span></label>
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check" name="is_vaccinated" id="vac_yes" value="True" required>
+                                        <label class="btn btn-outline-success" for="vac_yes">Yes</label>
+                                        
+                                        <input type="radio" class="btn-check" name="is_vaccinated" id="vac_no" value="False" required>
+                                        <label class="btn btn-outline-danger" for="vac_no">No</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold d-block">KCI Registered? <span class="text-danger">*</span></label>
+                                    <div class="btn-group w-100" role="group">
+                                        <input type="radio" class="btn-check" name="kci_registered" id="kci_yes" value="True" required>
+                                        <label class="btn btn-outline-success" for="kci_yes">Yes</label>
+                                        
+                                        <input type="radio" class="btn-check" name="kci_registered" id="kci_no" value="False" required>
+                                        <label class="btn btn-outline-danger" for="kci_no">No</label>
+                                    </div>
+                                </div>
+
+                                <div id="kci-fields-container" class="col-12 row g-3 mt-1" style="display: none;">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">KCI Registration Number</label>
+                                        {{ form.kci_number }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Upload KCI Document</label>
+                                        {{ form.kci_document }}
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">Medical History / Vaccination Notes</label>
+                                    {{ form.medical_history }}
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">Lineage & Bloodline Details</label>
+                                    {{ form.lineage_details }}
+                                </div>
+                            </div>
+
+                            <hr class="my-4 text-muted opacity-25">
+
+                            <!-- Logistics & Mating Terms -->
+                            <h5 class="text-primary fw-bold mb-3"><i class="fas fa-handshake me-2"></i>Mating Terms & Logistics</h5>
+                            <div class="row g-3">
+                                <!-- HARDCODED PREVIOUS LITTERS INPUT -->
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Previous Litters <span class="text-danger">*</span></label>
+                                    <input type="number" name="previous_litters" class="form-control" min="0" value="0" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Mating Terms</label>
+                                    {{ form.mating_terms }}
+                                </div>
+
+                                <div class="col-md-4" id="stud-fee-container" style="display: none;">
+                                    <label class="form-label fw-bold">Expected Stud Fee (in ₹)</label>
+                                    {{ form.stud_fee_amount }}
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Shelter / Location</label>
+                                    {{ form.shelter_provider }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Willingness to Travel</label>
+                                    {{ form.travel_range }}
+                                </div>
+                            </div>
+
+                            <hr class="my-4 text-muted opacity-25">
+
+                            <!-- Behavioral Ratings -->
+                            <h5 class="text-primary fw-bold mb-3"><i class="fas fa-smile me-2"></i>Behavioral Traits (1 to 5 Stars)</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Dog Friendliness (1-5)</label>
+                                    {{ form.dog_friendly_rating }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Human Friendliness (1-5)</label>
+                                    {{ form.human_friendly_rating }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Energy Level (1-5)</label>
+                                    {{ form.energy_level_rating }}
+                                </div>
+                            </div>
+
+                            <hr class="my-4 text-muted opacity-25">
+
+                            <!-- Bio & Photos -->
+                            <h5 class="text-primary fw-bold mb-3"><i class="fas fa-camera me-2"></i>Bio & Gallery Photos</h5>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">Bio & Personality Description</label>
+                                    {{ form.bio }}
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">Upload Photos (Select Multiple)</label>
+                                    {{ image_form.images }}
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 mt-5">
+                                <button type="submit" class="btn btn-primary btn-lg fw-bold rounded-pill px-5 shadow-sm hover-lift">
+                                    {% if is_edit %}
+                                        <i class="fas fa-save me-2"></i>Update Dog Profile
+                                    {% else %}
+                                        <i class="fas fa-paw me-2"></i>Register Dog Profile
+                                    {% endif %}
+                                </button>     
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    // 1. Breed Options Lists
+    const purebredOptions = [
+        ["Affenpinscher", "Affenpinscher"], ["Afghan Hound", "Afghan Hound"], ["Airedale Terrier", "Airedale Terrier"],
+        ["Akita", "Akita"], ["Alaskan Malamute", "Alaskan Malamute"], ["American Bully", "American Bully"],
+        ["American Pit Bull Terrier", "American Pit Bull Terrier"], ["Australian Shepherd", "Australian Shepherd"],
+        ["Beagle", "Beagle"], ["Bernese Mountain Dog", "Bernese Mountain Dog"], ["Bichon Frise", "Bichon Frise"],
+        ["Border Collie", "Border Collie"], ["Boston Terrier", "Boston Terrier"], ["Boxer", "Boxer"],
+        ["Bullmastiff", "Bullmastiff"], ["Cane Corso", "Cane Corso"], ["Cavalier King Charles Spaniel", "Cavalier King Charles Spaniel"],
+        ["Chihuahua", "Chihuahua"], ["Chow Chow", "Chow Chow"], ["Cocker Spaniel", "Cocker Spaniel"],
+        ["Dachshund", "Dachshund"], ["Dalmatian", "Dalmatian"], ["Doberman Pinscher", "Doberman Pinscher"],
+        ["English Bulldog", "English Bulldog"], ["French Bulldog", "French Bulldog"], ["German Shepherd", "German Shepherd"],
+        ["Golden Retriever", "Golden Retriever"], ["Great Dane", "Great Dane"], ["Great Pyrenees", "Great Pyrenees"],
+        ["Greyhound", "Greyhound"], ["Indie / Native Breed", "Indie / Native Breed"], ["Jack Russell Terrier", "Jack Russell Terrier"],
+        ["Labrador Retriever", "Labrador Retriever"], ["Lhasa Apso", "Lhasa Apso"], ["Maltese", "Maltese"],
+        ["Miniature Pinscher", "Miniature Pinscher"], ["Pekingese", "Pekingese"], ["Pomeranian", "Pomeranian"],
+        ["Poodle (Standard)", "Poodle (Standard)"], ["Poodle (Toy)", "Poodle (Toy)"], ["Pug", "Pug"],
+        ["Rottweiler", "Rottweiler"], ["Saint Bernard", "Saint Bernard"], ["Samoyed", "Samoyed"],
+        ["Shih Tzu", "Shih Tzu"], ["Siberian Husky", "Siberian Husky"], ["Tibetan Mastiff", "Tibetan Mastiff"],
+        ["Whippet", "Whippet"], ["Other", "Other Purebred"]
+    ];
+
+    const crossbreedOptions = [
+        ["Airedoodle", "Airedoodle (Airedale Terrier + Poodle)"], ["Aussiedoodle", "Aussiedoodle (Australian Shepherd + Poodle)"],
+        ["Aussiepoo", "Aussiepoo (Australian Shepherd + Poodle)"], ["Baskerville", "Baskerville (Basset Hound + Beagle)"],
+        ["Beaglier", "Beaglier (Beagle + Cavalier King Charles)"], ["Bernedoodle", "Bernedoodle (Bernese Mountain Dog + Poodle)"],
+        ["Bichpoo", "Bichpoo / Poochon (Bichon Frise + Poodle)"], ["Bordoodle", "Bordoodle (Border Collie + Poodle)"],
+        ["Boxerdoodle", "Boxerdoodle (Boxer + Poodle)"], ["Bullpug", "Bullpug (English Bulldog + Pug)"],
+        ["Cavachon", "Cavachon (Cavalier King Charles + Bichon Frise)"], ["Cavapoo", "Cavapoo / Cavoodle (Cavalier King Charles + Poodle)"],
+        ["Chiweenie", "Chiweenie (Chihuahua + Dachshund)"], ["Chorkie", "Chorkie (Chihuahua + Yorkie)"],
+        ["Cockapoo", "Cockapoo (Cocker Spaniel + Poodle)"], ["Corgipoo", "Corgipoo (Corgi + Poodle)"],
+        ["Double Doodle", "Double Doodle (Goldendoodle + Labradoodle)"], ["Doxiepoo", "Doxiepoo (Dachshund + Poodle)"],
+        ["Frenchie Pug", "Frenchie Pug (French Bulldog + Pug)"], ["Gerberian Shepsky", "Gerberian Shepsky (German Shepherd + Husky)"],
+        ["Goberian", "Goberian (Golden Retriever + Siberian Husky)"], ["Goldendoodle", "Goldendoodle (Golden Retriever + Poodle)"],
+        ["Havapoo", "Havapoo (Havanese + Poodle)"], ["Huskydoodle", "Huskydoodle (Husky + Poodle)"],
+        ["Indie Mix", "Indie Mix / Native Crossbreed"], ["Labrabull", "Labrabull (Labrador + Pit Bull)"],
+        ["Labradoodle", "Labradoodle (Labrador Retriever + Poodle)"], ["Maltipoo", "Maltipoo (Maltese + Poodle)"],
+        ["Mini Goldendoodle", "Mini Goldendoodle (Golden Retriever + Toy Poodle)"], ["Mini Labradoodle", "Mini Labradoodle (Labrador + Toy Poodle)"],
+        ["Morkie", "Morkie (Maltese + Yorkshire Terrier)"], ["Peekapoo", "Peekapoo (Pekingese + Poodle)"],
+        ["Pitador", "Pitador (Pit Bull + Labrador)"], ["Pomapoo", "Pomapoo (Pomeranian + Poodle)"],
+        ["Pomchi", "Pomchi (Pomeranian + Chihuahua)"], ["Pomsky", "Pomsky (Pomeranian + Siberian Husky)"],
+        ["Puggle", "Puggle (Pug + Beagle)"], ["Pyredoodle", "Pyredoodle (Great Pyrenees + Poodle)"],
+        ["Rotticorso", "Rotticorso (Rottweiler + Cane Corso)"], ["Rottsky", "Rottsky (Rottweiler + Siberian Husky)"],
+        ["Schnoodle", "Schnoodle (Schnauzer + Poodle)"], ["Sheepadoodle", "Sheepadoodle (Old English Sheepdog + Poodle)"],
+        ["Shepsky", "Shepsky (German Shepherd + Husky)"], ["Shichon", "Shichon / Teddy Bear (Shih Tzu + Bichon Frise)"],
+        ["Shih-Poo", "Shih-Poo (Shih Tzu + Poodle)"], ["Shollie", "Shollie (German Shepherd + Collie)"],
+        ["Texas Heeler", "Texas Heeler (Australian Cattle Dog + Australian Shepherd)"], ["Whoodle", "Whoodle (Soft-Coated Wheaten Terrier + Poodle)"],
+        ["Yorkipoo", "Yorkipoo (Yorkshire Terrier + Poodle)"], ["Other Crossbreed", "Other / Custom Crossbreed"]
+    ];
+
+    // 2. Safely capture elements by Django field 'name' attributes
+    const breedInput = document.querySelector('[name="breed"]');
+    const breedTypeSelect = document.querySelector('[name="breed_type"]');
+    const primaryLabel = document.getElementById('primary-breed-label');
+
+    if (breedInput && breedTypeSelect) {
+
+        // 3. Initialize TomSelect 
+        let primaryTom = new TomSelect(breedInput, {
+            valueField: 'value',
+            maxItems: 1,           
+            create: false,
+            labelField: 'text',
+            searchField: 'text',
+            options: [],
+            create: false,
+            maxOptions: null,
+            placeholder: "Type or click to search breed..."
+        });
+
+        // 4. Function to populate TomSelect options
+        function fillSelect(tomInstance, optionsList) {
+            tomInstance.clear(true);
+            tomInstance.clearOptions();
+            
+            optionsList.forEach(opt => {
+                tomInstance.addOption({ value: opt[0], text: opt[1] });
+            });
+            
+            tomInstance.refreshOptions(false);
+        }
+
+        // 5. Handle Breed Type Switching
+        function handleBreedTypeChange() {
+            if (breedTypeSelect.value === 'crossbreed') {
+                if (primaryLabel) primaryLabel.innerHTML = 'Crossbreed / Mix <span class="text-danger">*</span>';
+                fillSelect(primaryTom, crossbreedOptions);
+            } else {
+                if (primaryLabel) primaryLabel.innerHTML = 'Breed <span class="text-danger">*</span>';
+                fillSelect(primaryTom, purebredOptions);
+            }
+        }
+
+        breedTypeSelect.addEventListener('change', handleBreedTypeChange);
+        handleBreedTypeChange(); // Run once on page load
+    }
+    // 6. State & City Selection (Choices.js)
+    const stateInput = document.querySelector('[name="state"]');
+    const cityInput = document.querySelector('[name="city"]');
+
+    if (stateInput && cityInput) {
+        let stateChoices = new Choices(stateInput, { searchEnabled: true, renderChoiceLimit: 50 });
+        let cityChoices = new Choices(cityInput, { searchEnabled: true, renderChoiceLimit: 100 });
+
+        fetch("https://countriesnow.space/api/v0.1/countries/states", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ country: "India" })
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.data && d.data.states) {
+                stateChoices.setChoices(d.data.states.map(s => ({ value: s.name, label: s.name })), 'value', 'label', true);
+            }
+        });
+
+        stateInput.addEventListener('change', function () {
+            cityChoices.clearStore();
+            fetch("https://countriesnow.space/api/v0.1/countries/state/cities", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ country: "India", state: this.value })
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.data) {
+                    cityChoices.setChoices(d.data.map(c => ({ value: c, label: c })), 'value', 'label', true);
+                }
+            });
+        });
+    }
+
+    // 7. KCI Toggle
+    const kciYes = document.getElementById('kci_yes');
+    const kciNo = document.getElementById('kci_no');
+    const kciContainer = document.getElementById('kci-fields-container');
+    function toggleKCI() { 
+        if (kciContainer && kciYes) {
+            kciContainer.style.display = kciYes.checked ? 'flex' : 'none'; 
+        }
+    }
+    if (kciYes && kciNo) { 
+        kciYes.addEventListener('change', toggleKCI); 
+        kciNo.addEventListener('change', toggleKCI); 
+    }
+
+    // 8. Stud Fee Toggle
+    const matingSelect = document.querySelector('[name="mating_terms"]');
+    const studFeeContainer = document.getElementById('stud-fee-container');
+    if (matingSelect && studFeeContainer) {
+        matingSelect.addEventListener('change', function() {
+            studFeeContainer.style.display = this.value === 'stud_fee' ? 'block' : 'none';
+        });
+    }
+
+}); // Closing DOMContentLoaded
+</script>
+<!-- PRE-FILL DATA FOR EDIT MODE -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Safe boolean evaluation that won't confuse VS Code linter
+        const isEditMode = "{{ is_edit|default:'False' }}" === "True";
+        
+        if (isEditMode) {
+            // 1. Pre-fill KCI Registered Radios
+            const isKci = "{{ dog.kci_registered|default:'False' }}" === "True";
+            const kciTrue = document.querySelector('input[name="kci_registered"][value="True"]');
+            const kciFalse = document.querySelector('input[name="kci_registered"][value="False"]');
+            
+            if (kciTrue && kciFalse) {
+                if (isKci) {
+                    kciTrue.checked = true;
+                } else {
+                    kciFalse.checked = true;
+                }
+            }
+
+            // 2. Pre-fill Vaccinated Radios
+            const isVac = "{{ dog.is_vaccinated|default:'False' }}" === "True";
+            const vacTrue = document.querySelector('input[name="is_vaccinated"][value="True"]');
+            const vacFalse = document.querySelector('input[name="is_vaccinated"][value="False"]');
+            
+            if (vacTrue && vacFalse) {
+                if (isVac) {
+                    vacTrue.checked = true;
+                } else {
+                    vacFalse.checked = true;
+                }
+            }
+
+            // 3. Pre-fill State and City
+            const stateSelect = document.querySelector('[name="state"]');
+            const citySelect = document.querySelector('[name="city"]');
+            
+            if (stateSelect) {
+                stateSelect.value = "{{ dog.state|default:''|escapejs }}";
+                stateSelect.dispatchEvent(new Event('change')); 
+            }
+            
+            setTimeout(function() {
+                if (citySelect) {
+                    citySelect.value = "{{ dog.city|default:''|escapejs }}";
+                }
+            }, 300);
+
+            // 4. Pre-fill TomSelect Breed
+            const savedBreed = "{{ dog.breed|default:''|escapejs }}";
+            const breedInput = document.querySelector('[name="breed"]');
+            
+            setTimeout(function() {
+                if (breedInput && breedInput.tomselect && savedBreed) {
+                    breedInput.tomselect.addOption({ value: savedBreed, text: savedBreed });
+                    breedInput.tomselect.setValue(savedBreed);
+                }
+            }, 100);
+        }
+    });
+
+    document.addEventListener("DOMContentLoaded", function() {
+        // This targets all inputs, selects, and textareas inside your original form
+        const formElements = document.querySelectorAll('form input, form select, form textarea');
+        
+        formElements.forEach(el => {
+            // Skip checkboxes/radios so we don't break your Yes/No toggles
+            if (el.type === 'checkbox' || el.type === 'radio') {
+                return;
+            }
+            
+            // Apply nice Bootstrap styling to everything else
+            if (el.tagName.toLowerCase() === 'select') {
+                el.classList.add('form-select', 'bg-light', 'border-0', 'shadow-sm', 'py-2', 'mb-3');
+            } else {
+                el.classList.add('form-control', 'bg-light', 'border-0', 'shadow-sm', 'py-2', 'mb-3');
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- 1. HERO SECTION -->
+<section class="position-relative overflow-hidden bg-primary text-white" style="padding: 120px 0;">
+    <!-- Abstract Background Elements -->
+    <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.95) 0%, rgba(67, 56, 202, 0.8) 100%); z-index: 1;"></div>
+    <div class="position-absolute rounded-circle" style="width: 600px; height: 600px; background: rgba(255,255,255,0.05); top: -200px; right: -100px; z-index: 0;"></div>
+    
+    <div class="container position-relative" style="z-index: 2;">
+        <div class="row align-items-center">
+            <div class="col-lg-7" data-aos="fade-right">
+                <span class="badge bg-white text-primary mb-3 py-2 px-3 fw-bold rounded-pill shadow-sm">
+                    <i class="fas fa-star text-warning me-1"></i> The #1 Verified Breeding Network
+                </span>
+                <h1 class="display-3 fw-bolder mb-4" style="line-height: 1.2;">
+                    Find the Perfect Match for Your Dog's Lineage.
+                </h1>
+                <p class="lead mb-5 opacity-75" style="max-width: 550px;">
+                    Connect with responsible owners, verify KCI pedigrees, and secure ethical breeding matches with our dedicated platform.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    <a href="{% url 'explore_dogs' %}" class="btn btn-warning btn-lg fw-bold px-4 rounded-pill shadow-lg hover-lift">
+                        <i class="fas fa-search me-2"></i> Browse Matches
+                    </a>
+                    {% if not user.is_authenticated %}
+                        <a href="{% url 'register' %}" class="btn btn-outline-light btn-lg fw-bold px-4 rounded-pill hover-lift">
+                            Join the Community
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="col-lg-5 d-none d-lg-block" data-aos="fade-left" data-aos-delay="200">
+                <!-- A placeholder for a hero image (you can replace the icon with an actual image later) -->
+                <div class="bg-white rounded-5 shadow-lg p-5 text-center position-relative hover-lift">
+                    <div class="position-absolute top-0 start-0 w-100 h-100 rounded-5" style="border: 2px dashed var(--primary-brand); transform: scale(1.05); opacity: 0.2;"></div>
+                    <i class="fas fa-dog text-primary" style="font-size: 8rem;"></i>
+                    <h4 class="mt-4 fw-bold text-dark">Ethical. Verified. Safe.</h4>
+                    <p class="text-muted small mb-0">Join hundreds of responsible breeders today.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 2. LIVE STATS BAR -->
+<section class="py-4 bg-white border-bottom shadow-sm position-relative" style="z-index: 10;">
+    <div class="container">
+        <div class="row text-center g-4">
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                <h2 class="display-6 fw-bold text-primary mb-0">{{ total_dogs }}</h2>
+                <p class="text-muted fw-semibold small text-uppercase tracking-wider mb-0">Registered Dogs</p>
+            </div>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+                <h2 class="display-6 fw-bold text-primary mb-0">{{ total_owners }}</h2>
+                <p class="text-muted fw-semibold small text-uppercase tracking-wider mb-0">Active Owners</p>
+            </div>
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+                <h2 class="display-6 fw-bold text-primary mb-0">{{ successful_matches }}</h2>
+                <p class="text-muted fw-semibold small text-uppercase tracking-wider mb-0">Successful Matches</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 3. HOW IT WORKS -->
+<section class="py-5" style="background-color: var(--bg-light);">
+    <div class="container py-5">
+        <div class="text-center mb-5" data-aos="fade-up">
+            <h2 class="fw-bold mb-2">How K9Match Works</h2>
+            <p class="text-muted">Three simple steps to finding the perfect breeding partner.</p>
+        </div>
+        
+        <div class="row g-4">
+            <!-- Step 1 -->
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center hover-lift">
+                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4" style="width: 80px; height: 80px; font-size: 2rem;">
+                        1
+                    </div>
+                    <h5 class="fw-bold">Create a Profile</h5>
+                    <p class="text-muted small mb-0">Add your dog's photos, KCI registration, health history, and lineage details.</p>
+                </div>
+            </div>
+            
+            <!-- Step 2 -->
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center hover-lift">
+                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4" style="width: 80px; height: 80px; font-size: 2rem;">
+                        2
+                    </div>
+                    <h5 class="fw-bold">Find a Match</h5>
+                    <p class="text-muted small mb-0">Browse through our directory. Filter by breed, location, and certification.</p>
+                </div>
+            </div>
+            
+            <!-- Step 3 -->
+            <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 text-center hover-lift">
+                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-4" style="width: 80px; height: 80px; font-size: 2rem;">
+                        3
+                    </div>
+                    <h5 class="fw-bold">Connect & Chat</h5>
+                    <p class="text-muted small mb-0">Send a match request. Once accepted, use our secure chat to discuss terms.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 4. CALL TO ACTION -->
+<section class="py-5 bg-white">
+    <div class="container py-5">
+        <div class="bg-dark text-white rounded-5 p-5 position-relative overflow-hidden shadow-lg" data-aos="zoom-in">
+            <!-- Decorative circle -->
+            <div class="position-absolute rounded-circle bg-white opacity-10" style="width: 300px; height: 300px; top: -150px; right: 10%;"></div>
+            
+            <div class="row align-items-center position-relative z-index-2">
+                <div class="col-md-8 text-center text-md-start mb-4 mb-md-0">
+                    <h3 class="fw-bold mb-2">Ready to list your dog?</h3>
+                    <p class="text-white-50 mb-0">Join the fastest growing ethical breeding network today.</p>
+                </div>
+                <div class="col-md-4 text-center text-md-end">
+                    <a href="{% url 'add_dog' %}" class="btn btn-warning btn-lg fw-bold rounded-pill hover-lift">
+                        <i class="fas fa-plus-circle me-1"></i> Register Your Dog
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
