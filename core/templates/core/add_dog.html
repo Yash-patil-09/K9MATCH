@@ -121,8 +121,7 @@
                                 <!-- Primary Breed Field -->
                                 <div class="col-md-6 position-relative" id="primary-breed-container">
                                     <label class="form-label fw-bold" id="primary-breed-label">Breed <span class="text-danger">*</span></label>
-                                    <!-- Hardcoded input so it never disappears -->
-                                    <input type="text" name="breed" class="form-control" placeholder="Type or click to search breed..." required>
+                                    <input type="text" name="breed" id="primary-breed-input" class="form-control" placeholder="Type or click to search breed..." value="{{ dog.breed|default:form.breed.value|default:'' }}" required>
                                 </div>
 
                                 <!-- Age & Gender -->
@@ -142,11 +141,27 @@
                                 <!-- Location -->
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">State <span class="text-danger">*</span></label>
-                                    {{ form.state }}
+                                    <select name="state" class="form-select search-select" id="state-select" required>
+                                        {% if dog.state %}
+                                            <option value="{{ dog.state }}" selected>{{ dog.state }}</option>
+                                        {% elif form.state.value %}
+                                            <option value="{{ form.state.value }}" selected>{{ form.state.value }}</option>
+                                        {% else %}
+                                            <option value="">Select State...</option>
+                                        {% endif %}
+                                    </select>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold">City <span class="text-danger">*</span></label>
-                                    {{ form.city }}
+                                    <select name="city" class="form-select search-select" id="city-select" required>
+                                        {% if dog.city %}
+                                            <option value="{{ dog.city }}" selected>{{ dog.city }}</option>
+                                        {% elif form.city.value %}
+                                            <option value="{{ form.city.value }}" selected>{{ form.city.value }}</option>
+                                        {% else %}
+                                            <option value="">Select City...</option>
+                                        {% endif %}
+                                    </select>
                                 </div>
                             </div>
 
@@ -156,11 +171,11 @@
                             <h5 class="text-primary fw-bold mb-3"><i class="fas fa-weight me-2"></i>Physical Attributes</h5>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">Weight Unit</label>
+                                    <label class="form-label fw-bold">Weight Unit <span class="text-danger">*</span></label>
                                     {{ form.weight_unit }}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">Weight Value</label>
+                                    <label class="form-label fw-bold">Weight Value <span class="text-danger">*</span></label>
                                     {{ form.weight }}
                                 </div>
                             </div>
@@ -173,10 +188,12 @@
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold d-block">Fully Vaccinated? <span class="text-danger">*</span></label>
                                     <div class="btn-group w-100" role="group">
-                                        <input type="radio" class="btn-check" name="is_vaccinated" id="vac_yes" value="True" required>
+                                        <input type="radio" class="btn-check" name="is_vaccinated" id="vac_yes" value="True" 
+                                            {% if not is_edit and not form.is_vaccinated.value or dog.is_vaccinated or form.is_vaccinated.value == True or form.is_vaccinated.value == 'True' %}checked{% endif %} required>
                                         <label class="btn btn-outline-success" for="vac_yes">Yes</label>
                                         
-                                        <input type="radio" class="btn-check" name="is_vaccinated" id="vac_no" value="False" required>
+                                        <input type="radio" class="btn-check" name="is_vaccinated" id="vac_no" value="False" 
+                                            {% if is_edit and not dog.is_vaccinated or form.is_vaccinated.value == False or form.is_vaccinated.value == 'False' %}checked{% endif %} required>
                                         <label class="btn btn-outline-danger" for="vac_no">No</label>
                                     </div>
                                 </div>
@@ -184,17 +201,19 @@
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold d-block">KCI Registered? <span class="text-danger">*</span></label>
                                     <div class="btn-group w-100" role="group">
-                                        <input type="radio" class="btn-check" name="kci_registered" id="kci_yes" value="True" required>
+                                        <input type="radio" class="btn-check" name="kci_registered" id="kci_yes" value="True" 
+                                            {% if dog.kci_registered or form.kci_registered.value == True or form.kci_registered.value == 'True' %}checked{% endif %} required>
                                         <label class="btn btn-outline-success" for="kci_yes">Yes</label>
                                         
-                                        <input type="radio" class="btn-check" name="kci_registered" id="kci_no" value="False" required>
+                                        <input type="radio" class="btn-check" name="kci_registered" id="kci_no" value="False" 
+                                            {% if not dog.kci_registered and is_edit or not is_edit and not form.kci_registered.value or form.kci_registered.value == False or form.kci_registered.value == 'False' %}checked{% endif %} required>
                                         <label class="btn btn-outline-danger" for="kci_no">No</label>
                                     </div>
                                 </div>
 
-                                <div id="kci-fields-container" class="col-12 row g-3 mt-1" style="display: none;">
+                                <div id="kci-fields-container" class="col-12 row g-3 mt-1" style="display: {% if dog.kci_registered or form.kci_registered.value == True or form.kci_registered.value == 'True' %}flex{% else %}none{% endif %};">
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">KCI Registration Number</label>
+                                        <label class="form-label fw-bold">KCI Registration Number <span class="text-danger">*</span></label>
                                         {{ form.kci_number }}
                                     </div>
                                     <div class="col-md-6">
@@ -221,25 +240,50 @@
                                 <!-- HARDCODED PREVIOUS LITTERS INPUT -->
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold">Previous Litters <span class="text-danger">*</span></label>
-                                    <input type="number" name="previous_litters" class="form-control" min="0" value="0" required>
+                                    <input type="number" name="previous_litters" class="form-control" min="0" value="{{ dog.previous_litters|default:form.previous_litters.value|default:'0' }}" required>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Mating Terms</label>
+                                    <label class="form-label fw-bold">Mating Terms <span class="text-danger">*</span></label>
                                     {{ form.mating_terms }}
                                 </div>
 
-                                <div class="col-md-4" id="stud-fee-container" style="display: none;">
-                                    <label class="form-label fw-bold">Expected Stud Fee (in ₹)</label>
+                                <div class="col-md-4" id="stud-fee-container" style="display: {% if dog.mating_terms == 'stud_fee' or form.mating_terms.value == 'stud_fee' %}block{% else %}none{% endif %};">
+                                    <label class="form-label fw-bold">Expected Stud Fee (in ₹) <span class="text-danger">*</span></label>
                                     {{ form.stud_fee_amount }}
                                 </div>
 
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Shelter / Location</label>
+                                    <label class="form-label fw-bold">Shelter / Location <span class="text-danger">*</span></label>
                                     {{ form.shelter_provider }}
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Willingness to Travel</label>
+                                    <label class="form-label fw-bold">Willingness to Travel <span class="text-danger">*</span></label>
                                     {{ form.travel_range }}
+                                </div>
+
+                                <!-- Available for Mating Toggle (Epic 1 Task 2.2) -->
+                                <div class="col-12 mt-3">
+                                    <div class="p-3 bg-light rounded-4 border">
+                                        <label class="form-label fw-bold d-block mb-1">
+                                             Is your dog currently available for mating? <span class="text-danger">*</span>
+                                        </label>
+                                        <p class="text-muted small mb-3">
+                                            Selecting <strong>Yes</strong> enters the dog into the public search pool on the "Find Matches" page (subject to admin approval). Selecting <strong>No</strong> creates the profile as <em>Hidden</em> (private to your account).
+                                        </p>
+                                        <div class="btn-group w-100" role="group">
+                                            <input type="radio" class="btn-check" name="is_available" id="avail_yes" value="True" 
+                                                {% if not is_edit and not form.is_available.value or dog.is_available or form.is_available.value == True or form.is_available.value == 'True' %}checked{% endif %} required>
+                                            <label class="btn btn-outline-success py-2 fw-semibold" for="avail_yes">
+                                                <i class="fas fa-check-circle me-1"></i> Yes, Available for Mating
+                                            </label>
+                                            
+                                            <input type="radio" class="btn-check" name="is_available" id="avail_no" value="False" 
+                                                {% if is_edit and not dog.is_available or form.is_available.value == False or form.is_available.value == 'False' %}checked{% endif %} required>
+                                            <label class="btn btn-outline-secondary py-2 fw-semibold" for="avail_no">
+                                                <i class="fas fa-eye-slash me-1"></i> No, Keep Profile Hidden
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -249,15 +293,15 @@
                             <h5 class="text-primary fw-bold mb-3"><i class="fas fa-smile me-2"></i>Behavioral Traits (1 to 5 Stars)</h5>
                             <div class="row g-3">
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Dog Friendliness (1-5)</label>
+                                    <label class="form-label fw-bold">Dog Friendliness (1-5) <span class="text-danger">*</span></label>
                                     {{ form.dog_friendly_rating }}
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Human Friendliness (1-5)</label>
+                                    <label class="form-label fw-bold">Human Friendliness (1-5) <span class="text-danger">*</span></label>
                                     {{ form.human_friendly_rating }}
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold">Energy Level (1-5)</label>
+                                    <label class="form-label fw-bold">Energy Level (1-5) <span class="text-danger">*</span></label>
                                     {{ form.energy_level_rating }}
                                 </div>
                             </div>
@@ -272,13 +316,14 @@
                                     {{ form.bio }}
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label fw-bold">Upload Photos (Select Multiple)</label>
+                                    <label class="form-label fw-bold">Upload Photos (Select Multiple) {% if not is_edit %}<span class="text-danger">*</span>{% endif %}</label>
                                     {{ image_form.images }}
+                                    <small class="text-muted d-block mt-1">Upload clear photos showing your dog's face and build.</small>
                                 </div>
                             </div>
 
                             <div class="d-grid gap-2 mt-5">
-                                <button type="submit" class="btn btn-primary btn-lg fw-bold rounded-pill px-5 shadow-sm hover-lift">
+                                <button type="submit" id="submit-btn" class="btn btn-primary btn-lg fw-bold rounded-pill px-5 shadow-sm hover-lift">
                                     {% if is_edit %}
                                         <i class="fas fa-save me-2"></i>Update Dog Profile
                                     {% else %}
@@ -297,6 +342,10 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    const isEditMode = "{{ is_edit|default:'False' }}" === "True";
+    const savedBreed = "{{ dog.breed|default:form.breed.value|default:''|escapejs }}";
+    const currentState = "{{ dog.state|default:selected_state|default:''|escapejs }}";
+    const currentCity = "{{ dog.city|default:selected_city|default:''|escapejs }}";
 
     // 1. Breed Options Lists
     const purebredOptions = [
@@ -347,27 +396,24 @@ document.addEventListener("DOMContentLoaded", function () {
         ["Yorkipoo", "Yorkipoo (Yorkshire Terrier + Poodle)"], ["Other Crossbreed", "Other / Custom Crossbreed"]
     ];
 
-    // 2. Safely capture elements by Django field 'name' attributes
-    const breedInput = document.querySelector('[name="breed"]');
+    // 2. TomSelect Breed Initialization
+    const breedInput = document.getElementById('primary-breed-input') || document.querySelector('[name="breed"]');
     const breedTypeSelect = document.querySelector('[name="breed_type"]');
     const primaryLabel = document.getElementById('primary-breed-label');
+    let primaryTom = null;
 
     if (breedInput && breedTypeSelect) {
-
-        // 3. Initialize TomSelect 
-        let primaryTom = new TomSelect(breedInput, {
+        primaryTom = new TomSelect(breedInput, {
             valueField: 'value',
             maxItems: 1,           
             create: false,
             labelField: 'text',
             searchField: 'text',
             options: [],
-            create: false,
             maxOptions: null,
             placeholder: "Type or click to search breed..."
         });
 
-        // 4. Function to populate TomSelect options
         function fillSelect(tomInstance, optionsList) {
             tomInstance.clear(true);
             tomInstance.clearOptions();
@@ -379,8 +425,8 @@ document.addEventListener("DOMContentLoaded", function () {
             tomInstance.refreshOptions(false);
         }
 
-        // 5. Handle Breed Type Switching
         function handleBreedTypeChange() {
+            const currentBreedVal = breedInput.value || savedBreed;
             if (breedTypeSelect.value === 'crossbreed') {
                 if (primaryLabel) primaryLabel.innerHTML = 'Crossbreed / Mix <span class="text-danger">*</span>';
                 fillSelect(primaryTom, crossbreedOptions);
@@ -388,18 +434,62 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (primaryLabel) primaryLabel.innerHTML = 'Breed <span class="text-danger">*</span>';
                 fillSelect(primaryTom, purebredOptions);
             }
+            if (currentBreedVal) {
+                primaryTom.addOption({ value: currentBreedVal, text: currentBreedVal });
+                primaryTom.setValue(currentBreedVal, true);
+                breedInput.value = currentBreedVal;
+            }
         }
 
         breedTypeSelect.addEventListener('change', handleBreedTypeChange);
-        handleBreedTypeChange(); // Run once on page load
+        handleBreedTypeChange();
+
+        if (savedBreed) {
+            primaryTom.addOption({ value: savedBreed, text: savedBreed });
+            primaryTom.setValue(savedBreed, true);
+            breedInput.value = savedBreed;
+        }
     }
-    // 6. State & City Selection (Choices.js)
-    const stateInput = document.querySelector('[name="state"]');
-    const cityInput = document.querySelector('[name="city"]');
+
+    // 3. State & City Cascading (Choices.js)
+    const stateInput = document.getElementById('state-select') || document.querySelector('[name="state"]');
+    const cityInput = document.getElementById('city-select') || document.querySelector('[name="city"]');
+    let stateChoices = null;
+    let cityChoices = null;
 
     if (stateInput && cityInput) {
-        let stateChoices = new Choices(stateInput, { searchEnabled: true, renderChoiceLimit: 50 });
-        let cityChoices = new Choices(cityInput, { searchEnabled: true, renderChoiceLimit: 100 });
+        stateChoices = new Choices(stateInput, { searchEnabled: true, shouldSort: false, renderChoiceLimit: 50 });
+        cityChoices = new Choices(cityInput, { searchEnabled: true, shouldSort: false, renderChoiceLimit: 100 });
+
+        function loadCities(stateName, selectedCity) {
+            cityChoices.clearStore();
+            if (!stateName) {
+                cityChoices.setChoices([{ value: '', label: 'Select City...' }], 'value', 'label', true);
+                return;
+            }
+            fetch("https://countriesnow.space/api/v0.1/countries/state/cities", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ country: "India", state: stateName })
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.data && d.data.length > 0) {
+                    const citiesData = [{ value: '', label: 'Select City...' }].concat(
+                        d.data.map(c => ({ value: c, label: c }))
+                    );
+                    cityChoices.setChoices(citiesData, 'value', 'label', true);
+                    const targetCity = selectedCity || currentCity;
+                    if (targetCity) {
+                        cityChoices.setChoiceByValue(targetCity);
+                        cityInput.value = targetCity;
+                    }
+                }
+            })
+            .catch(err => {
+                console.warn("Cities API warning:", err);
+            });
+        }
 
         fetch("https://countriesnow.space/api/v0.1/countries/states", {
             method: "POST",
@@ -409,27 +499,27 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(r => r.json())
         .then(d => {
             if (d.data && d.data.states) {
-                stateChoices.setChoices(d.data.states.map(s => ({ value: s.name, label: s.name })), 'value', 'label', true);
+                const statesData = [{ value: '', label: 'Select State...' }].concat(
+                    d.data.states.map(s => ({ value: s.name, label: s.name }))
+                );
+                stateChoices.setChoices(statesData, 'value', 'label', true);
+                if (currentState) {
+                    stateChoices.setChoiceByValue(currentState);
+                    stateInput.value = currentState;
+                    loadCities(currentState, currentCity);
+                }
             }
+        })
+        .catch(err => {
+            console.warn("States API warning:", err);
         });
 
         stateInput.addEventListener('change', function () {
-            cityChoices.clearStore();
-            fetch("https://countriesnow.space/api/v0.1/countries/state/cities", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ country: "India", state: this.value })
-            })
-            .then(r => r.json())
-            .then(d => {
-                if (d.data) {
-                    cityChoices.setChoices(d.data.map(c => ({ value: c, label: c })), 'value', 'label', true);
-                }
-            });
+            loadCities(this.value, '');
         });
     }
 
-    // 7. KCI Toggle
+    // 4. KCI Toggle
     const kciYes = document.getElementById('kci_yes');
     const kciNo = document.getElementById('kci_no');
     const kciContainer = document.getElementById('kci-fields-container');
@@ -443,7 +533,7 @@ document.addEventListener("DOMContentLoaded", function () {
         kciNo.addEventListener('change', toggleKCI); 
     }
 
-    // 8. Stud Fee Toggle
+    // 5. Stud Fee Toggle
     const matingSelect = document.querySelector('[name="mating_terms"]');
     const studFeeContainer = document.getElementById('stud-fee-container');
     if (matingSelect && studFeeContainer) {
@@ -452,86 +542,153 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-}); // Closing DOMContentLoaded
-</script>
-<!-- PRE-FILL DATA FOR EDIT MODE -->
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // Safe boolean evaluation that won't confuse VS Code linter
-        const isEditMode = "{{ is_edit|default:'False' }}" === "True";
-        
-        if (isEditMode) {
-            // 1. Pre-fill KCI Registered Radios
-            const isKci = "{{ dog.kci_registered|default:'False' }}" === "True";
-            const kciTrue = document.querySelector('input[name="kci_registered"][value="True"]');
-            const kciFalse = document.querySelector('input[name="kci_registered"][value="False"]');
-            
-            if (kciTrue && kciFalse) {
-                if (isKci) {
-                    kciTrue.checked = true;
-                } else {
-                    kciFalse.checked = true;
+    // 6. Form Submission Validation & Feedback
+    const dogForm = document.getElementById('dog-form');
+    if (dogForm) {
+        dogForm.addEventListener('submit', function(e) {
+            let hasErrors = false;
+            let missingList = [];
+
+            // Remove previous error alerts and highlights
+            document.querySelectorAll('.border-danger').forEach(el => el.classList.remove('border-danger'));
+            const oldAlert = document.getElementById('client-validation-alert');
+            if (oldAlert) oldAlert.remove();
+
+            // Sync TomSelect value
+            if (breedInput && primaryTom) {
+                const tVal = primaryTom.getValue();
+                if (tVal) breedInput.value = tVal;
+            }
+
+            // Sync Choices values
+            if (stateChoices && stateInput) {
+                const sVal = stateChoices.getValue(true);
+                if (sVal) stateInput.value = sVal;
+            }
+            if (cityChoices && cityInput) {
+                const cVal = cityChoices.getValue(true);
+                if (cVal) cityInput.value = cVal;
+            }
+
+            // 1. Dog Name
+            const nameInput = document.querySelector('[name="name"]');
+            if (!nameInput || !nameInput.value.trim()) {
+                hasErrors = true;
+                nameInput?.classList.add('border-danger');
+                missingList.push("Dog Name");
+            }
+
+            // 2. Breed
+            if (!breedInput || !breedInput.value.trim()) {
+                hasErrors = true;
+                document.querySelector('#primary-breed-container .ts-control')?.classList.add('border-danger');
+                missingList.push("Breed");
+            }
+
+            // 3. Age Years
+            const ageYears = document.querySelector('[name="age_years"]');
+            if (!ageYears || ageYears.value.trim() === '') {
+                hasErrors = true;
+                ageYears?.classList.add('border-danger');
+                missingList.push("Age (Years)");
+            }
+
+            // 4. Gender
+            const gender = document.querySelector('[name="gender"]');
+            if (!gender || !gender.value.trim()) {
+                hasErrors = true;
+                gender?.classList.add('border-danger');
+                missingList.push("Gender");
+            }
+
+            // 5. State & City
+            if (!stateInput || !stateInput.value.trim()) {
+                hasErrors = true;
+                stateInput?.closest('.choices')?.classList.add('border-danger');
+                missingList.push("State");
+            }
+            if (!cityInput || !cityInput.value.trim()) {
+                hasErrors = true;
+                cityInput?.closest('.choices')?.classList.add('border-danger');
+                missingList.push("City");
+            }
+
+            // 6. Weight
+            const weightInput = document.querySelector('[name="weight"]');
+            if (!weightInput || !weightInput.value.trim() || parseFloat(weightInput.value) <= 0) {
+                hasErrors = true;
+                weightInput?.classList.add('border-danger');
+                missingList.push("Weight Value");
+            }
+
+            // 7. Fully Vaccinated
+            const vacChecked = document.querySelector('input[name="is_vaccinated"]:checked');
+            if (!vacChecked) {
+                hasErrors = true;
+                missingList.push("Fully Vaccinated");
+            }
+
+            // 8. KCI Registered & Number if True
+            const kciChecked = document.querySelector('input[name="kci_registered"]:checked');
+            if (!kciChecked) {
+                hasErrors = true;
+                missingList.push("KCI Registered");
+            } else if (kciChecked.value === 'True') {
+                const kciNumber = document.querySelector('[name="kci_number"]');
+                if (!kciNumber || !kciNumber.value.trim()) {
+                    hasErrors = true;
+                    kciNumber?.classList.add('border-danger');
+                    missingList.push("KCI Registration Number");
                 }
             }
 
-            // 2. Pre-fill Vaccinated Radios
-            const isVac = "{{ dog.is_vaccinated|default:'False' }}" === "True";
-            const vacTrue = document.querySelector('input[name="is_vaccinated"][value="True"]');
-            const vacFalse = document.querySelector('input[name="is_vaccinated"][value="False"]');
-            
-            if (vacTrue && vacFalse) {
-                if (isVac) {
-                    vacTrue.checked = true;
-                } else {
-                    vacFalse.checked = true;
+            // 9. Mating Terms & Stud Fee
+            if (matingSelect && matingSelect.value === 'stud_fee') {
+                const studFee = document.querySelector('[name="stud_fee_amount"]');
+                if (!studFee || !studFee.value.trim() || parseFloat(studFee.value) <= 0) {
+                    hasErrors = true;
+                    studFee?.classList.add('border-danger');
+                    missingList.push("Expected Stud Fee");
                 }
             }
 
-            // 3. Pre-fill State and City
-            const stateSelect = document.querySelector('[name="state"]');
-            const citySelect = document.querySelector('[name="city"]');
-            
-            if (stateSelect) {
-                stateSelect.value = "{{ dog.state|default:''|escapejs }}";
-                stateSelect.dispatchEvent(new Event('change')); 
+            // 10. Available for Mating
+            const availChecked = document.querySelector('input[name="is_available"]:checked');
+            if (!availChecked) {
+                hasErrors = true;
+                missingList.push("Available for Mating");
             }
-            
-            setTimeout(function() {
-                if (citySelect) {
-                    citySelect.value = "{{ dog.city|default:''|escapejs }}";
-                }
-            }, 300);
 
-            // 4. Pre-fill TomSelect Breed
-            const savedBreed = "{{ dog.breed|default:''|escapejs }}";
-            const breedInput = document.querySelector('[name="breed"]');
-            
-            setTimeout(function() {
-                if (breedInput && breedInput.tomselect && savedBreed) {
-                    breedInput.tomselect.addOption({ value: savedBreed, text: savedBreed });
-                    breedInput.tomselect.setValue(savedBreed);
-                }
-            }, 100);
-        }
-    });
+            const submitBtn = document.getElementById('submit-btn');
 
-    document.addEventListener("DOMContentLoaded", function() {
-        // This targets all inputs, selects, and textareas inside your original form
-        const formElements = document.querySelectorAll('form input, form select, form textarea');
-        
-        formElements.forEach(el => {
-            // Skip checkboxes/radios so we don't break your Yes/No toggles
-            if (el.type === 'checkbox' || el.type === 'radio') {
-                return;
-            }
-            
-            // Apply nice Bootstrap styling to everything else
-            if (el.tagName.toLowerCase() === 'select') {
-                el.classList.add('form-select', 'bg-light', 'border-0', 'shadow-sm', 'py-2', 'mb-3');
+            if (hasErrors) {
+                e.preventDefault();
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = isEditMode ? '<i class="fas fa-save me-2"></i>Update Dog Profile' : '<i class="fas fa-paw me-2"></i>Register Dog Profile';
+                }
+                const alertDiv = document.createElement('div');
+                alertDiv.id = 'client-validation-alert';
+                alertDiv.className = 'alert alert-danger shadow-sm rounded-4 mb-4';
+                alertDiv.innerHTML = `
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="fas fa-exclamation-triangle fs-5 text-danger"></i>
+                        <h6 class="fw-bold mb-0">Please complete the required fields:</h6>
+                    </div>
+                    <ul class="mb-0 small ps-3">
+                        ${[...new Set(missingList)].map(item => `<li><strong>${item}</strong> is required.</li>`).join('')}
+                    </ul>
+                `;
+                dogForm.parentNode.insertBefore(alertDiv, dogForm);
+                alertDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } else {
-                el.classList.add('form-control', 'bg-light', 'border-0', 'shadow-sm', 'py-2', 'mb-3');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving Profile...';
+                }
             }
         });
-    });
+    }
+});
 </script>
 {% endblock %}

@@ -1,0 +1,210 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="bg-white border-bottom py-4 py-md-5">
+    <div class="container text-center" data-aos="fade-down">
+        <span class="badge bg-danger-subtle text-danger rounded-pill px-3 py-2 fw-bold text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 0.05em;">
+            <i class="fas fa-heartbeat me-1"></i> Veterinary Healthcare Directory
+        </span>
+        <h1 class="display-5 fw-bold text-dark mb-2">Find Local Vets & 24x7 Animal Hospitals</h1>
+        <p class="lead text-muted mx-auto mb-3" style="max-width: 650px; font-size: 1.05rem;">
+            Connect with verified veterinary clinics, canine doctors, and emergency animal care near your location.
+        </p>
+
+        {% if ref_location_label %}
+            <div class="d-inline-flex align-items-center gap-2 bg-light border rounded-pill px-3 py-1 small text-muted">
+                <i class="fas fa-location-crosshairs text-primary"></i>
+                <span>Distances calculated from <strong>{{ ref_location_label }}</strong></span>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Main Vets Directory Section -->
+<section class="py-5" style="background-color: var(--bg-light); min-height: 75vh;">
+    <div class="container">
+
+        <!-- Search & Filter Card -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-5 bg-white" data-aos="fade-up">
+            <form method="GET" action="{% url 'vets_directory' %}">
+                <div class="row g-3 align-items-end">
+
+                    <!-- Search by Keyword -->
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small fw-bold text-muted text-uppercase mb-1">
+                            <i class="fas fa-search text-secondary me-1"></i> Search Clinic or Doctor
+                        </label>
+                        <input type="text" name="q" class="form-control form-control-sm rounded-3 bg-light border-0 shadow-none py-2" placeholder="e.g. Apollo Vet, Dr. Sharma, Surgery..." value="{{ search_q }}">
+                    </div>
+
+                    <!-- State Dropdown -->
+                    <div class="col-6 col-md-2">
+                        <label class="form-label small fw-bold text-muted text-uppercase mb-1">
+                            <i class="fas fa-map-marked-alt text-secondary me-1"></i> State
+                        </label>
+                        <select name="state" class="form-select form-select-sm rounded-3 bg-light border-0 shadow-none py-2">
+                            <option value="">All States</option>
+                            {% for st in available_states %}
+                                <option value="{{ st }}" {% if state_filter == st %}selected{% endif %}>{{ st }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- City Dropdown -->
+                    <div class="col-6 col-md-2">
+                        <label class="form-label small fw-bold text-muted text-uppercase mb-1">
+                            <i class="fas fa-city text-secondary me-1"></i> City
+                        </label>
+                        <select name="city" class="form-select form-select-sm rounded-3 bg-light border-0 shadow-none py-2">
+                            <option value="">All Cities</option>
+                            {% for c in available_cities %}
+                                <option value="{{ c }}" {% if city_filter == c %}selected{% endif %}>{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Max Distance Radius -->
+                    <div class="col-6 col-md-2">
+                        <label class="form-label small fw-bold text-muted text-uppercase mb-1">
+                            <i class="fas fa-compass text-secondary me-1"></i> Max Distance
+                        </label>
+                        <select name="radius" class="form-select form-select-sm rounded-3 bg-light border-0 shadow-none py-2">
+                            <option value="" {% if not radius_filter %}selected{% endif %}>Any Distance</option>
+                            <option value="5" {% if radius_filter == '5' %}selected{% endif %}>Within 5 km</option>
+                            <option value="15" {% if radius_filter == '15' %}selected{% endif %}>Within 15 km</option>
+                            <option value="30" {% if radius_filter == '30' %}selected{% endif %}>Within 30 km</option>
+                            <option value="50" {% if radius_filter == '50' %}selected{% endif %}>Within 50 km</option>
+                            <option value="100" {% if radius_filter == '100' %}selected{% endif %}>Within 100 km</option>
+                        </select>
+                    </div>
+
+                    <!-- Filter Action Buttons -->
+                    <div class="col-6 col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm rounded-pill fw-bold w-100 py-2 shadow-sm">
+                            <i class="fas fa-filter me-1"></i> Filter
+                        </button>
+                        {% if search_q or state_filter or city_filter or emergency_filter or radius_filter %}
+                            <a href="{% url 'vets_directory' %}" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold py-2 px-3" title="Reset Filters">
+                                <i class="fas fa-undo"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+
+                    <!-- 24x7 Emergency Toggle -->
+                    <div class="col-12 mt-3 pt-2 border-top d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" name="emergency" id="emergencySwitch" value="true" {% if emergency_filter == 'true' %}checked{% endif %} onchange="this.form.submit()">
+                            <label class="form-check-label fw-bold text-danger small" for="emergencySwitch">
+                                <i class="fas fa-ambulance me-1"></i> Show 24x7 Emergency Hospitals Only
+                            </label>
+                        </div>
+                        <small class="text-muted">
+                            Found <strong>{{ total_clinics }}</strong> veterinary facility(s)
+                        </small>
+                    </div>
+
+                </div>
+            </form>
+        </div>
+
+        <!-- Clinics Grid -->
+        <div class="row g-4">
+            {% for clinic in clinics %}
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|slice:':2' }}00">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white hover-lift d-flex flex-column justify-content-between">
+                        
+                        <div>
+                            <!-- Header Bar with Image or Icon -->
+                            <div class="position-relative bg-light text-center" style="height: 170px; overflow: hidden;">
+                                {% if clinic.image %}
+                                    <img src="{{ clinic.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ clinic.name }}">
+                                {% else %}
+                                    <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-primary-subtle text-primary">
+                                        <i class="fas fa-clinic-medical fa-4x opacity-50 mb-1"></i>
+                                        <span class="small fw-bold">Veterinary Clinic</span>
+                                    </div>
+                                {% endif %}
+
+                                <!-- Badges Overlay -->
+                                <div class="position-absolute top-0 start-0 w-100 p-3 d-flex justify-content-between align-items-start">
+                                    <span class="badge bg-white text-dark fw-bold rounded-pill shadow-sm px-3 py-2">
+                                        <i class="fas fa-star text-warning me-1"></i> {{ clinic.rating }}
+                                    </span>
+                                    
+                                    <div class="d-flex flex-column align-items-end gap-1">
+                                        {% if clinic.is_24x7_emergency %}
+                                            <span class="badge bg-danger text-white fw-bold rounded-pill shadow-sm px-3 py-1">
+                                                <i class="fas fa-ambulance me-1"></i> 24x7 Emergency
+                                            </span>
+                                        {% endif %}
+                                        {% if clinic.distance_km is not None %}
+                                            <span class="badge bg-primary text-white fw-bold rounded-pill shadow-sm px-3 py-1 small">
+                                                <i class="fas fa-location-arrow me-1"></i> {{ clinic.distance_km }} km
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card Body -->
+                            <div class="p-4">
+                                <h5 class="fw-bold text-dark mb-1">{{ clinic.name }}</h5>
+                                
+                                {% if clinic.doctor_name %}
+                                    <p class="text-primary small fw-semibold mb-2">
+                                        <i class="fas fa-user-md me-1"></i> {{ clinic.doctor_name }} 
+                                        <span class="text-muted fw-normal">({{ clinic.specialization }})</span>
+                                    </p>
+                                {% endif %}
+
+                                <p class="text-muted small mb-3">
+                                    <i class="fas fa-map-marker-alt text-danger me-1"></i> 
+                                    {{ clinic.address }}, {{ clinic.city }}{% if clinic.state %}, {{ clinic.state }}{% endif %}
+                                    {% if clinic.pincode %} - {{ clinic.pincode }}{% endif %}
+                                </p>
+
+                                {% if clinic.services_offered %}
+                                    <div class="d-flex flex-wrap gap-1 mb-3">
+                                        {% for srv in clinic.services_offered.split %}
+                                            <span class="badge bg-light text-secondary border rounded-2 small fw-normal">
+                                                {{ srv|cut:"," }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Card Action Footer -->
+                        <div class="p-3 bg-light border-top d-flex gap-2">
+                            <a href="tel:{{ clinic.phone_number }}" class="btn btn-primary btn-sm flex-grow-1 fw-bold rounded-pill shadow-sm">
+                                <i class="fas fa-phone-alt me-1"></i> Call Clinic
+                            </a>
+                            <a href="https://www.google.com/maps/search/?api=1&query={{ clinic.name|urlencode }}+{{ clinic.city|urlencode }}" target="_blank" class="btn btn-outline-secondary btn-sm fw-bold rounded-pill px-3" title="Open in Maps">
+                                <i class="fas fa-directions"></i>
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+            {% empty %}
+                <!-- Empty State -->
+                <div class="col-12 text-center py-5" data-aos="fade-up">
+                    <div class="bg-white p-5 rounded-4 shadow-sm mx-auto" style="max-width: 500px;">
+                        <i class="fas fa-clinic-medical fa-4x text-muted mb-3 opacity-50"></i>
+                        <h4 class="fw-bold text-dark mb-2">No Clinics Found</h4>
+                        <p class="text-muted mb-4">
+                            No veterinary clinics matched your active search criteria. Try expanding the distance radius or searching in a nearby city.
+                        </p>
+                        <a href="{% url 'vets_directory' %}" class="btn btn-primary rounded-pill fw-bold px-4">
+                            <i class="fas fa-redo me-1"></i> View All Clinics
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</section>
+{% endblock %}

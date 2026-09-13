@@ -139,11 +139,28 @@
                                 {% endif %}
                             </a>
                         </li>
-                        <li class="nav-item ms-lg-2">
-                            <a class="btn btn-outline-dark btn-sm fw-bold px-3 rounded-pill" href="{% url 'add_dog' %}">
-                                <i class="fas fa-plus me-1"></i> Add Dog
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'chats_inbox' %}">
+                                <i class="fas fa-comments me-1 text-primary"></i> Chats
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'vets_directory' %}">
+                                <i class="fas fa-clinic-medical me-1 text-danger"></i> Find Vets
+                            </a>
+                        </li>
+                        {% if user.is_staff %}
+                            <li class="nav-item">
+                                <a class="nav-link position-relative text-danger fw-bold" href="{% url 'admin_dashboard' %}">
+                                    <i class="fas fa-shield-alt me-1"></i> Admin
+                                    {% if admin_pending_dogs_count > 0 %}
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark border border-white" title="{{ admin_pending_dogs_count }} pending reviews">
+                                            {{ admin_pending_dogs_count }}
+                                        </span>
+                                    {% endif %}
+                                </a>
+                            </li>
+                        {% endif %}
                         
                         <!-- User Dropdown -->
                         <li class="nav-item dropdown ms-lg-2">
@@ -154,6 +171,12 @@
                                 {{ user.username }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 mt-2" aria-labelledby="userDropdown">
+                                {% if user.is_staff %}
+                                    <li><a class="dropdown-item py-2 fw-semibold text-danger" href="{% url 'admin_dashboard' %}"><i class="fas fa-shield-alt me-2"></i> Admin Approvals {% if admin_pending_dogs_count > 0 %}<span class="badge bg-warning text-dark ms-1">{{ admin_pending_dogs_count }}</span>{% endif %}</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                <li><a class="dropdown-item py-2 fw-semibold text-primary" href="{% url 'add_dog' %}"><i class="fas fa-plus-circle me-2"></i> Register New Dog</a></li>
+                                <li><a class="dropdown-item py-2" href="{% url 'my_dogs' %}"><i class="fas fa-dog me-2 text-muted"></i> My Dogs Dashboard</a></li>
                                 <li><a class="dropdown-item py-2" href="{% url 'profile' %}"><i class="fas fa-user-circle me-2 text-muted"></i> Profile Settings</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
@@ -168,6 +191,9 @@
                         </li>
                     {% else %}
                         <li class="nav-item">
+                            <a class="nav-link" href="{% url 'vets_directory' %}"><i class="fas fa-clinic-medical me-1 text-danger"></i> Find Vets</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link fw-bold" href="{% url 'login' %}">Log In</a>
                         </li>
                         <li class="nav-item ms-lg-2">
@@ -181,6 +207,28 @@
 
     <!-- Main Content Block -->
     <main style="min-height: 80vh;">
+        {% if messages %}
+            <div class="container pt-3">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-4 shadow-sm border-0 d-flex align-items-center justify-content-between mb-3" role="alert">
+                        <div class="d-flex align-items-center gap-2">
+                            {% if message.tags == 'success' %}
+                                <i class="fas fa-check-circle text-success fs-5"></i>
+                            {% elif message.tags == 'error' or message.tags == 'danger' %}
+                                <i class="fas fa-exclamation-circle text-danger fs-5"></i>
+                            {% elif message.tags == 'warning' %}
+                                <i class="fas fa-exclamation-triangle text-warning fs-5"></i>
+                            {% else %}
+                                <i class="fas fa-info-circle text-info fs-5"></i>
+                            {% endif %}
+                            <span class="fw-semibold">{{ message }}</span>
+                        </div>
+                        <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         {% block content %}
         {% endblock %}
     </main>

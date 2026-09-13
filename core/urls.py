@@ -16,8 +16,13 @@ urlpatterns = [
     path('dog/<int:dog_id>/like/', views.send_match_request, name='send_match_request'),
     path('requests/', views.match_requests_dashboard, name='match_requests_dashboard'),
     path('requests/<int:request_id>/<str:action>/', views.respond_match_request, name='respond_match_request'),
+    path('chats/', views.chats_inbox, name='chats_inbox'),
     path('chat/<int:match_id>/', views.chat_room, name='chat_room'),
     path('chat/<int:match_id>/send/', views.send_message_api, name='send_message_api'),
     path('chat/<int:match_id>/get/', views.get_messages_api, name='get_messages_api'),
-    
+    path('chat/message/<int:message_id>/edit/', views.edit_message_api, name='edit_message_api'),
+    path('chat/message/<int:message_id>/delete/', views.delete_message_api, name='delete_message_api'),
+    path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('admin-dashboard/dog/<int:dog_id>/<str:action>/', views.admin_approve_reject_dog, name='admin_approve_reject_dog'),
+    path('vets/', views.vets_directory, name='vets_directory'),
 ]

@@ -8,7 +8,7 @@
         <div class="card border-0 shadow-sm rounded-top-4 mb-0 z-index-2">
             <div class="card-body p-3 d-flex justify-content-between align-items-center bg-white rounded-top-4 border-bottom">
                 <div class="d-flex align-items-center gap-3">
-                    <a href="{% url 'match_requests_dashboard' %}" class="btn btn-sm btn-light rounded-circle" title="Back to Matches">
+                    <a href="{% url 'chats_inbox' %}" class="btn btn-sm btn-light rounded-circle shadow-sm" title="Back to Chats Inbox">
                         <i class="fas fa-arrow-left"></i>
                     </a>
                     
@@ -18,19 +18,22 @@
                     </div>
                     
                     <div>
-                        <h5 class="fw-bold mb-0 text-dark">
+                        <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
                             {{ other_user.username }}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small px-2 py-0" style="font-size: 0.65rem;">
+                                Active Room
+                            </span>
                         </h5>
-                        <small class="text-muted d-block" style="line-height: 1;">
-                            Matching: <strong>{{ match_req.sender_dog.name }}</strong> & <strong>{{ match_req.target_dog.name }}</strong>
+                        <small class="text-muted d-block" style="line-height: 1.2;">
+                            Breeding: <strong>{{ match_req.sender_dog.name }}</strong> & <strong>{{ match_req.target_dog.name }}</strong>
                         </small>
                     </div>
                 </div>
                 
-                <div>
-                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2">
-                        <i class="fas fa-check-circle me-1"></i> Match Accepted
-                    </span>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="{% url 'dog_detail' match_req.target_dog.id %}" class="btn btn-sm btn-outline-secondary rounded-pill d-none d-sm-inline-flex align-items-center gap-1">
+                        <i class="fas fa-paw"></i> Partner Dog
+                    </a>
                 </div>
             </div>
         </div>
@@ -39,38 +42,76 @@
         <div class="card border-0 shadow-sm rounded-0 flex-grow-1 overflow-hidden">
             <div class="card-body p-4 bg-light overflow-auto d-flex flex-column" id="chat-box" style="height: 0; min-height: 100%;">
                 
-                <!-- Encryption Notice -->
+                <!-- Notice -->
                 <div class="text-center mb-4">
                     <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3 py-1 fw-normal small">
-                        <i class="fas fa-lock me-1"></i> Messages are secured end-to-end.
+                        <i class="fas fa-lock me-1"></i> Messages are encrypted & live-synchronized.
                     </span>
                 </div>
 
-                {% for message in chat_messages %}
-                    {% if message.sender == request.user %}
-                        <!-- Sent Message (Right side, Blue) -->
-                        <div class="d-flex flex-column align-items-end mb-3 animation-fade-in w-100">
-                            <div style="background-color: #0d6efd !important; color: #ffffff !important; padding: 12px 18px !important; border-radius: 18px 18px 4px 18px !important; max-width: 75% !important; word-break: break-word !important; font-size: 0.95rem !important; line-height: 1.4 !important;">
-                                {{ message.message }}
+                <div id="messages-stream" class="d-flex flex-column w-100">
+                    {% for message in chat_messages %}
+                        {% if message.sender == request.user %}
+                            <!-- Sent Message (Right side, Blue) -->
+                            <div class="d-flex flex-column align-items-end mb-3 animation-fade-in w-100 message-row" id="msg-row-{{ message.id }}" data-id="{{ message.id }}">
+                                <div class="position-relative message-bubble-wrapper group-hover">
+                                    <div class="message-bubble-sent" id="msg-text-{{ message.id }}" style="background-color: #0d6efd !important; color: #ffffff !important; padding: 12px 18px !important; border-radius: 18px 18px 4px 18px !important; max-width: 85% !important; word-break: break-word !important; font-size: 0.95rem !important; line-height: 1.4 !important; min-width: 100px;">
+                                        {% if message.is_deleted %}
+                                            <span class="fst-italic opacity-75"><i class="fas fa-ban me-1 small"></i> This message was deleted.</span>
+                                        {% else %}
+                                            {{ message.message }}
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Action Buttons on Hover for Sender -->
+                                    {% if not message.is_deleted %}
+                                        <div class="message-actions position-absolute top-50 start-0 translate-middle-x d-flex gap-1 bg-white shadow-sm rounded-pill px-2 py-1 border" style="left: -40px !important;">
+                                            <button type="button" class="btn btn-link p-0 text-primary hover-scale" onclick="openEditModal({{ message.id }})" title="Edit Message">
+                                                <i class="fas fa-pen small"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-link p-0 text-danger hover-scale" onclick="openDeleteModal({{ message.id }})" title="Delete Message">
+                                                <i class="fas fa-trash-alt small"></i>
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex align-items-center gap-1 mt-1">
+                                    <small class="text-muted" style="font-size: 0.7rem;" id="msg-time-{{ message.id }}">
+                                        {{ message.timestamp|date:"h:i A" }}
+                                    </small>
+                                    <small class="text-muted fst-italic msg-edited-tag" id="msg-edited-{{ message.id }}" style="font-size: 0.68rem; {% if not message.is_edited %}display: none;{% endif %}">
+                                        (edited)
+                                    </small>
+                                </div>
                             </div>
-                            <small class="text-muted mt-1" style="font-size: 0.7rem;">{{ message.timestamp|date:"h:i A" }}</small>
-                        </div>
-                    {% else %}
-                        <!-- Received Message (Left side, White) -->
-                        <div class="d-flex flex-column align-items-start mb-3 animation-fade-in w-100">
-                            <div style="background-color: #ffffff !important; color: #212529 !important; border: 1px solid #dee2e6 !important; padding: 12px 18px !important; border-radius: 18px 18px 18px 4px !important; max-width: 75% !important; word-break: break-word !important; font-size: 0.95rem !important; line-height: 1.4 !important;">
-                                {{ message.message }}
+                        {% else %}
+                            <!-- Received Message (Left side, White) -->
+                            <div class="d-flex flex-column align-items-start mb-3 animation-fade-in w-100 message-row" id="msg-row-{{ message.id }}" data-id="{{ message.id }}">
+                                <div style="background-color: #ffffff !important; color: #212529 !important; border: 1px solid #dee2e6 !important; padding: 12px 18px !important; border-radius: 18px 18px 18px 4px !important; max-width: 85% !important; word-break: break-word !important; font-size: 0.95rem !important; line-height: 1.4 !important;" id="msg-text-{{ message.id }}">
+                                    {% if message.is_deleted %}
+                                        <span class="fst-italic text-muted opacity-75"><i class="fas fa-ban me-1 small"></i> This message was deleted.</span>
+                                    {% else %}
+                                        {{ message.message }}
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex align-items-center gap-1 mt-1">
+                                    <small class="text-muted" style="font-size: 0.7rem;" id="msg-time-{{ message.id }}">
+                                        {{ message.timestamp|date:"h:i A" }}
+                                    </small>
+                                    <small class="text-muted fst-italic msg-edited-tag" id="msg-edited-{{ message.id }}" style="font-size: 0.68rem; {% if not message.is_edited %}display: none;{% endif %}">
+                                        (edited)
+                                    </small>
+                                </div>
                             </div>
-                            <small class="text-muted mt-1" style="font-size: 0.7rem;">{{ message.timestamp|date:"h:i A" }}</small>
+                        {% endif %}
+                    {% empty %}
+                        <!-- Empty Chat State -->
+                        <div class="m-auto text-center opacity-50 py-5" id="empty-state">
+                            <i class="far fa-comments fa-4x mb-3 text-muted"></i>
+                            <p class="text-muted">No messages yet. Say hello to discuss breeding terms!</p>
                         </div>
-                    {% endif %}
-                {% empty %}
-                    <!-- Empty Chat State -->
-                    <div class="m-auto text-center opacity-50 py-5" id="empty-state">
-                        <i class="far fa-comments fa-4x mb-3 text-muted"></i>
-                        <p class="text-muted">No messages yet. Say hello to discuss breeding terms!</p>
-                    </div>
-                {% endfor %}
+                    {% endfor %}
+                </div>
                 
             </div>
         </div>
@@ -81,7 +122,7 @@
                 <form id="chat-form" class="d-flex align-items-end gap-2">
                     {% csrf_token %}
                     <div class="flex-grow-1 bg-light rounded-4 border px-3 py-1 d-flex align-items-center focus-ring-primary transition-all">
-                        <textarea name="message" class="form-control border-0 bg-transparent shadow-none" rows="1" placeholder="Type your message..." required style="resize: none; overflow-y: hidden;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
+                        <textarea name="message" id="chat-input" class="form-control border-0 bg-transparent shadow-none" rows="1" placeholder="Type your message..." required style="resize: none; overflow-y: hidden;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary rounded-circle shadow-sm d-flex align-items-center justify-content-center flex-shrink-0" style="width: 45px; height: 45px; transition: transform 0.2s;">
                         <i class="fas fa-paper-plane" style="margin-right: 2px;"></i>
@@ -93,33 +134,112 @@
     </div>
 </section>
 
-<!-- Auto-scroll to bottom of chat & simple animations -->
+<!-- Edit Message Modal -->
+<div class="modal fade" id="editMessageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-light px-4 py-3 border-bottom">
+                <h6 class="modal-title fw-bold text-dark mb-0">
+                    <i class="fas fa-edit text-primary me-2"></i> Edit Message
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editMessageForm">
+                {% csrf_token %}
+                <input type="hidden" id="editMessageId" value="">
+                <div class="modal-body p-4 bg-white">
+                    <label class="form-label small fw-bold text-muted text-uppercase mb-2">Edit your message:</label>
+                    <textarea class="form-control rounded-3 p-3" id="editMessageText" rows="3" required></textarea>
+                </div>
+                <div class="modal-footer bg-light border-top p-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="fas fa-check me-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Message Confirmation Modal -->
+<div class="modal fade" id="deleteMessageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-body p-4 text-center bg-white">
+                <div class="bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 55px; height: 55px;">
+                    <i class="fas fa-trash-alt fa-lg"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Delete Message?</h5>
+                <p class="text-muted small mb-4">
+                    This message will be removed for everyone in this conversation and marked as deleted.
+                </p>
+                <input type="hidden" id="deleteMessageId" value="">
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-sm btn-danger rounded-pill px-4 fw-bold shadow-sm" id="confirmDeleteBtn">
+                        <i class="fas fa-trash-alt me-1"></i> Delete Message
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     .animation-fade-in {
         animation: fadeIn 0.3s ease-in-out;
     }
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
+        from { opacity: 0; transform: translateY(8px); }
         to { opacity: 1; transform: translateY(0); }
     }
-    
     .focus-ring-primary:focus-within {
         border-color: #86b7fe !important;
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         background-color: #fff !important;
     }
+    .message-bubble-wrapper {
+        position: relative;
+    }
+    .message-actions {
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.2s ease, visibility 0.2s ease;
+        z-index: 10;
+    }
+    .message-bubble-wrapper:hover .message-actions {
+        opacity: 1;
+        visibility: visible;
+    }
+    .hover-scale:hover {
+        transform: scale(1.15);
+    }
 </style>
 
 <script>
+    const matchId = parseInt("{{ match_req.id }}", 10);
+    const currentUsername = "{{ request.user.username|escapejs }}";
+    const csrfToken = "{{ csrf_token }}";
+
+    const chatBox = document.getElementById("chat-box");
+    const messagesStream = document.getElementById("messages-stream");
+    const editModalEl = document.getElementById("editMessageModal");
+    const deleteModalEl = document.getElementById("deleteMessageModal");
+
+    let editModal = null;
+    let deleteModal = null;
+
     document.addEventListener("DOMContentLoaded", function() {
-        var chatBox = document.getElementById("chat-box");
         chatBox.scrollTop = chatBox.scrollHeight;
+        if (editModalEl) editModal = new bootstrap.Modal(editModalEl);
+        if (deleteModalEl) deleteModal = new bootstrap.Modal(deleteModalEl);
     });
 
-    // AJAX Form Submission
+    // Send Message AJAX
     document.getElementById('chat-form').addEventListener('submit', function(e) {
         e.preventDefault();
-        const textarea = this.querySelector('textarea[name="message"]');
+        const textarea = document.getElementById('chat-input');
         const messageText = textarea.value.trim();
         if (!messageText) return;
 
@@ -128,42 +248,219 @@
         fetch("{% url 'send_message_api' match_req.id %}", {
             method: 'POST',
             body: formData,
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            }
+            headers: { 'X-CSRFToken': csrfToken }
         })
-        .then(response => {
-            if (response.ok) {
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
                 textarea.value = '';
                 textarea.style.height = 'auto';
                 
-                // Hide empty state if present
                 const emptyState = document.getElementById('empty-state');
                 if (emptyState) emptyState.remove();
 
-                // Append message dynamically to chat-box
-                const chatBox = document.getElementById('chat-box');
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'd-flex flex-column align-items-end mb-3 animation-fade-in w-100';
-                messageDiv.innerHTML = `
-                    <div style="background-color: #0d6efd !important; color: #ffffff !important; padding: 12px 18px !important; border-radius: 18px 18px 4px 18px !important; max-width: 75% !important; word-break: break-word !important; font-size: 0.95rem !important; line-height: 1.4 !important;">
-                        ${messageText}
-                    </div>
-                    <small class="text-muted mt-1" style="font-size: 0.7rem;">Just now</small>
-                `;
-                chatBox.appendChild(messageDiv);
+                // Append sent message bubble
+                appendOrUpdateMessage({
+                    id: data.id,
+                    sender: currentUsername,
+                    is_me: true,
+                    message: data.message,
+                    timestamp: data.timestamp,
+                    is_edited: false,
+                    is_deleted: false
+                });
+
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(err => console.error('Error sending message:', err));
     });
 
-    // Submit with Enter key (Shift + Enter for new line)
-    document.querySelector('textarea[name="message"]').addEventListener('keydown', function(e) {
+    // Enter key to submit
+    document.getElementById('chat-input').addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             document.getElementById('chat-form').dispatchEvent(new Event('submit', { cancelable: true }));
         }
     });
+
+    // Edit message opener
+    window.openEditModal = function(id) {
+        const textEl = document.getElementById(`msg-text-${id}`);
+        if (!textEl) return;
+        document.getElementById('editMessageId').value = id;
+        document.getElementById('editMessageText').value = textEl.innerText.trim();
+        if (editModal) editModal.show();
+    };
+
+    // Save edited message AJAX
+    document.getElementById('editMessageForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const msgId = document.getElementById('editMessageId').value;
+        const newText = document.getElementById('editMessageText').value.trim();
+        if (!newText) return;
+
+        const formData = new FormData();
+        formData.append('message', newText);
+
+        fetch(`/chat/message/${msgId}/edit/`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                const textEl = document.getElementById(`msg-text-${msgId}`);
+                if (textEl) textEl.textContent = data.message;
+                
+                const editedEl = document.getElementById(`msg-edited-${msgId}`);
+                if (editedEl) editedEl.style.display = 'inline';
+
+                if (editModal) editModal.hide();
+            } else {
+                alert(data.error || 'Failed to edit message');
+            }
+        })
+        .catch(err => console.error('Error editing message:', err));
+    });
+
+    // Delete message opener
+    window.openDeleteModal = function(id) {
+        document.getElementById('deleteMessageId').value = id;
+        if (deleteModal) deleteModal.show();
+    };
+
+    // Confirm delete message AJAX
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        const msgId = document.getElementById('deleteMessageId').value;
+        if (!msgId) return;
+
+        fetch(`/chat/message/${msgId}/delete/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                const textEl = document.getElementById(`msg-text-${msgId}`);
+                if (textEl) {
+                    textEl.innerHTML = '<span class="fst-italic opacity-75"><i class="fas fa-ban me-1 small"></i> This message was deleted.</span>';
+                }
+                const row = document.getElementById(`msg-row-${msgId}`);
+                if (row) {
+                    const actions = row.querySelector('.message-actions');
+                    if (actions) actions.remove();
+                }
+                if (deleteModal) deleteModal.hide();
+            } else {
+                alert(data.error || 'Failed to delete message');
+            }
+        })
+        .catch(err => console.error('Error deleting message:', err));
+    });
+
+    // Live Polling Engine (Every 3 seconds)
+    function pollMessages() {
+        fetch("{% url 'get_messages_api' match_req.id %}")
+        .then(r => r.json())
+        .then(data => {
+            if (data.messages) {
+                const isNearBottom = (chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight) < 80;
+                let hasNew = false;
+
+                data.messages.forEach(msg => {
+                    const wasAppended = appendOrUpdateMessage(msg);
+                    if (wasAppended) hasNew = true;
+                });
+
+                if (hasNew && isNearBottom) {
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            }
+        })
+        .catch(err => console.error('Polling error:', err));
+    }
+
+    setInterval(pollMessages, 3000);
+
+    // Helper: append or update message DOM node
+    function appendOrUpdateMessage(msg) {
+        let existingRow = document.getElementById(`msg-row-${msg.id}`);
+
+        if (existingRow) {
+            // Update existing message if edited or deleted
+            const textEl = document.getElementById(`msg-text-${msg.id}`);
+            const editedEl = document.getElementById(`msg-edited-${msg.id}`);
+
+            if (msg.is_deleted) {
+                if (textEl && !textEl.innerHTML.includes('This message was deleted.')) {
+                    textEl.innerHTML = '<span class="fst-italic opacity-75"><i class="fas fa-ban me-1 small"></i> This message was deleted.</span>';
+                    const actions = existingRow.querySelector('.message-actions');
+                    if (actions) actions.remove();
+                }
+            } else if (textEl && textEl.textContent.trim() !== msg.message) {
+                textEl.textContent = msg.message;
+            }
+
+            if (editedEl) {
+                editedEl.style.display = msg.is_edited ? 'inline' : 'none';
+            }
+            return false;
+        }
+
+        // New Message Node
+        const emptyState = document.getElementById('empty-state');
+        if (emptyState) emptyState.remove();
+
+        const messageDiv = document.createElement('div');
+        messageDiv.id = `msg-row-${msg.id}`;
+        messageDiv.dataset.id = msg.id;
+
+        if (msg.is_me) {
+            messageDiv.className = 'd-flex flex-column align-items-end mb-3 animation-fade-in w-100 message-row';
+            messageDiv.innerHTML = `
+                <div class="position-relative message-bubble-wrapper group-hover">
+                    <div class="message-bubble-sent" id="msg-text-${msg.id}" style="background-color: #0d6efd !important; color: #ffffff !important; padding: 12px 18px !important; border-radius: 18px 18px 4px 18px !important; max-width: 85% !important; word-break: break-word !important; font-size: 0.95rem !important; line-height: 1.4 !important; min-width: 100px;">
+                        ${msg.is_deleted ? '<span class="fst-italic opacity-75"><i class="fas fa-ban me-1 small"></i> This message was deleted.</span>' : escapeHtml(msg.message)}
+                    </div>
+                    ${!msg.is_deleted ? `
+                        <div class="message-actions position-absolute top-50 start-0 translate-middle-x d-flex gap-1 bg-white shadow-sm rounded-pill px-2 py-1 border" style="left: -40px !important;">
+                            <button type="button" class="btn btn-link p-0 text-primary hover-scale" onclick="openEditModal(${msg.id})" title="Edit Message">
+                                <i class="fas fa-pen small"></i>
+                            </button>
+                            <button type="button" class="btn btn-link p-0 text-danger hover-scale" onclick="openDeleteModal(${msg.id})" title="Delete Message">
+                                <i class="fas fa-trash-alt small"></i>
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="d-flex align-items-center gap-1 mt-1">
+                    <small class="text-muted" style="font-size: 0.7rem;" id="msg-time-${msg.id}">${msg.timestamp}</small>
+                    <small class="text-muted fst-italic msg-edited-tag" id="msg-edited-${msg.id}" style="font-size: 0.68rem; ${msg.is_edited ? '' : 'display: none;'}">(edited)</small>
+                </div>
+            `;
+        } else {
+            messageDiv.className = 'd-flex flex-column align-items-start mb-3 animation-fade-in w-100 message-row';
+            messageDiv.innerHTML = `
+                <div style="background-color: #ffffff !important; color: #212529 !important; border: 1px solid #dee2e6 !important; padding: 12px 18px !important; border-radius: 18px 18px 18px 4px !important; max-width: 85% !important; word-break: break-word !important; font-size: 0.95rem !important; line-height: 1.4 !important;" id="msg-text-${msg.id}">
+                    ${msg.is_deleted ? '<span class="fst-italic text-muted opacity-75"><i class="fas fa-ban me-1 small"></i> This message was deleted.</span>' : escapeHtml(msg.message)}
+                </div>
+                <div class="d-flex align-items-center gap-1 mt-1">
+                    <small class="text-muted" style="font-size: 0.7rem;" id="msg-time-${msg.id}">${msg.timestamp}</small>
+                    <small class="text-muted fst-italic msg-edited-tag" id="msg-edited-${msg.id}" style="font-size: 0.68rem; ${msg.is_edited ? '' : 'display: none;'}">(edited)</small>
+                </div>
+            `;
+        }
+
+        messagesStream.appendChild(messageDiv);
+        return true;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 </script>
 {% endblock %}

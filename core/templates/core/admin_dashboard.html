@@ -1,0 +1,375 @@
+{% extends 'core/base.html' %}
+
+{% block content %}
+<!-- Admin Dashboard Header -->
+<section class="bg-white border-bottom py-4">
+    <div class="container d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3" data-aos="fade-down">
+        <div>
+            <span class="badge bg-danger-subtle text-danger rounded-pill px-3 py-1 fw-bold text-uppercase mb-2" style="font-size: 0.75rem;">
+                <i class="fas fa-shield-alt me-1"></i> Staff Administration Portal
+            </span>
+            <h2 class="fw-bold text-dark mb-1">Dog Registration Verification</h2>
+            <p class="text-muted mb-0 small">Verify pedigree documents, health records, and approve dogs for public matchmaking.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'admin:index' %}" target="_blank" class="btn btn-outline-dark btn-sm rounded-pill fw-bold px-3">
+                <i class="fas fa-tools me-1"></i> Backend Admin Panel
+            </a>
+            <a href="{% url 'explore_dogs' %}" class="btn btn-outline-primary btn-sm rounded-pill fw-bold px-3">
+                <i class="fas fa-eye me-1"></i> Public Feed
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Main Admin Section -->
+<section class="py-5" style="background-color: var(--bg-light); min-height: 75vh;">
+    <div class="container">
+        
+        <!-- Metrics Summary Cards -->
+        <div class="row g-3 mb-4" data-aos="fade-up">
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-warning border-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted fw-bold text-uppercase" style="font-size: 0.7rem;">Pending Review</small>
+                            <h3 class="fw-bold text-dark mb-0">{{ pending_count }}</h3>
+                        </div>
+                        <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                            <i class="fas fa-clock fs-5"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-success border-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted fw-bold text-uppercase" style="font-size: 0.7rem;">Approved Active</small>
+                            <h3 class="fw-bold text-dark mb-0">{{ approved_count }}</h3>
+                        </div>
+                        <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                            <i class="fas fa-check-circle fs-5"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-danger border-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted fw-bold text-uppercase" style="font-size: 0.7rem;">Rejected</small>
+                            <h3 class="fw-bold text-dark mb-0">{{ rejected_count }}</h3>
+                        </div>
+                        <div class="bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                            <i class="fas fa-times-circle fs-5"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-primary border-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted fw-bold text-uppercase" style="font-size: 0.7rem;">Total Registered</small>
+                            <h3 class="fw-bold text-dark mb-0">{{ total_dogs }}</h3>
+                        </div>
+                        <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                            <i class="fas fa-dog fs-5"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Search Controls Card -->
+        <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 bg-white" data-aos="fade-up">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                
+                <!-- Status Navigation Tabs -->
+                <ul class="nav nav-pills gap-2" id="statusTabs">
+                    <li class="nav-item">
+                        <a class="nav-link rounded-pill fw-bold px-3 {% if status_filter == 'pending' %}active bg-warning text-dark{% else %}text-muted{% endif %}" href="?status=pending{% if search_q %}&q={{ search_q }}{% endif %}">
+                            <i class="fas fa-clock me-1"></i> Pending Review
+                            {% if pending_count > 0 %}
+                                <span class="badge bg-white text-dark rounded-pill ms-1">{{ pending_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-pill fw-bold px-3 {% if status_filter == 'approved' %}active bg-success text-white{% else %}text-muted{% endif %}" href="?status=approved{% if search_q %}&q={{ search_q }}{% endif %}">
+                            <i class="fas fa-check me-1"></i> Approved
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-pill fw-bold px-3 {% if status_filter == 'rejected' %}active bg-danger text-white{% else %}text-muted{% endif %}" href="?status=rejected{% if search_q %}&q={{ search_q }}{% endif %}">
+                            <i class="fas fa-times me-1"></i> Rejected
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-pill fw-bold px-3 {% if status_filter == 'all' %}active bg-primary text-white{% else %}text-muted{% endif %}" href="?status=all{% if search_q %}&q={{ search_q }}{% endif %}">
+                            All Dogs
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Search Input -->
+                <form method="GET" action="{% url 'admin_dashboard' %}" class="d-flex gap-2">
+                    <input type="hidden" name="status" value="{{ status_filter }}">
+                    <div class="input-group input-group-sm">
+                        <input type="text" name="q" class="form-control rounded-start-pill border px-3" placeholder="Search by dog, breed, owner, KCI..." value="{{ search_q }}">
+                        <button type="submit" class="btn btn-outline-secondary rounded-end-pill px-3">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    {% if search_q %}
+                        <a href="?status={{ status_filter }}" class="btn btn-outline-danger btn-sm rounded-pill px-2" title="Clear Search">
+                            <i class="fas fa-times"></i>
+                        </a>
+                    {% endif %}
+                </form>
+
+            </div>
+        </div>
+
+        <!-- Submissions Feed / Cards -->
+        <div class="d-flex flex-column gap-4">
+            {% for dog in dogs %}
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white hover-lift" data-aos="fade-up">
+                    <div class="row g-0">
+                        
+                        <!-- Left Column: Dog Photo -->
+                        <div class="col-md-3 bg-light position-relative text-center d-flex align-items-center justify-content-center" style="min-height: 220px;">
+                            {% if dog.images.first %}
+                                <img src="{{ dog.images.first.image.url }}" class="w-100 h-100 object-fit-cover position-absolute top-0 start-0" alt="{{ dog.name }}">
+                            {% else %}
+                                <div class="p-4 text-muted opacity-50">
+                                    <i class="fas fa-dog fa-4x mb-2"></i>
+                                    <p class="small mb-0">No photo uploaded</p>
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Badges Overlay -->
+                            <div class="position-absolute top-0 start-0 p-2">
+                                {% if dog.approval_status == 'pending' %}
+                                    <span class="badge bg-warning text-dark fw-bold rounded-pill shadow-sm">
+                                        <i class="fas fa-clock me-1"></i> Pending
+                                    </span>
+                                {% elif dog.approval_status == 'approved' %}
+                                    <span class="badge bg-success text-white fw-bold rounded-pill shadow-sm">
+                                        <i class="fas fa-check-circle me-1"></i> Approved
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger text-white fw-bold rounded-pill shadow-sm">
+                                        <i class="fas fa-times-circle me-1"></i> Rejected
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Submission Details & Actions -->
+                        <div class="col-md-9 p-4 d-flex flex-column justify-content-between">
+                            <div>
+                                <!-- Header Row -->
+                                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                                    <div>
+                                        <h4 class="fw-bold text-dark mb-0">
+                                            {{ dog.name }} 
+                                            <span class="fs-6 fw-normal text-muted ms-1">#{{ dog.id }}</span>
+                                        </h4>
+                                        <p class="text-muted small mb-0">
+                                            <i class="fas fa-paw text-warning me-1"></i> <strong>{{ dog.breed }}</strong> 
+                                            {% if dog.breed_type == 'crossbreed' and dog.secondary_breed %} (Mix with {{ dog.secondary_breed }}){% endif %}
+                                            • {{ dog.age_years }}y {% if dog.age_months %}{{ dog.age_months }}m{% endif %}
+                                            • <span class="text-capitalize">{{ dog.gender }}</span>
+                                            • <i class="fas fa-map-marker-alt text-danger ms-1"></i> {{ dog.city }}{% if dog.state %}, {{ dog.state }}{% endif %}
+                                        </p>
+                                    </div>
+
+                                    <div class="text-end">
+                                        <small class="text-muted d-block" style="font-size: 0.75rem;">Submitted</small>
+                                        <span class="fw-semibold text-dark small">{{ dog.created_at|date:"M d, Y" }}</span>
+                                    </div>
+                                </div>
+
+                                <hr class="my-3 text-muted opacity-25">
+
+                                <!-- Details Grid -->
+                                <div class="row g-2 small text-muted mb-3">
+                                    <div class="col-md-4">
+                                        <strong><i class="fas fa-user text-primary me-1"></i> Owner:</strong> 
+                                        <span class="text-dark">{{ dog.owner.username }}</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong><i class="fas fa-envelope text-primary me-1"></i> Email:</strong> 
+                                        <span class="text-dark">{{ dog.owner.email|default:"Not provided" }}</span>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <strong><i class="fas fa-phone text-primary me-1"></i> Phone:</strong> 
+                                        <span class="text-dark">{{ dog.owner.phone_number|default:"Not provided" }}</span>
+                                    </div>
+                                    
+                                    <div class="col-md-4 mt-2">
+                                        <strong><i class="fas fa-syringe text-success me-1"></i> Vaccinated:</strong> 
+                                        {% if dog.is_vaccinated %}
+                                            <span class="badge bg-success-subtle text-success">Yes</span>
+                                        {% else %}
+                                            <span class="badge bg-danger-subtle text-danger">No / Unverified</span>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-4 mt-2">
+                                        <strong><i class="fas fa-certificate text-warning me-1"></i> KCI Registered:</strong> 
+                                        {% if dog.kci_registered %}
+                                            <span class="badge bg-success-subtle text-success">Yes ({{ dog.kci_number }})</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary-subtle text-secondary">No</span>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="col-md-4 mt-2">
+                                        <strong><i class="fas fa-eye text-info me-1"></i> Mating Visibility:</strong> 
+                                        {% if dog.is_available %}
+                                            <span class="badge bg-primary-subtle text-primary">Public</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary-subtle text-secondary">Hidden by Owner</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- KCI Document Attachment Button -->
+                                {% if dog.kci_document %}
+                                    <div class="p-2 bg-light rounded-3 border d-inline-flex align-items-center gap-2 mb-3">
+                                        <i class="fas fa-file-pdf text-danger fs-5"></i>
+                                        <span class="small fw-semibold text-dark">KCI Official Certificate Uploaded</span>
+                                        <a href="{{ dog.kci_document.url }}" target="_blank" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold ms-2">
+                                            <i class="fas fa-external-link-alt me-1"></i> View Certificate
+                                        </a>
+                                    </div>
+                                {% elif dog.kci_registered %}
+                                    <div class="alert alert-warning py-1 px-3 rounded-3 small mb-3">
+                                        <i class="fas fa-exclamation-triangle me-1"></i> Dog marked as KCI registered, but no document was uploaded!
+                                    </div>
+                                {% endif %}
+
+                                <!-- Rejection Reason Notice if Rejected -->
+                                {% if dog.approval_status == 'rejected' and dog.admin_rejection_reason %}
+                                    <div class="alert alert-danger py-2 px-3 rounded-3 small mb-0">
+                                        <strong>Rejection Reason:</strong> {{ dog.admin_rejection_reason }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Action Buttons Row -->
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-3 border-top mt-3">
+                                <a href="{% url 'dog_detail' dog.id %}" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold px-3">
+                                    <i class="fas fa-external-link-alt me-1"></i> Preview Full Profile
+                                </a>
+
+                                <div class="d-flex gap-2">
+                                    {% if dog.approval_status != 'approved' %}
+                                        <form method="POST" action="{% url 'admin_approve_reject_dog' dog.id 'approve' %}">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-success btn-sm rounded-pill fw-bold px-4 shadow-sm hover-lift">
+                                                <i class="fas fa-check me-1"></i> Approve Dog
+                                            </button>
+                                        </form>
+                                    {% endif %}
+
+                                    {% if dog.approval_status != 'rejected' %}
+                                        <button type="button" 
+                                                class="btn btn-outline-danger btn-sm rounded-pill fw-bold px-3 open-reject-btn"
+                                                data-dog-id="{{ dog.id }}"
+                                                data-dog-name="{{ dog.name }}">
+                                            <i class="fas fa-times me-1"></i> Reject Profile
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <!-- Empty Submissions State -->
+                <div class="text-center py-5" data-aos="fade-up">
+                    <div class="bg-white p-5 rounded-4 shadow-sm mx-auto" style="max-width: 500px;">
+                        <div class="bg-light text-muted rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
+                            <i class="fas fa-clipboard-check fa-2x"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-2">No Profiles in this Category</h4>
+                        <p class="text-muted mb-3">
+                            {% if status_filter == 'pending' %}
+                                Great job! There are currently no dog profiles pending verification review.
+                            {% else %}
+                                No dog registrations found matching the "{{ status_filter }}" filter.
+                            {% endif %}
+                        </p>
+                        <a href="?status=all" class="btn btn-outline-primary btn-sm rounded-pill fw-bold px-4">
+                            View All Dogs
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</section>
+
+<!-- Rejection Reason Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-danger text-white px-4 py-3 border-0">
+                <h6 class="modal-title fw-bold">
+                    <i class="fas fa-exclamation-circle text-white me-2"></i> Reject Dog Registration
+                </h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="rejectForm" action="">
+                {% csrf_token %}
+                <div class="modal-body p-4 bg-light">
+                    <p class="text-muted small mb-3">
+                        You are rejecting <strong id="rejectDogName">this dog</strong>. Please provide a reason to inform the owner what needs correction:
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark text-uppercase">Rejection Explanation</label>
+                        <textarea name="rejection_reason" class="form-control rounded-3 border p-3" rows="3" placeholder="e.g. KCI certificate document is blurry, or vaccination records are incomplete..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white border-top p-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-danger rounded-pill px-4 fw-bold shadow-sm">
+                        <i class="fas fa-times me-1"></i> Confirm Rejection
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const rejectModalEl = document.getElementById('rejectModal');
+    if (rejectModalEl) {
+        const rejectModal = new bootstrap.Modal(rejectModalEl);
+        const rejectForm = document.getElementById('rejectForm');
+        const rejectDogName = document.getElementById('rejectDogName');
+
+        document.querySelectorAll('.open-reject-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const dogId = this.dataset.dogId;
+                const dogName = this.dataset.dogName;
+
+                rejectDogName.textContent = dogName;
+                rejectForm.action = `/admin-dashboard/dog/${dogId}/reject/`;
+                rejectModal.show();
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

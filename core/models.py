@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -83,8 +84,8 @@ class DogProfile(models.Model):
     breed_type = models.CharField(max_length=20, choices=BREED_TYPE_CHOICES, default='purebred')
     breed = models.CharField(max_length=100, default='Labrador Retriever')
     secondary_breed = models.CharField(max_length=100, blank=True, null=True)  # For parent 2 if crossbreed
-    age_years = models.PositiveIntegerField()
-    age_months = models.PositiveIntegerField(default=0)
+    age_years = models.PositiveIntegerField(validators=[MinValueValidator(0), MaxValueValidator(25)])
+    age_months = models.PositiveIntegerField(default=0, validators=[MinValueValidator(0), MaxValueValidator(11)])
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
     
     # State & City
@@ -119,8 +120,28 @@ class DogProfile(models.Model):
 
     bio = models.TextField(blank=True)
     is_available = models.BooleanField(default=True)
+    
+    APPROVAL_STATUS_CHOICES = (
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    )
+    approval_status = models.CharField(max_length=20, choices=APPROVAL_STATUS_CHOICES, default='pending')
+    admin_rejection_reason = models.TextField(blank=True, null=True)
+    
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='dogs')
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['approval_status', 'is_available']),
+            models.Index(fields=['city']),
+            models.Index(fields=['breed']),
+            models.Index(fields=['gender']),
+            models.Index(fields=['-created_at']),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.breed}) - {self.city}"
@@ -154,6 +175,38 @@ class MatchRequest(models.Model):
     class Meta:
         # Prevent duplicate pending requests for the same target dog by the same sender
         unique_together = ('sender', 'target_dog', 'status')
+        indexes = [
+            models.Index(fields=['sender', 'status']),
+            models.Index(fields=['receiver', 'status']),
+            models.Index(fields=['target_dog', 'status']),
+            models.Index(fields=['-created_at']),
+        ]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        
+        # 1. Prevent self-match (matching own dog)
+        if self.target_dog and self.sender and self.target_dog.owner == self.sender:
+            raise ValidationError("You cannot send a match proposal to your own dog.")
+
+        # 2. Prevent matching with the same dog if sender_dog is provided
+        if self.sender_dog and self.target_dog and self.sender_dog == self.target_dog:
+            raise ValidationError("Sender dog and target dog cannot be the same.")
+
+        # 3. Ensure sender owns the sender_dog
+        if self.sender_dog and self.sender and self.sender_dog.owner != self.sender:
+            raise ValidationError("You can only pair a dog that you own.")
+
+        # 4. Opposite-Gender breeding rule
+        if self.sender_dog and self.target_dog:
+            if self.sender_dog.gender.lower() == self.target_dog.gender.lower():
+                raise ValidationError(
+                    f"Breeding match proposals require opposite genders. Both dogs are {self.sender_dog.get_gender_display()}s."
+                )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.sender.username} -> {self.target_dog.name} ({self.status})"
@@ -164,9 +217,45 @@ class ChatMessage(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
     message = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_edited = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['timestamp']
+        indexes = [
+            models.Index(fields=['match', 'timestamp']),
+        ]
 
     def __str__(self):
         return f"{self.sender.username}: {self.message[:20]}"
+
+
+class VeterinaryClinic(models.Model):
+    name = models.CharField(max_length=200)
+    doctor_name = models.CharField(max_length=150, blank=True, null=True)
+    specialization = models.CharField(max_length=200, default='General Veterinary & Surgery')
+    phone_number = models.CharField(max_length=20)
+    email = models.EmailField(blank=True, null=True)
+    address = models.TextField()
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    pincode = models.CharField(max_length=10, blank=True, null=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    is_24x7_emergency = models.BooleanField(default=False)
+    rating = models.DecimalField(max_digits=3, decimal_places=1, default=4.8)
+    services_offered = models.TextField(blank=True, help_text="Comma-separated services")
+    image = models.ImageField(upload_to='vet_photos/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['city']),
+            models.Index(fields=['state']),
+            models.Index(fields=['is_24x7_emergency']),
+            models.Index(fields=['-rating']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} - {self.city}"

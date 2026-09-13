@@ -2,84 +2,329 @@
 
 {% block content %}
 <!-- Page Header -->
-<section class="bg-white border-bottom py-5">
+<section class="bg-white border-bottom py-4 py-md-5">
     <div class="container text-center" data-aos="fade-down">
-        <h1 class="display-5 fw-bold text-dark mb-3">Find the Perfect Match</h1>
-        <p class="lead text-muted mx-auto" style="max-width: 600px;">
-            Browse verified dog profiles from responsible owners in your area. Use the filters to find the exact breed and lineage you are looking for.
+        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2 fw-bold text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 0.05em;">
+            <i class="fas fa-venus-mars me-1"></i> Matchmaking & Discovery
+        </span>
+        <h1 class="display-5 fw-bold text-dark mb-2">Find the Perfect Breeding Match</h1>
+        <p class="lead text-muted mx-auto mb-3" style="max-width: 650px; font-size: 1.05rem;">
+            Discover verified, health-checked dogs from trusted owners. Filter by breed pedigree, gender, and proximity.
         </p>
+
+        {% if ref_location_label %}
+            <div class="d-inline-flex align-items-center gap-2 bg-light border rounded-pill px-3 py-1 small text-muted">
+                <i class="fas fa-location-crosshairs text-primary"></i>
+                <span>Distances calculated from <strong>{{ ref_location_label }}</strong></span>
+            </div>
+        {% endif %}
     </div>
 </section>
 
-<!-- Dog Grid Directory -->
-<section class="py-5" style="background-color: var(--bg-light);">
+<!-- Tom Select CSS & JS (For Synchronized Breed Typeahead) -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+<!-- Choices.js (For State & City Cascading Dropdowns) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+<style>
+    .filter-card {
+        background: #ffffff;
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    .form-floating-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+        margin-bottom: 0.35rem;
+        display: block;
+    }
+    .ts-control, .choices__inner {
+        background-color: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 0.75rem !important;
+        padding: 0.5rem 0.85rem !important;
+        font-size: 0.92rem !important;
+        min-height: 42px !important;
+    }
+    .ts-wrapper.focus .ts-control, .choices.is-focused .choices__inner {
+        border-color: #4F46E5 !important;
+        box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.15) !important;
+        background-color: #ffffff !important;
+    }
+    .dog-card-img {
+        height: 230px;
+        transition: transform 0.4s ease;
+    }
+    .dog-card:hover .dog-card-img {
+        transform: scale(1.05);
+    }
+</style>
+
+<!-- Main Discovery Section -->
+<section class="py-5" style="background-color: var(--bg-light); min-height: 75vh;">
     <div class="container">
         
-        <!-- The ROW container must be OUTSIDE the for loop so cards share the same row -->
+        <!-- Filter Bar Card -->
+        <div class="filter-card p-4 p-md-4 mb-5" data-aos="fade-up">
+            <form method="GET" action="{% url 'explore_dogs' %}" id="search-filter-form">
+                
+                <div class="row g-3 align-items-end">
+                    
+                    <!-- Reference Dog (If authenticated with dogs) -->
+                    {% if user.is_authenticated and user_dogs %}
+                        <div class="col-12 col-md-3">
+                            <label class="form-floating-label"><i class="fas fa-paw text-primary me-1"></i> Match For My Dog</label>
+                            <select name="my_dog" class="form-select form-select-sm rounded-3 bg-light border-0 shadow-none py-2" id="my-dog-select" onchange="this.form.submit()">
+                                {% for my_dog in user_dogs %}
+                                    <option value="{{ my_dog.id }}" {% if my_dog_id|stringformat:"s" == my_dog.id|stringformat:"s" or not my_dog_id and forloop.first %}selected{% endif %}>
+                                        {{ my_dog.name }} ({{ my_dog.breed }} - {{ my_dog.city }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    {% endif %}
+
+                    <!-- Breed Type Selector -->
+                    <div class="col-6 {% if user.is_authenticated and user_dogs %}col-md-2{% else %}col-md-3{% endif %}">
+                        <label class="form-floating-label"><i class="fas fa-filter text-secondary me-1"></i> Breed Type</label>
+                        <select name="breed_type" id="breed-type-select" class="form-select form-select-sm rounded-3 bg-light border-0 shadow-none py-2">
+                            <option value="" {% if not breed_type_filter %}selected{% endif %}>All Breeds</option>
+                            <option value="purebred" {% if breed_type_filter == 'purebred' %}selected{% endif %}>Purebred</option>
+                            <option value="crossbreed" {% if breed_type_filter == 'crossbreed' %}selected{% endif %}>Crossbreed / Mix</option>
+                        </select>
+                    </div>
+
+                    <!-- Synchronized Breed Dropdown -->
+                    <div class="col-6 {% if user.is_authenticated and user_dogs %}col-md-3{% else %}col-md-3{% endif %}">
+                        <label class="form-floating-label"><i class="fas fa-dog text-secondary me-1"></i> Specific Breed</label>
+                        <input type="text" name="breed" id="breed-select" placeholder="Select or search breed..." value="{{ breed_filter }}">
+                    </div>
+
+                    <!-- Gender Filter -->
+                    <div class="col-6 col-md-2">
+                        <label class="form-floating-label"><i class="fas fa-venus-mars text-secondary me-1"></i> Gender</label>
+                        <select name="gender" class="form-select form-select-sm rounded-3 bg-light border-0 shadow-none py-2">
+                            <option value="" {% if not gender_filter %}selected{% endif %}>Any Gender</option>
+                            <option value="male" {% if gender_filter == 'male' %}selected{% endif %}>Male</option>
+                            <option value="female" {% if gender_filter == 'female' %}selected{% endif %}>Female</option>
+                        </select>
+                    </div>
+
+                    <!-- Distance Radius (Epic 3 Task 3.2) -->
+                    <div class="col-6 col-md-2">
+                        <label class="form-floating-label"><i class="fas fa-compass text-secondary me-1"></i> Max Distance</label>
+                        <select name="radius" class="form-select form-select-sm rounded-3 bg-light border-0 shadow-none py-2">
+                            <option value="" {% if not radius_filter %}selected{% endif %}>Any Distance</option>
+                            <option value="5" {% if radius_filter == '5' %}selected{% endif %}>Within 5 km</option>
+                            <option value="15" {% if radius_filter == '15' %}selected{% endif %}>Within 15 km</option>
+                            <option value="30" {% if radius_filter == '30' %}selected{% endif %}>Within 30 km</option>
+                            <option value="50" {% if radius_filter == '50' %}selected{% endif %}>Within 50 km</option>
+                            <option value="100" {% if radius_filter == '100' %}selected{% endif %}>Within 100 km</option>
+                            <option value="250" {% if radius_filter == '250' %}selected{% endif %}>Within 250 km</option>
+                        </select>
+                    </div>
+
+                    <!-- Location: State -->
+                    <div class="col-6 col-md-3 mt-md-3">
+                        <label class="form-floating-label"><i class="fas fa-map-marked-alt text-secondary me-1"></i> State</label>
+                        <select name="state" id="state-select" class="form-select form-select-sm">
+                            <option value="">All States</option>
+                            {% if state_filter %}
+                                <option value="{{ state_filter }}" selected>{{ state_filter }}</option>
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <!-- Location: City -->
+                    <div class="col-6 col-md-3 mt-md-3">
+                        <label class="form-floating-label"><i class="fas fa-city text-secondary me-1"></i> City</label>
+                        <select name="city" id="city-select" class="form-select form-select-sm">
+                            <option value="">All Cities</option>
+                            {% if city_filter %}
+                                <option value="{{ city_filter }}" selected>{{ city_filter }}</option>
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <!-- KCI Checkbox & Action Buttons -->
+                    <div class="col-12 col-md-6 mt-md-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div class="form-check form-switch pt-1">
+                            <input class="form-check-input" type="checkbox" role="switch" name="kci_only" id="kciOnlySwitch" value="true" {% if kci_only == 'true' %}checked{% endif %}>
+                            <label class="form-check-label small fw-semibold text-dark" for="kciOnlySwitch">
+                                <i class="fas fa-certificate text-success me-1"></i> Verified Pedigree Only (KCI)
+                            </label>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            {% if active_filters_count > 0 %}
+                                <a href="{% url 'explore_dogs' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold">
+                                    <i class="fas fa-undo me-1"></i> Reset
+                                </a>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold shadow-sm">
+                                <i class="fas fa-sliders-h me-1"></i> Apply Filters
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </form>
+
+            <!-- Active Filter Badges -->
+            {% if active_filters_count > 0 %}
+                <div class="mt-3 pt-3 border-top d-flex flex-wrap align-items-center gap-2">
+                    <small class="text-muted fw-bold me-1">Active filters ({{ active_filters_count }}):</small>
+                    {% if breed_type_filter %}
+                        <span class="badge bg-primary-subtle text-primary border rounded-pill px-3 py-1">
+                            Type: {{ breed_type_filter|title }}
+                        </span>
+                    {% endif %}
+                    {% if breed_filter %}
+                        <span class="badge bg-primary-subtle text-primary border rounded-pill px-3 py-1">
+                            Breed: {{ breed_filter }}
+                        </span>
+                    {% endif %}
+                    {% if gender_filter %}
+                        <span class="badge bg-primary-subtle text-primary border rounded-pill px-3 py-1">
+                            Gender: {{ gender_filter|title }}
+                        </span>
+                    {% endif %}
+                    {% if radius_filter %}
+                        <span class="badge bg-info-subtle text-info-emphasis border rounded-pill px-3 py-1">
+                            Radius: ≤ {{ radius_filter }} km
+                        </span>
+                    {% endif %}
+                    {% if city_filter %}
+                        <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-3 py-1">
+                            City: {{ city_filter }}
+                        </span>
+                    {% endif %}
+                    {% if kci_only == 'true' %}
+                        <span class="badge bg-success-subtle text-success border rounded-pill px-3 py-1">
+                            KCI Verified Only
+                        </span>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Search Results Count -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="fw-bold text-dark mb-0">
+                <i class="fas fa-paw text-warning me-2"></i>Available Matches 
+                <span class="badge bg-light text-dark border rounded-pill ms-2 fw-semibold">{{ total_results }} Found</span>
+            </h5>
+            <small class="text-muted">Showing active & verified profiles</small>
+        </div>
+
+        <!-- Dog Grid Directory (Epic 2 Task 2.1 & 2.4) -->
         <div class="row g-4">
-            
             {% for dog in dogs %}
-                <!-- Each dog gets a column in the grid -->
-                <div class="col-md-6 col-lg-4" data-aos="fade-up">
-                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden hover-lift bg-white">
+                <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|slice:':2' }}00">
+                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden hover-lift bg-white dog-card">
                         
-                        <!-- Image Container -->
+                        <!-- Image Container with Badges -->
                         <div class="position-relative bg-light text-center" style="height: 240px; overflow: hidden;">
                             {% if dog.images.first %}
-                                <img src="{{ dog.images.first.image.url }}" class="w-100 h-100 object-fit-cover" alt="{{ dog.name }}" style="transition: transform 0.5s ease;">
+                                <img src="{{ dog.images.first.image.url }}" class="w-100 h-100 object-fit-cover dog-card-img" alt="{{ dog.name }}">
                             {% else %}
-                                <div class="w-100 h-100 d-flex align-items-center justify-content-center bg-secondary-subtle">
-                                    <i class="fas fa-dog fa-5x text-muted opacity-50"></i>
+                                <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-secondary-subtle">
+                                    <i class="fas fa-dog fa-5x text-muted opacity-50 mb-2"></i>
+                                    <span class="text-muted small">No photo available</span>
                                 </div>
                             {% endif %}
                             
-                            <!-- Badges -->
+                            <!-- Badges Overlay -->
                             <div class="position-absolute top-0 start-0 w-100 p-3 d-flex justify-content-between align-items-start">
                                 <span class="badge bg-dark text-white fw-semibold rounded-pill py-2 px-3 shadow-sm">
                                     <i class="fas fa-paw text-warning me-1"></i> {{ dog.breed }}
                                 </span>
-                                {% if dog.kci_registered %}
-                                    <span class="badge bg-success text-white fw-bold rounded-pill shadow-sm d-flex align-items-center px-3 py-2" title="KCI Registered">
-                                        <i class="fas fa-check-circle me-1"></i> Verified
-                                    </span>
-                                {% endif %}
+                                
+                                <div class="d-flex flex-column gap-1 align-items-end">
+                                    {% if dog.kci_registered %}
+                                        <span class="badge bg-success text-white fw-bold rounded-pill shadow-sm d-flex align-items-center px-3 py-2" title="KCI Registered">
+                                            <i class="fas fa-check-circle me-1"></i> Verified
+                                        </span>
+                                    {% endif %}
+                                    {% if dog.distance_km is not None %}
+                                        <span class="badge bg-primary text-white fw-bold rounded-pill shadow-sm px-3 py-1 small">
+                                            <i class="fas fa-location-arrow me-1"></i> {{ dog.distance_km }} km
+                                        </span>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
 
                         <!-- Card Body -->
-                        <div class="card-body p-4">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h4 class="fw-bold mb-0 text-dark">{{ dog.name }}</h4>
-                                <span class="badge bg-light text-secondary border px-2 py-1 text-capitalize">
-                                    {% if dog.gender|lower == 'male' %}
-                                        <i class="fas fa-mars text-primary fw-bold fs-6 me-1"></i>
-                                    {% else %}
-                                        <i class="fas fa-venus text-danger fw-bold fs-6 me-1"></i>
-                                    {% endif %} 
-                                    {{ dog.gender }}
-                                </span>
-                            </div>
-                            
-                            <!-- Location -->
-                            <p class="text-muted small mb-3">
-                                <i class="fas fa-map-marker-alt text-danger me-1"></i> 
-                                {{ dog.city }}{% if dog.state %}, {{ dog.state }}{% endif %}
-                            </p>
-
-                            <!-- Age & Weight Badges -->
-                            <div class="d-flex flex-wrap gap-2 mb-4">
-                                <span class="badge bg-primary-subtle text-primary border-0 rounded-3 px-2 py-1 small">
-                                    Age: {{ dog.age_years }} yrs {% if dog.age_months %}{{ dog.age_months }} mo{% endif %}
-                                </span>
-                                {% if dog.weight %}
-                                    <span class="badge bg-primary-subtle text-primary border-0 rounded-3 px-2 py-1 small">
-                                        Weight: {{ dog.weight }} {{ dog.weight_unit }}
+                        <div class="card-body p-4 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <h4 class="fw-bold mb-0 text-dark">{{ dog.name }}</h4>
+                                    <span class="badge bg-light text-secondary border px-2 py-1 text-capitalize">
+                                        {% if dog.gender|lower == 'male' %}
+                                            <i class="fas fa-mars text-primary fw-bold fs-6 me-1"></i>
+                                        {% else %}
+                                            <i class="fas fa-venus text-danger fw-bold fs-6 me-1"></i>
+                                        {% endif %} 
+                                        {{ dog.gender }}
                                     </span>
+                                </div>
+                                
+                                <!-- Location & Distance -->
+                                <p class="text-muted small mb-3">
+                                    <i class="fas fa-map-marker-alt text-danger me-1"></i> 
+                                    {{ dog.city }}{% if dog.state %}, {{ dog.state }}{% endif %}
+                                    {% if dog.distance_km is not None %}
+                                        <span class="text-primary fw-semibold ms-1">({{ dog.distance_km }} km away)</span>
+                                    {% endif %}
+                                </p>
+
+                                <!-- Age & Attributes -->
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    <span class="badge bg-primary-subtle text-primary border-0 rounded-3 px-2 py-1 small">
+                                        Age: {{ dog.age_years }} yrs {% if dog.age_months %}{{ dog.age_months }} mo{% endif %}
+                                    </span>
+                                    {% if dog.weight %}
+                                        <span class="badge bg-primary-subtle text-primary border-0 rounded-3 px-2 py-1 small">
+                                            {{ dog.weight }} {{ dog.weight_unit }}
+                                        </span>
+                                    {% endif %}
+                                    <span class="badge bg-secondary-subtle text-secondary border-0 rounded-3 px-2 py-1 small text-capitalize">
+                                        {{ dog.get_mating_terms_display }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- CTAs: View Details & Express Interest (Epic 2 Task 2.3) -->
+                            <div class="d-flex gap-2 pt-3 border-top mt-2">
+                                <a href="{% url 'dog_detail' dog.id %}" class="btn btn-outline-primary btn-sm flex-grow-1 fw-bold rounded-pill py-2">
+                                    View Details
+                                </a>
+                                
+                                {% if user.is_authenticated %}
+                                    <button type="button" 
+                                            class="btn btn-danger btn-sm fw-bold rounded-pill px-3 py-2 shadow-sm open-match-btn"
+                                            data-dog-id="{{ dog.id }}"
+                                            data-dog-name="{{ dog.name }}"
+                                            data-owner-name="{{ dog.owner.username }}"
+                                            title="Send Match Proposal">
+                                        <i class="fas fa-heart me-1"></i> Match
+                                    </button>
+                                {% else %}
+                                    <a href="{% url 'login' %}?next={% url 'explore_dogs' %}" class="btn btn-danger btn-sm fw-bold rounded-pill px-3 py-2 shadow-sm">
+                                        <i class="fas fa-heart me-1"></i> Match
+                                    </a>
                                 {% endif %}
                             </div>
-                            <a href="{% url 'dog_detail' dog.id %}" class="btn btn-outline-primary w-100 fw-bold rounded-pill">
-                                View Full Profile
-                            </a>
+
                         </div>
                         
                     </div>
@@ -87,11 +332,13 @@
             {% empty %}
                 <!-- Empty State -->
                 <div class="col-12 text-center py-5" data-aos="fade-up">
-                    <div class="bg-white p-5 rounded-4 shadow-sm mx-auto" style="max-width: 500px;">
+                    <div class="bg-white p-5 rounded-4 shadow-sm mx-auto" style="max-width: 520px;">
                         <i class="fas fa-search-minus fa-4x text-muted mb-3"></i>
-                        <h4 class="fw-bold text-dark">No dogs found</h4>
-                        <p class="text-muted">There are currently no dogs registered on the platform. Check back later!</p>
-                        <a href="{% url 'add_dog' %}" class="btn btn-primary fw-bold rounded-pill px-4 mt-2">Be the First to Register</a>
+                        <h4 class="fw-bold text-dark">No matching dogs found</h4>
+                        <p class="text-muted">No dog profiles matched your specific breed or distance filters. Try increasing the radius or resetting filters.</p>
+                        <a href="{% url 'explore_dogs' %}" class="btn btn-primary fw-bold rounded-pill px-4 mt-2">
+                            <i class="fas fa-redo me-1"></i> Reset All Filters
+                        </a>
                     </div>
                 </div>
             {% endfor %}
@@ -99,4 +346,243 @@
         </div>
     </div>
 </section>
+
+<!-- Match Request Modal for Direct Card Proposals (Epic 2 Task 2.3) -->
+{% if user.is_authenticated %}
+<div class="modal fade" id="quickMatchModal" tabindex="-1" aria-labelledby="quickMatchModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-danger text-white px-4 py-3 border-0">
+                <h5 class="modal-title fw-bold" id="quickMatchModalLabel">
+                    <i class="fas fa-heart text-white me-2"></i> Send Breeding Proposal
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form method="POST" id="quickMatchForm" action="">
+                {% csrf_token %}
+                <div class="modal-body p-4 bg-light">
+                    <div class="text-center mb-4">
+                        <p class="text-muted mb-0">
+                            Propose a breeding match to <strong id="modalOwnerName">owner</strong> for <strong id="modalDogName">dog</strong>.
+                        </p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-dark small text-uppercase">Select Your Dog to Pair</label>
+                        <select name="sender_dog" class="form-select form-select-lg border-0 shadow-sm" required>
+                            <option value="" disabled selected>Choose your dog...</option>
+                            {% for my_dog in user_dogs %}
+                                <option value="{{ my_dog.id }}">{{ my_dog.name }} ({{ my_dog.breed }} - {{ my_dog.get_gender_display }})</option>
+                            {% empty %}
+                                <option value="" disabled>No registered dogs found. Please register a dog first.</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark small text-uppercase">Intro Message (Optional)</label>
+                        <textarea name="message" class="form-control border-0 shadow-sm" rows="3" placeholder="Hello! I would love to connect to discuss breeding terms..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="modal-footer bg-white border-0 p-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary fw-bold rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4 shadow-sm hover-lift">
+                        <i class="fas fa-paper-plane me-1"></i> Send Proposal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Synchronized Dropdowns & Dynamic Scripts -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    
+    // 1. Synchronized Breed Choices
+    const purebredChoices = [
+        ["Affenpinscher", "Affenpinscher"], ["Afghan Hound", "Afghan Hound"], ["Airedale Terrier", "Airedale Terrier"],
+        ["Akita", "Akita"], ["Alaskan Malamute", "Alaskan Malamute"], ["American Bully", "American Bully"],
+        ["American Pit Bull Terrier", "American Pit Bull Terrier"], ["Australian Shepherd", "Australian Shepherd"],
+        ["Beagle", "Beagle"], ["Bernese Mountain Dog", "Bernese Mountain Dog"], ["Bichon Frise", "Bichon Frise"],
+        ["Border Collie", "Border Collie"], ["Boston Terrier", "Boston Terrier"], ["Boxer", "Boxer"],
+        ["Bullmastiff", "Bullmastiff"], ["Cane Corso", "Cane Corso"], ["Cavalier King Charles Spaniel", "Cavalier King Charles Spaniel"],
+        ["Chihuahua", "Chihuahua"], ["Chow Chow", "Chow Chow"], ["Cocker Spaniel", "Cocker Spaniel"],
+        ["Dachshund", "Dachshund"], ["Dalmatian", "Dalmatian"], ["Doberman Pinscher", "Doberman Pinscher"],
+        ["English Bulldog", "English Bulldog"], ["French Bulldog", "French Bulldog"], ["German Shepherd", "German Shepherd"],
+        ["Golden Retriever", "Golden Retriever"], ["Great Dane", "Great Dane"], ["Great Pyrenees", "Great Pyrenees"],
+        ["Greyhound", "Greyhound"], ["Indie / Native Breed", "Indie / Native Breed"], ["Jack Russell Terrier", "Jack Russell Terrier"],
+        ["Labrador Retriever", "Labrador Retriever"], ["Lhasa Apso", "Lhasa Apso"], ["Maltese", "Maltese"],
+        ["Miniature Pinscher", "Miniature Pinscher"], ["Pekingese", "Pekingese"], ["Pomeranian", "Pomeranian"],
+        ["Poodle (Standard)", "Poodle (Standard)"], ["Poodle (Toy)", "Poodle (Toy)"], ["Pug", "Pug"],
+        ["Rottweiler", "Rottweiler"], ["Saint Bernard", "Saint Bernard"], ["Samoyed", "Samoyed"],
+        ["Shih Tzu", "Shih Tzu"], ["Siberian Husky", "Siberian Husky"], ["Tibetan Mastiff", "Tibetan Mastiff"],
+        ["Whippet", "Whippet"], ["Other", "Other Purebred"]
+    ];
+
+    const crossbreedChoices = [
+        ["Airedoodle", "Airedoodle (Airedale Terrier + Poodle)"], ["Aussiedoodle", "Aussiedoodle (Australian Shepherd + Poodle)"],
+        ["Aussiepoo", "Aussiepoo (Australian Shepherd + Poodle)"], ["Baskerville", "Baskerville (Basset Hound + Beagle)"],
+        ["Beaglier", "Beaglier (Beagle + Cavalier King Charles)"], ["Bernedoodle", "Bernedoodle (Bernese Mountain Dog + Poodle)"],
+        ["Bichpoo", "Bichpoo / Poochon (Bichon Frise + Poodle)"], ["Bordoodle", "Bordoodle (Border Collie + Poodle)"],
+        ["Boxerdoodle", "Boxerdoodle (Boxer + Poodle)"], ["Bullpug", "Bullpug (English Bulldog + Pug)"],
+        ["Cavachon", "Cavachon (Cavalier King Charles + Bichon Frise)"], ["Cavapoo", "Cavapoo / Cavoodle (Cavalier King Charles + Poodle)"],
+        ["Chiweenie", "Chiweenie (Chihuahua + Dachshund)"], ["Chorkie", "Chorkie (Chihuahua + Yorkie)"],
+        ["Cockapoo", "Cockapoo (Cocker Spaniel + Poodle)"], ["Corgipoo", "Corgipoo (Corgi + Poodle)"],
+        ["Double Doodle", "Double Doodle (Goldendoodle + Labradoodle)"], ["Doxiepoo", "Doxiepoo (Dachshund + Poodle)"],
+        ["Frenchie Pug", "Frenchie Pug (French Bulldog + Pug)"], ["Gerberian Shepsky", "Gerberian Shepsky (German Shepherd + Husky)"],
+        ["Goberian", "Goberian (Golden Retriever + Siberian Husky)"], ["Goldendoodle", "Goldendoodle (Golden Retriever + Poodle)"],
+        ["Havapoo", "Havapoo (Havanese + Poodle)"], ["Huskydoodle", "Huskydoodle (Husky + Poodle)"],
+        ["Indie Mix", "Indie Mix / Native Crossbreed"], ["Labrabull", "Labrabull (Labrador + Pit Bull)"],
+        ["Labradoodle", "Labradoodle (Labrador Retriever + Poodle)"], ["Maltipoo", "Maltipoo (Maltese + Poodle)"],
+        ["Mini Goldendoodle", "Mini Goldendoodle (Golden Retriever + Toy Poodle)"], ["Mini Labradoodle", "Mini Labradoodle (Labrador + Toy Poodle)"],
+        ["Morkie", "Morkie (Maltese + Yorkshire Terrier)"], ["Peekapoo", "Peekapoo (Pekingese + Poodle)"],
+        ["Pitador", "Pitador (Pit Bull + Labrador)"], ["Pomapoo", "Pomapoo (Pomeranian + Poodle)"],
+        ["Pomchi", "Pomchi (Pomeranian + Chihuahua)"], ["Pomsky", "Pomsky (Pomeranian + Siberian Husky)"],
+        ["Puggle", "Puggle (Pug + Beagle)"], ["Pyredoodle", "Pyredoodle (Great Pyrenees + Poodle)"],
+        ["Rotticorso", "Rotticorso (Rottweiler + Cane Corso)"], ["Rottsky", "Rottsky (Rottweiler + Siberian Husky)"],
+        ["Schnoodle", "Schnoodle (Schnauzer + Poodle)"], ["Sheepadoodle", "Sheepadoodle (Old English Sheepdog + Poodle)"],
+        ["Shepsky", "Shepsky (German Shepherd + Husky)"], ["Shichon", "Shichon / Teddy Bear (Shih Tzu + Bichon Frise)"],
+        ["Shih-Poo", "Shih-Poo (Shih Tzu + Poodle)"], ["Shollie", "Shollie (German Shepherd + Collie)"],
+        ["Texas Heeler", "Texas Heeler (Australian Cattle Dog + Australian Shepherd)"], ["Whoodle", "Whoodle (Soft-Coated Wheaten Terrier + Poodle)"],
+        ["Yorkipoo", "Yorkipoo (Yorkshire Terrier + Poodle)"], ["Other Crossbreed", "Other / Custom Crossbreed"]
+    ];
+
+    const allBreeds = purebredChoices.concat(crossbreedChoices);
+
+    const breedInput = document.getElementById('breed-select');
+    const breedTypeSelect = document.getElementById('breed-type-select');
+
+    let breedTom = new TomSelect(breedInput, {
+        valueField: 'value',
+        labelField: 'text',
+        searchField: 'text',
+        maxItems: 1,
+        create: false,
+        placeholder: "Type or select breed..."
+    });
+
+    function populateBreedOptions(optionsList) {
+        const currentVal = breedTom.getValue();
+        breedTom.clear(true);
+        breedTom.clearOptions();
+        
+        // Add empty option
+        breedTom.addOption({ value: '', text: 'All Breeds' });
+        optionsList.forEach(opt => {
+            breedTom.addOption({ value: opt[0], text: opt[1] });
+        });
+        
+        if (currentVal) {
+            breedTom.setValue(currentVal, true);
+        }
+        breedTom.refreshOptions(false);
+    }
+
+    function updateBreedList() {
+        const selectedType = breedTypeSelect.value;
+        if (selectedType === 'purebred') {
+            populateBreedOptions(purebredChoices);
+        } else if (selectedType === 'crossbreed') {
+            populateBreedOptions(crossbreedChoices);
+        } else {
+            populateBreedOptions(allBreeds);
+        }
+    }
+
+    breedTypeSelect.addEventListener('change', updateBreedList);
+    updateBreedList(); // Initialize on load
+
+    // Set initial value if passed from GET
+    const initialBreed = "{{ breed_filter|escapejs }}";
+    if (initialBreed) {
+        breedTom.setValue(initialBreed, true);
+    }
+
+    // 2. Cascading State & City Dropdowns (Choices.js)
+    const stateInput = document.getElementById('state-select');
+    const cityInput = document.getElementById('city-select');
+
+    if (stateInput && cityInput) {
+        let stateChoices = new Choices(stateInput, { searchEnabled: true, shouldSort: false });
+        let cityChoices = new Choices(cityInput, { searchEnabled: true, shouldSort: false });
+
+        const currentState = "{{ state_filter|escapejs }}";
+        const currentCity = "{{ city_filter|escapejs }}";
+
+        fetch("https://countriesnow.space/api/v0.1/countries/states", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ country: "India" })
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.data && d.data.states) {
+                const statesData = [{ value: '', label: 'All States' }].concat(
+                    d.data.states.map(s => ({ value: s.name, label: s.name }))
+                );
+                stateChoices.setChoices(statesData, 'value', 'label', true);
+                if (currentState) {
+                    stateChoices.setChoiceByValue(currentState);
+                    loadCities(currentState, currentCity);
+                }
+            }
+        });
+
+        function loadCities(stateName, selectedCity) {
+            cityChoices.clearStore();
+            if (!stateName) {
+                cityChoices.setChoices([{ value: '', label: 'All Cities' }], 'value', 'label', true);
+                return;
+            }
+            fetch("https://countriesnow.space/api/v0.1/countries/state/cities", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ country: "India", state: stateName })
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.data) {
+                    const citiesData = [{ value: '', label: 'All Cities' }].concat(
+                        d.data.map(c => ({ value: c, label: c }))
+                    );
+                    cityChoices.setChoices(citiesData, 'value', 'label', true);
+                    if (selectedCity) {
+                        cityChoices.setChoiceByValue(selectedCity);
+                    }
+                }
+            });
+        }
+
+        stateInput.addEventListener('change', function () {
+            loadCities(this.value, '');
+        });
+    }
+
+    // 3. Quick Match Modal Triggering
+    const quickMatchModalEl = document.getElementById('quickMatchModal');
+    if (quickMatchModalEl) {
+        const quickMatchModal = new bootstrap.Modal(quickMatchModalEl);
+        const quickMatchForm = document.getElementById('quickMatchForm');
+        const modalDogName = document.getElementById('modalDogName');
+        const modalOwnerName = document.getElementById('modalOwnerName');
+
+        document.querySelectorAll('.open-match-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const dogId = this.dataset.dogId;
+                const dogName = this.dataset.dogName;
+                const ownerName = this.dataset.ownerName;
+
+                modalDogName.textContent = dogName;
+                modalOwnerName.textContent = ownerName;
+                quickMatchForm.action = `/dog/${dogId}/like/`;
+                quickMatchModal.show();
+            });
+        });
+    }
+});
+</script>
 {% endblock %}
