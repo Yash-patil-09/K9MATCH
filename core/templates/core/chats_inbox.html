@@ -1,70 +1,73 @@
 {% extends 'core/base.html' %}
 
+{% block title %}Messaging Hub & Active Conversations · K9Match{% endblock %}
+
 {% block content %}
 <!-- Page Header -->
-<section class="bg-white border-bottom py-4">
-    <div class="container d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3" data-aos="fade-down">
+<section class="bg-white border-bottom border-light-subtle py-4">
+    <div class="container d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 max-w-7xl mx-auto px-3 px-lg-4" data-aos="fade-down">
         <div>
-            <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 fw-bold text-uppercase mb-2" style="font-size: 0.75rem;">
-                <i class="fas fa-comments me-1"></i> Live Messaging
-            </span>
-            <h2 class="fw-bold text-dark mb-1">Chats & Conversations</h2>
-            <p class="text-muted mb-0 small">Direct communication channels with accepted breeding partners.</p>
+            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2 shadow-2xs" style="background-color: var(--color-surface-container); color: var(--color-primary);">
+                <i class="fas fa-shield-alt text-primary"></i>
+                <span class="fw-bold small" style="font-size: 0.78rem;">Escrow Protected Messaging</span>
+            </div>
+            <h2 class="fw-black text-dark mb-1">Live Canine Match Conversations</h2>
+            <p class="text-muted mb-0 small">Direct communication channels with accepted breeding partners and verified owners.</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{% url 'match_requests_dashboard' %}" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold px-3">
+            <a href="{% url 'match_requests_dashboard' %}" class="btn btn-soft btn-sm rounded-pill fw-bold px-3">
                 <i class="fas fa-heart me-1 text-danger"></i> Match Requests
             </a>
-            <a href="{% url 'explore_dogs' %}" class="btn btn-primary btn-sm rounded-pill fw-bold px-3 shadow-sm">
-                <i class="fas fa-search me-1"></i> Find More Matches
+            <a href="{% url 'explore_dogs' %}" class="btn btn-primary-stitch btn-sm px-4 text-decoration-none">
+                <i class="fas fa-search me-1"></i> Discover Dogs
             </a>
         </div>
     </div>
 </section>
 
 <!-- Conversations List Section -->
-<section class="py-5" style="background-color: var(--bg-light); min-height: 70vh;">
-    <div class="container" style="max-width: 900px;">
+<section class="py-5 max-w-7xl mx-auto px-3 px-lg-4" style="min-height: 70vh;">
+    <div class="container px-0" style="max-width: 920px;">
 
         {% if conversations %}
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <small class="text-muted fw-bold text-uppercase" style="letter-spacing: 0.05em;">
+                <small class="text-muted fw-bold text-uppercase tracking-wider" style="font-size: 0.75rem;">
                     Active Conversations ({{ total_conversations }})
                 </small>
-                <small class="text-muted">Ordered by most recent activity</small>
+                <small class="text-muted" style="font-size: 0.75rem;">Synchronized in real-time</small>
             </div>
 
             <div class="d-flex flex-column gap-3">
                 {% for conv in conversations %}
-                    <div class="card border-0 shadow-sm rounded-4 p-3 hover-lift bg-white transition-all" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|slice:':2' }}00">
+                    <div class="bg-white border border-light-subtle shadow-sm rounded-4 p-4 hover-lift transition-all" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|slice:':2' }}00">
                         <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-3">
                             
                             <!-- Left: User Avatar & Info -->
                             <div class="d-flex align-items-center gap-3">
-                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4 flex-shrink-0" style="width: 52px; height: 52px;">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold fs-4 flex-shrink-0 shadow-xs" style="width: 52px; height: 52px; background: linear-gradient(135deg, #004ac6, #2563eb);">
                                     {{ conv.other_user.username|slice:":1"|upper }}
                                 </div>
                                 
                                 <div class="overflow-hidden">
                                     <div class="d-flex align-items-center gap-2 mb-1">
-                                        <h5 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 220px;">
+                                        <h5 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 240px;">
                                             {{ conv.other_user.username }}
                                         </h5>
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small px-2 py-0">
-                                            <i class="fas fa-check-circle me-1"></i> Matched
+                                        <span class="badge-verified-mint d-inline-flex align-items-center gap-1" style="font-size: 0.68rem; padding: 0.2rem 0.6rem;">
+                                            <i class="fas fa-check-circle text-success"></i> Matched
                                         </span>
                                     </div>
                                     
-                                    <div class="text-muted small mb-1">
+                                    <div class="text-muted small mb-1.5" style="font-size: 0.8rem;">
                                         <i class="fas fa-paw text-warning me-1"></i>
-                                        Pairing: <strong>{{ conv.my_dog.name }}</strong> & <strong>{{ conv.partner_dog.name }}</strong>
+                                        Breeding: <strong class="text-dark">{{ conv.my_dog.name }}</strong> &amp; <strong class="text-dark">{{ conv.partner_dog.name }}</strong>
                                     </div>
 
                                     <!-- Last message snippet -->
-                                    <p class="mb-0 text-muted small text-truncate" style="max-width: 450px;">
+                                    <p class="mb-0 text-muted small text-truncate" style="max-width: 480px; font-size: 0.82rem;">
                                         {% if conv.is_deleted %}
                                             <span class="fst-italic text-muted opacity-75">
-                                                <i class="fas fa-trash-alt me-1 text-secondary"></i> {{ conv.last_message }}
+                                                <i class="fas fa-ban me-1 text-secondary"></i> This message was deleted.
                                             </span>
                                         {% else %}
                                             <i class="far fa-comment-dots me-1 text-primary"></i> {{ conv.last_message }}
@@ -75,11 +78,12 @@
 
                             <!-- Right: Time & Open CTA -->
                             <div class="d-flex flex-sm-column align-items-end justify-content-between gap-2 flex-shrink-0">
-                                <small class="text-muted fw-semibold" style="font-size: 0.75rem;">
+                                <small class="text-muted fw-semibold" style="font-size: 0.72rem;">
                                     {{ conv.last_time|timesince }} ago
                                 </small>
-                                <a href="{% url 'chat_room' conv.match.id %}" class="btn btn-primary btn-sm rounded-pill fw-bold px-4 hover-lift">
-                                    Chat Now <i class="fas fa-arrow-right ms-1"></i>
+                                <a href="{% url 'chat_room' conv.match.id %}" class="btn btn-primary-stitch btn-sm px-4 text-decoration-none">
+                                    <span>Chat Now</span>
+                                    <i class="fas fa-arrow-right ms-1"></i>
                                 </a>
                             </div>
 
@@ -91,22 +95,17 @@
         {% else %}
             <!-- Empty State -->
             <div class="text-center py-5" data-aos="fade-up">
-                <div class="bg-white p-5 rounded-4 shadow-sm mx-auto" style="max-width: 500px;">
-                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 70px; height: 70px;">
-                        <i class="fas fa-comments fa-2x"></i>
+                <div class="bg-white p-5 rounded-5 shadow-sm mx-auto border border-light-subtle" style="max-width: 520px; border-radius: 2rem !important;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 text-primary" style="width: 72px; height: 72px; background-color: var(--color-surface-container); font-size: 2rem;">
+                        <i class="fas fa-comments"></i>
                     </div>
-                    <h4 class="fw-bold text-dark mb-2">No Active Conversations</h4>
-                    <p class="text-muted mb-4">
-                        You don't have any open chats yet. When you or another owner accepts a match request, your conversation room will appear right here!
+                    <h4 class="fw-black text-dark mb-2">No Active Conversations</h4>
+                    <p class="text-muted small mb-4 leading-relaxed">
+                        You don't have any open chats yet. When you or another owner accepts a mating proposal, your secure conversation room will appear right here!
                     </p>
-                    <div class="d-flex justify-content-center gap-2">
-                        <a href="{% url 'explore_dogs' %}" class="btn btn-primary rounded-pill fw-bold px-4">
-                            <i class="fas fa-search me-1"></i> Browse Dogs
-                        </a>
-                        <a href="{% url 'match_requests_dashboard' %}" class="btn btn-outline-secondary rounded-pill fw-bold px-3">
-                            Check Requests
-                        </a>
-                    </div>
+                    <a href="{% url 'explore_dogs' %}" class="btn btn-primary-stitch text-decoration-none">
+                        <i class="fas fa-search me-1"></i> Explore Canine Matches
+                    </a>
                 </div>
             </div>
         {% endif %}

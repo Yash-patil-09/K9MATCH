@@ -4,6 +4,13 @@ from . import views
 urlpatterns = [
     path('', views.home, name='home'),
     path('register/', views.register_view, name='register'),
+    path('verify-otp/', views.verify_registration_otp_view, name='verify_registration_otp'),
+    path('forgot-password/', views.forgot_password_view, name='forgot_password'),
+    path('reset-password-otp/', views.reset_password_otp_view, name='reset_password_otp'),
+    path('resend-otp/', views.resend_otp_view, name='resend_otp'),
+    path('oauth/google/', views.google_login_view, name='google_login'),
+    path('oauth/google/callback/', views.google_callback_view, name='google_callback'),
+    path('accounts/google/callback/', views.google_callback_view),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('my-dogs/', views.my_dogs, name='my_dogs'),
@@ -25,4 +32,5 @@ urlpatterns = [
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('admin-dashboard/dog/<int:dog_id>/<str:action>/', views.admin_approve_reject_dog, name='admin_approve_reject_dog'),
     path('vets/', views.vets_directory, name='vets_directory'),
+    path('api/reverse-geocode/', views.reverse_geocode_api, name='reverse_geocode_api'),
 ]

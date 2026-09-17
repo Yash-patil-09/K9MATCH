@@ -41,6 +41,7 @@ venv.bak/
 # IDEs and editors
 .vscode/
 .idea/
+stitch_export/
 *.swp
 *.swo
 *~

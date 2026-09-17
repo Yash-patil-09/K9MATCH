@@ -1,7 +1,10 @@
 # pyrefly: ignore [missing-import]
+import secrets
+from datetime import timedelta
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
 
 class User(AbstractUser):
     ROLE_CHOICES = (
@@ -131,6 +134,7 @@ class DogProfile(models.Model):
     
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    location_address = models.CharField(max_length=255, blank=True, null=True, help_text="General neighborhood or locality")
     
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -140,6 +144,7 @@ class DogProfile(models.Model):
             models.Index(fields=['city']),
             models.Index(fields=['breed']),
             models.Index(fields=['gender']),
+            models.Index(fields=['latitude', 'longitude']),
             models.Index(fields=['-created_at']),
         ]
 
@@ -204,6 +209,49 @@ class MatchRequest(models.Model):
                     f"Breeding match proposals require opposite genders. Both dogs are {self.sender_dog.get_gender_display()}s."
                 )
 
+        # 5. Exactly ONE active relationship (pending or accepted) between a pair of dogs in EITHER direction
+        if self.sender_dog and self.target_dog:
+            existing = MatchRequest.objects.filter(
+                (
+                    (models.Q(sender_dog=self.sender_dog) & models.Q(target_dog=self.target_dog)) |
+                    (models.Q(sender_dog=self.target_dog) & models.Q(target_dog=self.sender_dog))
+                ),
+                status__in=['pending', 'accepted']
+            )
+            if self.pk:
+                existing = existing.exclude(pk=self.pk)
+            existing_match = existing.first()
+            if existing_match:
+                if existing_match.status == 'accepted':
+                    raise ValidationError(
+                        f"{self.sender_dog.name} and {self.target_dog.name} are already matched breeding partners! Only one conversation is allowed per pair."
+                    )
+                else:
+                    raise ValidationError(
+                        f"A proposal between {self.sender_dog.name} and {self.target_dog.name} is already pending approval. You cannot send another request until the owner responds."
+                    )
+        elif self.sender and self.target_dog:
+            # Fallback when sender_dog is unspecified: ensure only 1 active request per sender & target dog
+            existing_user_req = MatchRequest.objects.filter(
+                (
+                    (models.Q(sender=self.sender, target_dog=self.target_dog)) |
+                    (models.Q(receiver=self.sender, sender_dog=self.target_dog))
+                ),
+                status__in=['pending', 'accepted']
+            )
+            if self.pk:
+                existing_user_req = existing_user_req.exclude(pk=self.pk)
+            existing_match = existing_user_req.first()
+            if existing_match:
+                if existing_match.status == 'accepted':
+                    raise ValidationError(
+                        f"You are already matched with {self.target_dog.name}! You can chat directly in Messages."
+                    )
+                else:
+                    raise ValidationError(
+                        f"A proposal for {self.target_dog.name} is already pending approval. You cannot send another request until it is decided."
+                    )
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
@@ -259,3 +307,61 @@ class VeterinaryClinic(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.city}"
+
+
+class EmailOTP(models.Model):
+    PURPOSE_CHOICES = (
+        ('signup', 'Sign Up Verification'),
+        ('forgot_password', 'Password Reset'),
+    )
+
+    email = models.EmailField(db_index=True)
+    otp_code = models.CharField(max_length=6)
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES)
+    attempts = models.PositiveIntegerField(default=0)
+    is_used = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['email', 'purpose', 'is_used']),
+        ]
+
+    def __str__(self):
+        return f"OTP for {self.email} ({self.purpose}) - {'Used' if self.is_used else 'Active'}"
+
+    @classmethod
+    def generate_otp(cls, email, purpose, validity_minutes=10):
+        # Invalidate existing unused OTPs for this email & purpose
+        cls.objects.filter(email=email, purpose=purpose, is_used=False).update(is_used=True)
+
+        code = str(secrets.randbelow(900000) + 100000)
+        expires_at = timezone.now() + timedelta(minutes=validity_minutes)
+        return cls.objects.create(
+            email=email,
+            otp_code=code,
+            purpose=purpose,
+            expires_at=expires_at,
+        )
+
+    def is_valid(self, entered_code):
+        if self.is_used:
+            return False, "This OTP has already been used. Please request a new one."
+        if timezone.now() > self.expires_at:
+            return False, "This OTP has expired. Please request a new code."
+        if self.attempts >= 5:
+            self.is_used = True
+            self.save(update_fields=['is_used'])
+            return False, "Too many failed attempts. This OTP has been invalidated for security."
+
+        if self.otp_code.strip() != entered_code.strip():
+            self.attempts += 1
+            self.save(update_fields=['attempts'])
+            remaining = 5 - self.attempts
+            return False, f"Incorrect OTP code. {remaining} attempt(s) remaining."
+
+        self.is_used = True
+        self.save(update_fields=['is_used'])
+        return True, "Success"

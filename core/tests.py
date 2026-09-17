@@ -38,7 +38,7 @@ class DogRegistrationValidationTest(TestCase):
             'name': 'Buddy',
             'breed_type': 'crossbreed',
             'breed': 'Labradoodle',
-            'secondary_breed': '',  # missing
+            
             'age_years': 2,
             'age_months': 4,
             'gender': 'male',
@@ -740,5 +740,443 @@ class Phase3SecurityAndPerformanceTest(TestCase):
         request = self.factory.get('/server-error-test-url-500/')
         response = custom_500_view(request)
         self.assertEqual(response.status_code, 500)
+
+
+from core.models import EmailOTP
+from core.email_utils import send_otp_email
+
+class EmailOTPAuthTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='existinguser',
+            email='existing@gmail.com',
+            password='password123'
+        )
+
+    def test_otp_generation_and_validation(self):
+        """OTP should be 6-digits and validate correctly."""
+        otp = EmailOTP.generate_otp(email='new@gmail.com', purpose='signup')
+        self.assertEqual(len(otp.otp_code), 6)
+        self.assertTrue(otp.otp_code.isdigit())
+
+        # Wrong code
+        valid, msg = otp.is_valid('000000')
+        self.assertFalse(valid)
+
+        # Correct code
+        valid, msg = otp.is_valid(otp.otp_code)
+        self.assertTrue(valid)
+
+        # Cannot reuse already used OTP
+        valid, msg = otp.is_valid(otp.otp_code)
+        self.assertFalse(valid)
+
+    def test_send_otp_email_utility(self):
+        """send_otp_email should create OTP and send email."""
+        success, otp_obj, err = send_otp_email('test_mail@gmail.com', purpose='signup')
+        self.assertTrue(success)
+        self.assertIsNotNone(otp_obj)
+        self.assertEqual(len(otp_obj.otp_code), 6)
+
+    def test_registration_flow_with_otp(self):
+        """Submitting registration should stage session and verify via OTP."""
+        post_data = {
+            'username': 'newpupowner',
+            'email': 'newpup@gmail.com',
+            'role': 'owner',
+            'phone_number': '9876543210',
+            'password1': 'ComplexP@ss123',
+            'password2': 'ComplexP@ss123',
+        }
+        res = self.client.post(reverse('register'), post_data)
+        self.assertRedirects(res, reverse('verify_registration_otp'))
+
+        # Check session
+        self.assertEqual(self.client.session.get('otp_email'), 'newpup@gmail.com')
+
+        # Retrieve generated OTP
+        otp_obj = EmailOTP.objects.filter(email='newpup@gmail.com', purpose='signup', is_used=False).first()
+        self.assertIsNotNone(otp_obj)
+
+        # Submit OTP to activate
+        res2 = self.client.post(reverse('verify_registration_otp'), {'otp_code': otp_obj.otp_code})
+        self.assertRedirects(res2, reverse('home'))
+
+        # User now created and active
+        self.assertTrue(User.objects.filter(username='newpupowner').exists())
+
+    def test_forgot_password_flow_with_otp(self):
+        """Forgot password should generate OTP and allow resetting password."""
+        res = self.client.post(reverse('forgot_password'), {'email': 'existing@gmail.com'})
+        self.assertRedirects(res, reverse('reset_password_otp'))
+
+        otp_obj = EmailOTP.objects.filter(email='existing@gmail.com', purpose='forgot_password', is_used=False).first()
+        self.assertIsNotNone(otp_obj)
+
+        # Submit valid OTP and new password
+        res2 = self.client.post(reverse('reset_password_otp'), {
+            'otp_code': otp_obj.otp_code,
+            'new_password1': 'NewSecretPass123',
+            'new_password2': 'NewSecretPass123',
+        })
+        self.assertRedirects(res2, reverse('login'))
+
+        # Verify password updated
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('NewSecretPass123'))
+
+    def test_google_login_redirect(self):
+        """Google login redirect test."""
+        res = self.client.get(reverse('google_login'))
+        if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET:
+            self.assertEqual(res.status_code, 302)
+            self.assertTrue(res.url.startswith('https://accounts.google.com/o/oauth2/v2/auth'))
+        else:
+            self.assertRedirects(res, reverse('login'))
+
+
+class AutomaticLocationAndDistanceFilterTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            username='breeder_bob',
+            email='bob@k9match.com',
+            password='Password123'
+        )
+        self.seeker = User.objects.create_user(
+            username='seeker_sara',
+            email='sara@k9match.com',
+            password='Password123'
+        )
+
+        # Reference point: Mumbai CST (18.9400, 72.8350)
+        # Dog 1: Marine Lines (18.9430, 72.8230) -> ~1.3 km away
+        self.dog_1km = DogProfile.objects.create(
+            owner=self.owner,
+            name='Bruno',
+            breed='Labrador Retriever',
+            age_years=3,
+            age_months=2,
+            gender='male',
+            state='Maharashtra',
+            city='Mumbai',
+            latitude=18.943000,
+            longitude=72.823000,
+            location_address='Marine Lines',
+            approval_status='approved',
+            is_available=True,
+            weight=30.0,
+            is_vaccinated=True,
+            kci_registered=True,
+        )
+
+        # Dog 2: Dadar (19.0178, 72.8478) -> ~8.7 km away
+        self.dog_8km = DogProfile.objects.create(
+            owner=self.owner,
+            name='Rocky',
+            breed='Golden Retriever',
+            age_years=2,
+            age_months=5,
+            gender='male',
+            state='Maharashtra',
+            city='Mumbai',
+            latitude=19.017800,
+            longitude=72.847800,
+            location_address='Dadar West',
+            approval_status='approved',
+            is_available=True,
+            weight=28.0,
+            is_vaccinated=True,
+            kci_registered=False,
+        )
+
+        # Dog 3: Thane (19.2183, 72.9781) -> ~34 km away
+        self.dog_34km = DogProfile.objects.create(
+            owner=self.owner,
+            name='Max',
+            breed='German Shepherd',
+            age_years=4,
+            age_months=0,
+            gender='male',
+            state='Maharashtra',
+            city='Thane',
+            latitude=19.218300,
+            longitude=72.978100,
+            location_address='Thane West',
+            approval_status='approved',
+            is_available=True,
+            weight=35.0,
+            is_vaccinated=True,
+            kci_registered=True,
+        )
+
+    def test_dog_creation_with_real_coordinates(self):
+        """Dog profile correctly stores precise decimal coordinates and neighborhood."""
+        self.assertEqual(float(self.dog_1km.latitude), 18.943)
+        self.assertEqual(float(self.dog_1km.longitude), 72.823)
+        self.assertEqual(self.dog_1km.location_address, 'Marine Lines')
+
+    def test_radius_filter_5km_excludes_dogs_further_away(self):
+        """5km radius should only return the 1.3km dog, excluding 8.7km and 34km dogs."""
+        url = reverse('explore_dogs')
+        res = self.client.get(url, {
+            'user_lat': '18.9400',
+            'user_lng': '72.8350',
+            'radius': '5'
+        })
+        self.assertEqual(res.status_code, 200)
+        returned_dogs = res.context['dogs']
+        returned_ids = [d.id for d in returned_dogs]
+
+        self.assertIn(self.dog_1km.id, returned_ids)
+        self.assertNotIn(self.dog_8km.id, returned_ids)
+        self.assertNotIn(self.dog_34km.id, returned_ids)
+
+    def test_radius_filter_10km_includes_5km_and_excludes_34km(self):
+        """10km radius should return both the 1.3km and 8.7km dogs, excluding the 34km dog."""
+        url = reverse('explore_dogs')
+        res = self.client.get(url, {
+            'user_lat': '18.9400',
+            'user_lng': '72.8350',
+            'radius': '10'
+        })
+        self.assertEqual(res.status_code, 200)
+        returned_dogs = res.context['dogs']
+        returned_ids = [d.id for d in returned_dogs]
+
+        self.assertIn(self.dog_1km.id, returned_ids)
+        self.assertIn(self.dog_8km.id, returned_ids)
+        self.assertNotIn(self.dog_34km.id, returned_ids)
+
+        # Closest dog should be sorted first
+        self.assertEqual(returned_dogs[0].id, self.dog_1km.id)
+        self.assertEqual(returned_dogs[1].id, self.dog_8km.id)
+
+    def test_near_me_gps_parameter_displays_relative_distance(self):
+        """Explore page displays calculated distance badge for nearby dogs."""
+        url = reverse('explore_dogs')
+        res = self.client.get(url, {
+            'user_lat': '18.9400',
+            'user_lng': '72.8350'
+        })
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+
+        self.assertIn('km away', content)
+        self.assertIn('Near Current Device GPS', content)
+
+    def test_privacy_exact_coordinates_not_leaked_publicly(self):
+        """Exact latitude and longitude numbers must never be leaked in public HTML."""
+        url = reverse('explore_dogs')
+        res = self.client.get(url, {
+            'user_lat': '18.9400',
+            'user_lng': '72.8350'
+        })
+        content = res.content.decode('utf-8')
+
+        # Raw coordinate strings must not appear in HTML
+        self.assertNotIn('18.943000', content)
+        self.assertNotIn('72.823000', content)
+        self.assertNotIn('19.017800', content)
+
+        # But neighborhood and distance are safely shown
+        self.assertIn('Marine Lines', content)
+        self.assertIn('km away', content)
+
+        # Same privacy check on logged-in dog detail page
+        self.client.login(username='seeker_sara', password='Password123')
+        detail_res = self.client.get(reverse('dog_detail', args=[self.dog_1km.id]))
+        self.assertEqual(detail_res.status_code, 200)
+        detail_content = detail_res.content.decode('utf-8')
+        self.assertNotIn('18.943000', detail_content)
+        self.assertNotIn('72.823000', detail_content)
+        self.assertIn('Marine Lines', detail_content)
+
+
+class MatchProposalWorkflowTests(TestCase):
+    def setUp(self):
+        self.owner_a = User.objects.create_user(username='owner_a', email='a@example.com', password='Password123')
+        self.owner_b = User.objects.create_user(username='owner_b', email='b@example.com', password='Password123')
+
+        self.dog_a = DogProfile.objects.create(
+            owner=self.owner_a,
+            name='Rocky',
+            breed='Golden Retriever',
+            gender='male',
+            age_years=3,
+            state='Maharashtra',
+            city='Mumbai',
+            weight=30.0,
+            is_vaccinated=True,
+            is_available=True,
+            mating_terms='want_puppy'
+        )
+
+        self.dog_b = DogProfile.objects.create(
+            owner=self.owner_b,
+            name='Bella',
+            breed='Golden Retriever',
+            gender='female',
+            age_years=2,
+            state='Maharashtra',
+            city='Mumbai',
+            weight=26.0,
+            is_vaccinated=True,
+            is_available=True,
+            mating_terms='want_puppy'
+        )
+
+    def test_ajax_send_proposal_returns_json_and_success_message(self):
+        """AJAX POST to send_match_request returns JSON with success flag and message."""
+        self.client.login(username='owner_a', password='Password123')
+        url = reverse('send_match_request', args=[self.dog_b.id])
+        res = self.client.post(
+            url,
+            {'sender_dog': self.dog_a.id, 'message': 'Hello, interested in pairing!'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_ACCEPT='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get('success'))
+        self.assertIn('Match request sent to Bella', data.get('message', ''))
+
+        # Verify request exists in database
+        self.assertTrue(MatchRequest.objects.filter(sender=self.owner_a, target_dog=self.dog_b, status='pending').exists())
+
+    def test_sent_request_displays_request_sent_button_on_dog_detail(self):
+        """When viewing dog_detail for a dog with a pending sent request, 'Request Sent' button is rendered."""
+        MatchRequest.objects.create(
+            sender=self.owner_a,
+            receiver=self.owner_b,
+            sender_dog=self.dog_a,
+            target_dog=self.dog_b,
+            status='pending'
+        )
+        self.client.login(username='owner_a', password='Password123')
+        res = self.client.get(reverse('dog_detail', args=[self.dog_b.id]))
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+        self.assertIn('Request Sent', content)
+        self.assertIn('You Sent a Breeding Proposal for Bella', content)
+
+    def test_inbound_proposal_rendered_with_decision_panel_at_end_of_profile(self):
+        """When recipient views sender dog profile, inbound proposal banner and decision panel appear."""
+        proposal = MatchRequest.objects.create(
+            sender=self.owner_a,
+            receiver=self.owner_b,
+            sender_dog=self.dog_a,
+            target_dog=self.dog_b,
+            message='Please review Rocky for Bella!',
+            status='pending'
+        )
+        self.client.login(username='owner_b', password='Password123')
+        res = self.client.get(reverse('dog_detail', args=[self.dog_a.id]) + f'?proposal_id={proposal.id}')
+        self.assertEqual(res.status_code, 200)
+        content = res.content.decode('utf-8')
+
+        # Check top notification banner
+        self.assertIn('Breeding Match Proposal Received for Bella', content)
+        # Check decision panel at end of profile
+        self.assertIn('proposal-decision-panel', content)
+        self.assertIn('Accept Proposal', content)
+        self.assertIn('Reject Proposal', content)
+        self.assertIn('Please review Rocky for Bella!', content)
+
+    def test_inbound_proposal_accept_via_respond_view(self):
+        """Accepting proposal sets status to accepted and provides chat link."""
+        proposal = MatchRequest.objects.create(
+            sender=self.owner_a,
+            receiver=self.owner_b,
+            sender_dog=self.dog_a,
+            target_dog=self.dog_b,
+            status='pending'
+        )
+        self.client.login(username='owner_b', password='Password123')
+        url = reverse('respond_match_request', args=[proposal.id, 'accept'])
+        res = self.client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get('success'))
+        self.assertEqual(data.get('action'), 'accepted')
+
+        proposal.refresh_from_db()
+        self.assertEqual(proposal.status, 'accepted')
+
+    def test_inbound_proposal_reject_via_respond_view(self):
+        """Rejecting proposal sets status to declined."""
+        proposal = MatchRequest.objects.create(
+            sender=self.owner_a,
+            receiver=self.owner_b,
+            sender_dog=self.dog_a,
+            target_dog=self.dog_b,
+            status='pending'
+        )
+        self.client.login(username='owner_b', password='Password123')
+        url = reverse('respond_match_request', args=[proposal.id, 'reject'])
+        res = self.client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data.get('success'))
+        self.assertEqual(data.get('action'), 'declined')
+
+        proposal.refresh_from_db()
+        self.assertEqual(proposal.status, 'declined')
+
+    def test_prevent_duplicate_pending_proposal_same_dog_pair(self):
+        """Cannot send a proposal for the same dog pair if one is already pending in either direction."""
+        # Proposal from dog_a to dog_b
+        MatchRequest.objects.create(
+            sender=self.owner_a,
+            receiver=self.owner_b,
+            sender_dog=self.dog_a,
+            target_dog=self.dog_b,
+            status='pending'
+        )
+
+        # Owner B tries to send proposal back from dog_b to dog_a
+        self.client.login(username='owner_b', password='Password123')
+        url = reverse('send_match_request', args=[self.dog_a.id])
+        res = self.client.post(url, data={'sender_dog': self.dog_b.id, 'message': 'Reverse request'}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertFalse(data.get('success'))
+        self.assertTrue(data.get('already_sent'))
+        self.assertIn('already', data.get('error', '').lower())
+
+    def test_prevent_proposal_when_already_matched(self):
+        """Cannot send another proposal for a pair that is already accepted/matched."""
+        MatchRequest.objects.create(
+            sender=self.owner_a,
+            receiver=self.owner_b,
+            sender_dog=self.dog_a,
+            target_dog=self.dog_b,
+            status='accepted'
+        )
+
+        # Owner A tries to send another proposal for dog_b
+        self.client.login(username='owner_a', password='Password123')
+        url = reverse('send_match_request', args=[self.dog_b.id])
+        res = self.client.post(url, data={'sender_dog': self.dog_a.id, 'message': 'Second proposal'}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        data = res.json()
+        self.assertTrue(data.get('already_matched'))
+        self.assertIn('already matched', data.get('error', '').lower())
+
+    def test_single_conversation_per_dog_pair_in_chats_inbox(self):
+        """Chats inbox strictly displays a single conversation per pair of dogs."""
+        match = MatchRequest.objects.create(
+            sender=self.owner_a,
+            receiver=self.owner_b,
+            sender_dog=self.dog_a,
+            target_dog=self.dog_b,
+            status='accepted'
+        )
+        self.client.login(username='owner_a', password='Password123')
+        res = self.client.get(reverse('chats_inbox'))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.context['conversations']), 1)
+
+
+
 
 

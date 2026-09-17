@@ -1,27 +1,9 @@
 {% extends 'core/base.html' %}
 
+{% block title %}Discover Verified Canine Matches · K9Match{% endblock %}
+
 {% block content %}
-<!-- Page Header -->
-<section class="bg-white border-bottom py-4 py-md-5">
-    <div class="container text-center" data-aos="fade-down">
-        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2 fw-bold text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 0.05em;">
-            <i class="fas fa-venus-mars me-1"></i> Matchmaking & Discovery
-        </span>
-        <h1 class="display-5 fw-bold text-dark mb-2">Find the Perfect Breeding Match</h1>
-        <p class="lead text-muted mx-auto mb-3" style="max-width: 650px; font-size: 1.05rem;">
-            Discover verified, health-checked dogs from trusted owners. Filter by breed pedigree, gender, and proximity.
-        </p>
-
-        {% if ref_location_label %}
-            <div class="d-inline-flex align-items-center gap-2 bg-light border rounded-pill px-3 py-1 small text-muted">
-                <i class="fas fa-location-crosshairs text-primary"></i>
-                <span>Distances calculated from <strong>{{ ref_location_label }}</strong></span>
-            </div>
-        {% endif %}
-    </div>
-</section>
-
-<!-- Tom Select CSS & JS (For Synchronized Breed Typeahead) -->
+<!-- Tom Select CSS & JS (For Breed Search) -->
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
@@ -30,101 +12,118 @@
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
 <style>
-    .filter-card {
-        background: #ffffff;
-        border-radius: 1.25rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-        border: 1px solid rgba(0, 0, 0, 0.05);
-    }
-    .form-floating-label {
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: #64748b;
-        margin-bottom: 0.35rem;
-        display: block;
-    }
     .ts-control, .choices__inner {
-        background-color: #f8fafc !important;
-        border: 1px solid #e2e8f0 !important;
+        background-color: var(--color-surface-container) !important;
+        border: 1px solid rgba(195, 198, 215, 0.4) !important;
         border-radius: 0.75rem !important;
         padding: 0.5rem 0.85rem !important;
         font-size: 0.92rem !important;
         min-height: 42px !important;
     }
     .ts-wrapper.focus .ts-control, .choices.is-focused .choices__inner {
-        border-color: #4F46E5 !important;
-        box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.15) !important;
+        border-color: var(--color-primary) !important;
+        box-shadow: 0 0 0 0.2rem rgba(0, 74, 198, 0.15) !important;
         background-color: #ffffff !important;
     }
     .dog-card-img {
-        height: 230px;
-        transition: transform 0.4s ease;
+        height: 250px;
+        transition: transform 0.45s ease;
     }
     .dog-card:hover .dog-card-img {
         transform: scale(1.05);
     }
 </style>
 
-<!-- Main Discovery Section -->
-<section class="py-5" style="background-color: var(--bg-light); min-height: 75vh;">
-    <div class="container">
+<!-- Discovery Header -->
+<section class="py-4 bg-white border-bottom border-light-subtle">
+    <div class="container text-center max-w-7xl mx-auto py-2" data-aos="fade-down">
+        <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2 shadow-2xs" style="background-color: var(--color-tertiary-light); color: #002113;">
+            <i class="fas fa-shield-alt text-success" style="color: var(--color-tertiary) !important;"></i>
+            <span class="fw-bold small" style="font-size: 0.78rem;">Verified Pedigree Directory</span>
+        </div>
+        <h1 class="display-6 fw-black text-dark mb-1">Discover Compatible Canine Matches</h1>
+        <p class="text-muted small mx-auto mb-2" style="max-width: 600px;">
+            Search verified dogs with accredited health certifications, temperament ratings, and ethical mating terms.
+        </p>
+
+        {% if ref_location_label %}
+            <div class="d-inline-flex align-items-center gap-2 bg-light border rounded-pill px-3 py-1 small text-muted" style="font-size: 0.78rem;">
+                <i class="fas fa-location-crosshairs text-primary"></i>
+                <span>Distances calculated from <strong>{{ ref_location_label }}</strong></span>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Main Filter & Directory Section -->
+<section class="py-5 max-w-7xl mx-auto px-3 px-lg-5" style="min-height: 80vh;">
+    <div class="container-fluid px-0">
         
-        <!-- Filter Bar Card -->
-        <div class="filter-card p-4 p-md-4 mb-5" data-aos="fade-up">
+        <!-- Interactive Search Dock -->
+        <div class="bg-white rounded-4 shadow-sm border border-light-subtle p-4 mb-5" data-aos="fade-up">
             <form method="GET" action="{% url 'explore_dogs' %}" id="search-filter-form">
-                
+                <input type="hidden" name="user_lat" id="search-user-lat" value="{{ user_lat|default:'' }}">
+                <input type="hidden" name="user_lng" id="search-user-lng" value="{{ user_lng|default:'' }}">
                 <div class="row g-3 align-items-end">
                     
-                    <!-- Reference Dog (If authenticated with dogs) -->
+                    <!-- Match for My Dog Selector -->
                     {% if user.is_authenticated and user_dogs %}
                         <div class="col-12 col-md-3">
-                            <label class="form-floating-label"><i class="fas fa-paw text-primary me-1"></i> Match For My Dog</label>
-                            <select name="my_dog" class="form-select form-select-sm rounded-3 bg-light border-0 shadow-none py-2" id="my-dog-select" onchange="this.form.submit()">
+                            <label class="form-label small fw-bold text-uppercase text-muted tracking-wider mb-1">
+                                <i class="fas fa-paw text-primary me-1"></i> Match For My Dog
+                            </label>
+                            <select name="my_dog" class="form-select form-select-sm rounded-3 bg-light border-0 py-2" id="my-dog-select" onchange="this.form.submit()">
                                 {% for my_dog in user_dogs %}
                                     <option value="{{ my_dog.id }}" {% if my_dog_id|stringformat:"s" == my_dog.id|stringformat:"s" or not my_dog_id and forloop.first %}selected{% endif %}>
-                                        {{ my_dog.name }} ({{ my_dog.breed }} - {{ my_dog.city }})
+                                        {{ my_dog.name }} ({{ my_dog.breed }})
                                     </option>
                                 {% endfor %}
                             </select>
                         </div>
                     {% endif %}
 
-                    <!-- Breed Type Selector -->
+                    <!-- Breed Lineage Type -->
                     <div class="col-6 {% if user.is_authenticated and user_dogs %}col-md-2{% else %}col-md-3{% endif %}">
-                        <label class="form-floating-label"><i class="fas fa-filter text-secondary me-1"></i> Breed Type</label>
-                        <select name="breed_type" id="breed-type-select" class="form-select form-select-sm rounded-3 bg-light border-0 shadow-none py-2">
-                            <option value="" {% if not breed_type_filter %}selected{% endif %}>All Breeds</option>
+                        <label class="form-label small fw-bold text-uppercase text-muted tracking-wider mb-1">
+                            <i class="fas fa-filter text-secondary me-1"></i> Breed Lineage
+                        </label>
+                        <select name="breed_type" id="breed-type-select" class="form-select form-select-sm rounded-3 bg-light border-0 py-2">
+                            <option value="" {% if not breed_type_filter %}selected{% endif %}>All Lineages</option>
                             <option value="purebred" {% if breed_type_filter == 'purebred' %}selected{% endif %}>Purebred</option>
                             <option value="crossbreed" {% if breed_type_filter == 'crossbreed' %}selected{% endif %}>Crossbreed / Mix</option>
                         </select>
                     </div>
 
-                    <!-- Synchronized Breed Dropdown -->
+                    <!-- Specific Breed Dropdown with TomSelect -->
                     <div class="col-6 {% if user.is_authenticated and user_dogs %}col-md-3{% else %}col-md-3{% endif %}">
-                        <label class="form-floating-label"><i class="fas fa-dog text-secondary me-1"></i> Specific Breed</label>
+                        <label class="form-label small fw-bold text-uppercase text-muted tracking-wider mb-1">
+                            <i class="fas fa-dog text-secondary me-1"></i> Specific Breed
+                        </label>
                         <input type="text" name="breed" id="breed-select" placeholder="Select or search breed..." value="{{ breed_filter }}">
                     </div>
 
                     <!-- Gender Filter -->
                     <div class="col-6 col-md-2">
-                        <label class="form-floating-label"><i class="fas fa-venus-mars text-secondary me-1"></i> Gender</label>
-                        <select name="gender" class="form-select form-select-sm rounded-3 bg-light border-0 shadow-none py-2">
+                        <label class="form-label small fw-bold text-uppercase text-muted tracking-wider mb-1">
+                            <i class="fas fa-venus-mars text-secondary me-1"></i> Gender
+                        </label>
+                        <select name="gender" class="form-select form-select-sm rounded-3 bg-light border-0 py-2">
                             <option value="" {% if not gender_filter %}selected{% endif %}>Any Gender</option>
-                            <option value="male" {% if gender_filter == 'male' %}selected{% endif %}>Male</option>
-                            <option value="female" {% if gender_filter == 'female' %}selected{% endif %}>Female</option>
+                            <option value="male" {% if gender_filter == 'male' %}selected{% endif %}>Stud (Sire)</option>
+                            <option value="female" {% if gender_filter == 'female' %}selected{% endif %}>Dam (Female)</option>
                         </select>
                     </div>
 
-                    <!-- Distance Radius (Epic 3 Task 3.2) -->
+                    <!-- Distance Radius -->
                     <div class="col-6 col-md-2">
-                        <label class="form-floating-label"><i class="fas fa-compass text-secondary me-1"></i> Max Distance</label>
-                        <select name="radius" class="form-select form-select-sm rounded-3 bg-light border-0 shadow-none py-2">
+                        <label class="form-label small fw-bold text-uppercase text-muted tracking-wider mb-1">
+                            <i class="fas fa-compass text-secondary me-1"></i> Distance Radius
+                        </label>
+                        <select name="radius" class="form-select form-select-sm rounded-3 bg-light border-0 py-2">
                             <option value="" {% if not radius_filter %}selected{% endif %}>Any Distance</option>
                             <option value="5" {% if radius_filter == '5' %}selected{% endif %}>Within 5 km</option>
-                            <option value="15" {% if radius_filter == '15' %}selected{% endif %}>Within 15 km</option>
-                            <option value="30" {% if radius_filter == '30' %}selected{% endif %}>Within 30 km</option>
+                            <option value="10" {% if radius_filter == '10' %}selected{% endif %}>Within 10 km</option>
+                            <option value="25" {% if radius_filter == '25' %}selected{% endif %}>Within 25 km</option>
                             <option value="50" {% if radius_filter == '50' %}selected{% endif %}>Within 50 km</option>
                             <option value="100" {% if radius_filter == '100' %}selected{% endif %}>Within 100 km</option>
                             <option value="250" {% if radius_filter == '250' %}selected{% endif %}>Within 250 km</option>
@@ -133,7 +132,7 @@
 
                     <!-- Location: State -->
                     <div class="col-6 col-md-3 mt-md-3">
-                        <label class="form-floating-label"><i class="fas fa-map-marked-alt text-secondary me-1"></i> State</label>
+                        <label class="form-label small fw-bold text-uppercase text-muted tracking-wider mb-1">State</label>
                         <select name="state" id="state-select" class="form-select form-select-sm">
                             <option value="">All States</option>
                             {% if state_filter %}
@@ -144,7 +143,7 @@
 
                     <!-- Location: City -->
                     <div class="col-6 col-md-3 mt-md-3">
-                        <label class="form-floating-label"><i class="fas fa-city text-secondary me-1"></i> City</label>
+                        <label class="form-label small fw-bold text-uppercase text-muted tracking-wider mb-1">City</label>
                         <select name="city" id="city-select" class="form-select form-select-sm">
                             <option value="">All Cities</option>
                             {% if city_filter %}
@@ -153,243 +152,304 @@
                         </select>
                     </div>
 
-                    <!-- KCI Checkbox & Action Buttons -->
-                    <div class="col-12 col-md-6 mt-md-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <!-- KCI Checkbox & Actions -->
+                    <div class="col-12 col-md-6 mt-md-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
                         <div class="form-check form-switch pt-1">
                             <input class="form-check-input" type="checkbox" role="switch" name="kci_only" id="kciOnlySwitch" value="true" {% if kci_only == 'true' %}checked{% endif %}>
-                            <label class="form-check-label small fw-semibold text-dark" for="kciOnlySwitch">
-                                <i class="fas fa-certificate text-success me-1"></i> Verified Pedigree Only (KCI)
+                            <label class="form-check-label small fw-bold text-dark" for="kciOnlySwitch">
+                                <i class="fas fa-certificate text-success me-1"></i> Verified KCI Only
                             </label>
                         </div>
 
-                        <div class="d-flex gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" id="near-me-btn" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold d-flex align-items-center gap-1 shadow-2xs" title="Find matches near your current device GPS location">
+                                <i class="fas fa-crosshairs"></i> <span>Near Me</span>
+                            </button>
                             {% if active_filters_count > 0 %}
-                                <a href="{% url 'explore_dogs' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-bold">
+                                <a href="{% url 'explore_dogs' %}" class="btn btn-soft btn-sm rounded-pill px-3">
                                     <i class="fas fa-undo me-1"></i> Reset
                                 </a>
                             {% endif %}
-                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold shadow-sm">
+                            <button type="submit" class="btn btn-primary-stitch btn-sm px-4">
                                 <i class="fas fa-sliders-h me-1"></i> Apply Filters
                             </button>
                         </div>
                     </div>
 
                 </div>
-
             </form>
 
-            <!-- Active Filter Badges -->
+            <!-- Active Filters Pills Strip -->
             {% if active_filters_count > 0 %}
-                <div class="mt-3 pt-3 border-top d-flex flex-wrap align-items-center gap-2">
-                    <small class="text-muted fw-bold me-1">Active filters ({{ active_filters_count }}):</small>
+                <div class="mt-3 pt-3 border-top border-light-subtle d-flex flex-wrap align-items-center gap-2">
+                    <span class="small fw-bold text-muted me-1">Active filters ({{ active_filters_count }}):</span>
                     {% if breed_type_filter %}
-                        <span class="badge bg-primary-subtle text-primary border rounded-pill px-3 py-1">
-                            Type: {{ breed_type_filter|title }}
-                        </span>
+                        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1">Type: {{ breed_type_filter|title }}</span>
                     {% endif %}
                     {% if breed_filter %}
-                        <span class="badge bg-primary-subtle text-primary border rounded-pill px-3 py-1">
-                            Breed: {{ breed_filter }}
-                        </span>
+                        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1">Breed: {{ breed_filter }}</span>
                     {% endif %}
                     {% if gender_filter %}
-                        <span class="badge bg-primary-subtle text-primary border rounded-pill px-3 py-1">
-                            Gender: {{ gender_filter|title }}
+                        <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1">Gender: {{ gender_filter|title }}</span>
+                    {% endif %}
+                    {% if user_lat and user_lng %}
+                        <span class="badge bg-primary text-white rounded-pill px-3 py-1">
+                            <i class="fas fa-location-crosshairs me-1"></i> Near Current Device GPS
                         </span>
                     {% endif %}
                     {% if radius_filter %}
-                        <span class="badge bg-info-subtle text-info-emphasis border rounded-pill px-3 py-1">
-                            Radius: ≤ {{ radius_filter }} km
-                        </span>
+                        <span class="badge bg-info-subtle text-info-emphasis rounded-pill px-3 py-1">Radius: ≤ {{ radius_filter }} km</span>
                     {% endif %}
                     {% if city_filter %}
-                        <span class="badge bg-secondary-subtle text-secondary border rounded-pill px-3 py-1">
-                            City: {{ city_filter }}
-                        </span>
+                        <span class="badge bg-secondary-subtle text-secondary rounded-pill px-3 py-1">City: {{ city_filter }}</span>
                     {% endif %}
                     {% if kci_only == 'true' %}
-                        <span class="badge bg-success-subtle text-success border rounded-pill px-3 py-1">
-                            KCI Verified Only
-                        </span>
+                        <span class="badge bg-success-subtle text-success rounded-pill px-3 py-1">KCI Verified Only</span>
                     {% endif %}
                 </div>
             {% endif %}
         </div>
 
-        <!-- Search Results Count -->
+        <!-- Results Header -->
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="fw-bold text-dark mb-0">
-                <i class="fas fa-paw text-warning me-2"></i>Available Matches 
-                <span class="badge bg-light text-dark border rounded-pill ms-2 fw-semibold">{{ total_results }} Found</span>
-            </h5>
-            <small class="text-muted">Showing active & verified profiles</small>
+            <div>
+                <h5 class="fw-black text-dark mb-0 d-flex align-items-center gap-2">
+                    <span>Available Canine Matches</span>
+                    <span class="badge bg-primary text-white rounded-pill small">{{ total_results }}</span>
+                </h5>
+                <p class="text-muted small mb-0 mt-0.5">Showing verified & active breeding candidates</p>
+            </div>
         </div>
 
-        <!-- Dog Grid Directory (Epic 2 Task 2.1 & 2.4) -->
+        <!-- Canine Grid (Stitch AI CanineCard Design) -->
         <div class="row g-4">
             {% for dog in dogs %}
                 <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|slice:':2' }}00">
-                    <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden hover-lift bg-white dog-card">
+                    <div class="bg-white rounded-4 overflow-hidden border border-light-subtle shadow-sm hover-lift d-flex flex-column h-100 dog-card">
                         
-                        <!-- Image Container with Badges -->
-                        <div class="position-relative bg-light text-center" style="height: 240px; overflow: hidden;">
+                        <!-- Photo with Badges & Stud Terms -->
+                        <div class="position-relative overflow-hidden" style="height: 220px; background-color: #f1f5f9;">
                             {% if dog.images.first %}
-                                <img src="{{ dog.images.first.image.url }}" class="w-100 h-100 object-fit-cover dog-card-img" alt="{{ dog.name }}">
+                                <img src="{{ dog.images.first.image.url }}" alt="{{ dog.name }}" class="w-100 h-100 object-fit-cover transition-transform">
                             {% else %}
-                                <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-secondary-subtle">
-                                    <i class="fas fa-dog fa-5x text-muted opacity-50 mb-2"></i>
-                                    <span class="text-muted small">No photo available</span>
+                                <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-muted" style="background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);">
+                                    <i class="fas fa-paw fa-3x opacity-50 mb-2"></i>
+                                    <span class="small fw-semibold">No Image Provided</span>
                                 </div>
                             {% endif %}
-                            
-                            <!-- Badges Overlay -->
-                            <div class="position-absolute top-0 start-0 w-100 p-3 d-flex justify-content-between align-items-start">
-                                <span class="badge bg-dark text-white fw-semibold rounded-pill py-2 px-3 shadow-sm">
-                                    <i class="fas fa-paw text-warning me-1"></i> {{ dog.breed }}
+
+                            <!-- Top-left Verified Badge -->
+                            <div class="position-absolute top-0 start-0 m-3">
+                                {% if dog.kci_registered %}
+                                    <span class="badge-certified d-flex align-items-center gap-1">
+                                        <i class="fas fa-shield-halved"></i>
+                                        <span>KCI Verified</span>
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-white text-dark rounded-pill px-2.5 py-1 small fw-bold shadow-xs">Verified</span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Top-right Favorite Bookmark Button -->
+                            <button type="button" class="btn position-absolute top-0 end-0 m-3 p-0 rounded-circle bg-white shadow-xs d-flex align-items-center justify-content-center hover-scale" style="width: 36px; height: 36px;" onclick="this.querySelector('i').classList.toggle('fas'); this.querySelector('i').classList.toggle('far'); this.querySelector('i').classList.toggle('text-danger');">
+                                <i class="far fa-heart text-muted small"></i>
+                            </button>
+
+                            <!-- Bottom-left Stud Terms Pill -->
+                            <div class="position-absolute bottom-0 start-0 m-3">
+                                <span class="badge-stud-fee">
+                                    {{ dog.get_mating_terms_display|default:"Negotiable" }}
                                 </span>
-                                
-                                <div class="d-flex flex-column gap-1 align-items-end">
-                                    {% if dog.kci_registered %}
-                                        <span class="badge bg-success text-white fw-bold rounded-pill shadow-sm d-flex align-items-center px-3 py-2" title="KCI Registered">
-                                            <i class="fas fa-check-circle me-1"></i> Verified
-                                        </span>
-                                    {% endif %}
-                                    {% if dog.distance_km is not None %}
-                                        <span class="badge bg-primary text-white fw-bold rounded-pill shadow-sm px-3 py-1 small">
-                                            <i class="fas fa-location-arrow me-1"></i> {{ dog.distance_km }} km
-                                        </span>
-                                    {% endif %}
-                                </div>
                             </div>
                         </div>
 
                         <!-- Card Body -->
-                        <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <div class="p-4 d-flex flex-column justify-content-between flex-grow-1">
                             <div>
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <h4 class="fw-bold mb-0 text-dark">{{ dog.name }}</h4>
-                                    <span class="badge bg-light text-secondary border px-2 py-1 text-capitalize">
-                                        {% if dog.gender|lower == 'male' %}
-                                            <i class="fas fa-mars text-primary fw-bold fs-6 me-1"></i>
-                                        {% else %}
-                                            <i class="fas fa-venus text-danger fw-bold fs-6 me-1"></i>
-                                        {% endif %} 
-                                        {{ dog.gender }}
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                                    <h4 class="fw-bold mb-0 text-dark text-truncate">
+                                        <a href="{% url 'dog_detail' dog.id %}" class="text-dark text-decoration-none hover-text-primary">
+                                            {{ dog.name }}
+                                        </a>
+                                    </h4>
+                                    <span class="badge bg-primary-subtle text-primary fw-bold rounded-pill small shrink-0">
+                                        {{ dog.age_years }} Yrs
                                     </span>
                                 </div>
-                                
-                                <!-- Location & Distance -->
-                                <p class="text-muted small mb-3">
-                                    <i class="fas fa-map-marker-alt text-danger me-1"></i> 
-                                    {{ dog.city }}{% if dog.state %}, {{ dog.state }}{% endif %}
-                                    {% if dog.distance_km is not None %}
-                                        <span class="text-primary fw-semibold ms-1">({{ dog.distance_km }} km away)</span>
-                                    {% endif %}
-                                </p>
 
-                                <!-- Age & Attributes -->
-                                <div class="d-flex flex-wrap gap-2 mb-3">
-                                    <span class="badge bg-primary-subtle text-primary border-0 rounded-3 px-2 py-1 small">
-                                        Age: {{ dog.age_years }} yrs {% if dog.age_months %}{{ dog.age_months }} mo{% endif %}
+                                <!-- Breed & Locality with Relative Distance (Exact GPS Coordinates Kept Private) -->
+                                <div class="d-flex flex-wrap align-items-center gap-1 text-muted small mb-3">
+                                    <span>
+                                        <i class="fas fa-map-marker-alt text-danger me-1"></i>
+                                        {{ dog.location_address|default:dog.city }}{% if dog.state %}, {{ dog.state }}{% endif %}
                                     </span>
-                                    {% if dog.weight %}
-                                        <span class="badge bg-primary-subtle text-primary border-0 rounded-3 px-2 py-1 small">
-                                            {{ dog.weight }} {{ dog.weight_unit }}
+                                    {% if dog.distance_km is not None %}
+                                        <span class="badge bg-primary-subtle text-primary rounded-pill px-2 py-0.5 fw-bold" style="font-size: 0.75rem;">
+                                            <i class="fas fa-location-arrow me-1"></i>{{ dog.distance_km }} km away
                                         </span>
                                     {% endif %}
-                                    <span class="badge bg-secondary-subtle text-secondary border-0 rounded-3 px-2 py-1 small text-capitalize">
-                                        {{ dog.get_mating_terms_display }}
-                                    </span>
+                                    <span class="text-muted">·</span>
+                                    <span class="fw-semibold text-dark">{{ dog.breed }}</span>
+                                </div>
+
+                                <!-- Temperament Bars (Stitch AI renderPaws design) -->
+                                <div class="p-3 rounded-3 mb-3 border border-light-subtle" style="background-color: var(--color-surface-container);">
+                                    <div class="d-flex align-items-center justify-content-between small mb-1.5">
+                                        <span class="text-muted fw-semibold" style="font-size: 0.75rem;">Friendliness</span>
+                                        <div class="d-flex gap-1 text-warning">
+                                            {% for i in "12345" %}
+                                                {% if forloop.counter <= dog.human_friendly_rating %}
+                                                    <i class="fas fa-bone bone-active" style="font-size: 0.75rem;"></i>
+                                                {% else %}
+                                                    <i class="fas fa-bone text-black-50 opacity-25" style="font-size: 0.75rem;"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex align-items-center justify-content-between small mb-1.5">
+                                        <span class="text-muted fw-semibold" style="font-size: 0.75rem;">Energy Level</span>
+                                        <div class="d-flex gap-1 text-warning">
+                                            {% for i in "12345" %}
+                                                {% if forloop.counter <= dog.energy_level_rating %}
+                                                    <i class="fas fa-bolt text-warning" style="font-size: 0.75rem;"></i>
+                                                {% else %}
+                                                    <i class="fas fa-bolt text-black-50 opacity-25" style="font-size: 0.75rem;"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex align-items-center justify-content-between small">
+                                        <span class="text-muted fw-semibold" style="font-size: 0.75rem;">Gender / Role</span>
+                                        <span class="fw-bold small text-dark text-capitalize">
+                                            {% if dog.gender|lower == 'male' %}
+                                                <i class="fas fa-mars text-primary me-1"></i> Stud (Sire)
+                                            {% else %}
+                                                <i class="fas fa-venus text-danger me-1"></i> Dam (Female)
+                                            {% endif %}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- CTAs: View Details & Express Interest (Epic 2 Task 2.3) -->
-                            <div class="d-flex gap-2 pt-3 border-top mt-2">
-                                <a href="{% url 'dog_detail' dog.id %}" class="btn btn-outline-primary btn-sm flex-grow-1 fw-bold rounded-pill py-2">
-                                    View Details
-                                </a>
-                                
-                                {% if user.is_authenticated %}
+                            <!-- Card Action Buttons -->
+                            <div class="d-flex align-items-center gap-2 pt-2 border-top border-light-subtle">
+                                {% if user.is_authenticated and dog.id in accepted_match_dog_ids %}
+                                    <a href="{% url 'dog_detail' dog.id %}" 
+                                       class="btn btn-soft flex-grow-1 py-2 text-decoration-none small d-flex align-items-center justify-content-center gap-1.5 text-success fw-bold" 
+                                       style="background-color: #e8f5e9; color: #006242 !important;"
+                                       title="Breeding match accepted! Open profile or chat.">
+                                        <i class="fas fa-circle-check text-success"></i>
+                                        <span>Matched · Chat</span>
+                                    </a>
+                                {% elif user.is_authenticated and dog.id in inbound_proposal_dog_ids %}
+                                    <a href="{% url 'dog_detail' dog.id %}" 
+                                       class="btn btn-warning flex-grow-1 py-2 text-decoration-none small d-flex align-items-center justify-content-center gap-1.5 text-dark fw-bold" 
+                                       title="You received a breeding proposal from this dog's owner!">
+                                        <i class="fas fa-envelope-open-text"></i>
+                                        <span>Review Proposal</span>
+                                    </a>
+                                {% elif user.is_authenticated and dog.id in sent_request_dog_ids %}
                                     <button type="button" 
-                                            class="btn btn-danger btn-sm fw-bold rounded-pill px-3 py-2 shadow-sm open-match-btn"
+                                            class="btn btn-soft flex-grow-1 py-2 text-decoration-none small d-flex align-items-center justify-content-center gap-1.5 text-warning fw-bold match-btn-{{ dog.id }}" 
+                                            disabled 
+                                            title="Proposal has been sent to {{ dog.owner.username }}. Waiting for response.">
+                                        <i class="fas fa-clock text-warning"></i>
+                                        <span>Request Pending</span>
+                                    </button>
+                                {% elif user.is_authenticated and dog.owner == user %}
+                                    <a href="{% url 'dog_detail' dog.id %}" class="btn btn-soft flex-grow-1 py-2 text-decoration-none small text-center text-muted fw-semibold">
+                                        <i class="fas fa-user-shield me-1"></i>
+                                        <span>Your Dog</span>
+                                    </a>
+                                {% elif user.is_authenticated %}
+                                    <button type="button" 
+                                            class="btn btn-primary-stitch flex-grow-1 py-2 text-decoration-none small d-flex align-items-center justify-content-center gap-1.5 open-match-btn match-btn-{{ dog.id }}"
                                             data-dog-id="{{ dog.id }}"
                                             data-dog-name="{{ dog.name }}"
+                                            data-dog-gender="{{ dog.gender }}"
                                             data-owner-name="{{ dog.owner.username }}"
                                             title="Send Match Proposal">
-                                        <i class="fas fa-heart me-1"></i> Match
+                                        <span>Propose Match</span>
+                                        <i class="fas fa-paw small"></i>
                                     </button>
                                 {% else %}
-                                    <a href="{% url 'login' %}?next={% url 'explore_dogs' %}" class="btn btn-danger btn-sm fw-bold rounded-pill px-3 py-2 shadow-sm">
-                                        <i class="fas fa-heart me-1"></i> Match
+                                    <a href="{% url 'login' %}?next={% url 'explore_dogs' %}" class="btn btn-primary-stitch flex-grow-1 py-2 text-decoration-none small text-center">
+                                        <span>Propose Match</span>
+                                        <i class="fas fa-paw ms-1"></i>
                                     </a>
                                 {% endif %}
+                                
+                                <a href="{% url 'dog_detail' dog.id %}" class="btn btn-soft rounded-circle p-0 d-flex align-items-center justify-content-center shrink-0" style="width: 40px; height: 40px;" title="View Full Pedigree & Health Passport">
+                                    <i class="fas fa-eye small"></i>
+                                </a>
                             </div>
 
                         </div>
-                        
                     </div>
                 </div>
             {% empty %}
-                <!-- Empty State -->
                 <div class="col-12 text-center py-5" data-aos="fade-up">
-                    <div class="bg-white p-5 rounded-4 shadow-sm mx-auto" style="max-width: 520px;">
-                        <i class="fas fa-search-minus fa-4x text-muted mb-3"></i>
+                    <div class="bg-white p-5 rounded-4 shadow-sm mx-auto border border-light-subtle" style="max-width: 520px;">
+                        <i class="fas fa-search-minus fa-4x text-muted mb-3 opacity-50"></i>
                         <h4 class="fw-bold text-dark">No matching dogs found</h4>
-                        <p class="text-muted">No dog profiles matched your specific breed or distance filters. Try increasing the radius or resetting filters.</p>
-                        <a href="{% url 'explore_dogs' %}" class="btn btn-primary fw-bold rounded-pill px-4 mt-2">
+                        <p class="text-muted small">Try adjusting your filters, widening your distance radius, or clearing the specific breed search.</p>
+                        <a href="{% url 'explore_dogs' %}" class="btn btn-primary-stitch text-decoration-none mt-2">
                             <i class="fas fa-redo me-1"></i> Reset All Filters
                         </a>
                     </div>
                 </div>
             {% endfor %}
-            
         </div>
+
     </div>
 </section>
 
-<!-- Match Request Modal for Direct Card Proposals (Epic 2 Task 2.3) -->
+<!-- Match Request Modal -->
 {% if user.is_authenticated %}
 <div class="modal fade" id="quickMatchModal" tabindex="-1" aria-labelledby="quickMatchModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div class="modal-header bg-danger text-white px-4 py-3 border-0">
-                <h5 class="modal-title fw-bold" id="quickMatchModalLabel">
-                    <i class="fas fa-heart text-white me-2"></i> Send Breeding Proposal
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
+            <div class="modal-header border-0 px-4 py-3 text-white" style="background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-heart text-warning fs-5"></i>
+                    <h5 class="modal-title fw-bold text-white mb-0" id="quickMatchModalLabel">Send Mating Proposal</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             
             <form method="POST" id="quickMatchForm" action="">
                 {% csrf_token %}
-                <div class="modal-body p-4 bg-light">
-                    <div class="text-center mb-4">
-                        <p class="text-muted mb-0">
-                            Propose a breeding match to <strong id="modalOwnerName">owner</strong> for <strong id="modalDogName">dog</strong>.
+                <div class="modal-body p-4 bg-white">
+                    <div class="p-3 rounded-3 mb-4 border border-light-subtle" style="background-color: var(--color-surface-container);">
+                        <p class="small text-muted mb-0">
+                            Proposing breeding pairing to owner <strong class="text-dark" id="modalOwnerName">owner</strong> for canine <strong class="text-dark" id="modalDogName">dog</strong>.
                         </p>
                     </div>
                     
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-dark small text-uppercase">Select Your Dog to Pair</label>
-                        <select name="sender_dog" class="form-select form-select-lg border-0 shadow-sm" required>
-                            <option value="" disabled selected>Choose your dog...</option>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-dark small text-uppercase tracking-wider">Select Your Canine to Pair</label>
+                        <select name="sender_dog" class="form-select border-light-subtle rounded-3 py-2.5" required>
+                            <option value="" disabled selected>Choose from your dogs...</option>
                             {% for my_dog in user_dogs %}
                                 <option value="{{ my_dog.id }}">{{ my_dog.name }} ({{ my_dog.breed }} - {{ my_dog.get_gender_display }})</option>
                             {% empty %}
-                                <option value="" disabled>No registered dogs found. Please register a dog first.</option>
+                                <option value="" disabled>No dogs found. Please register a dog first.</option>
                             {% endfor %}
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold text-dark small text-uppercase">Intro Message (Optional)</label>
-                        <textarea name="message" class="form-control border-0 shadow-sm" rows="3" placeholder="Hello! I would love to connect to discuss breeding terms..."></textarea>
+                        <label class="form-label fw-bold text-dark small text-uppercase tracking-wider">Introduction &amp; Mating Proposal Terms</label>
+                        <textarea name="message" class="form-control border-light-subtle rounded-3" rows="3" placeholder="Hello! I reviewed your dog's pedigree passport and would like to propose a breeding agreement..."></textarea>
                     </div>
                 </div>
                 
-                <div class="modal-footer bg-white border-0 p-3 d-flex justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary fw-bold rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger fw-bold rounded-pill px-4 shadow-sm hover-lift">
-                        <i class="fas fa-paper-plane me-1"></i> Send Proposal
+                <div class="modal-footer bg-light border-0 p-3 px-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-soft btn-sm rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-stitch btn-sm px-4">
+                        <i class="fas fa-paper-plane me-1"></i> Submit Proposal
                     </button>
                 </div>
             </form>
@@ -398,7 +458,7 @@
 </div>
 {% endif %}
 
-<!-- Synchronized Dropdowns & Dynamic Scripts -->
+<!-- Dynamic Synchronized Breed Dropdowns & Choices.js -->
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     
@@ -470,7 +530,6 @@ document.addEventListener("DOMContentLoaded", function () {
         breedTom.clear(true);
         breedTom.clearOptions();
         
-        // Add empty option
         breedTom.addOption({ value: '', text: 'All Breeds' });
         optionsList.forEach(opt => {
             breedTom.addOption({ value: opt[0], text: opt[1] });
@@ -494,15 +553,52 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     breedTypeSelect.addEventListener('change', updateBreedList);
-    updateBreedList(); // Initialize on load
+    updateBreedList();
 
-    // Set initial value if passed from GET
     const initialBreed = "{{ breed_filter|escapejs }}";
     if (initialBreed) {
         breedTom.setValue(initialBreed, true);
     }
 
     // 2. Cascading State & City Dropdowns (Choices.js)
+    const INDIA_LOCATIONS = {
+        "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool", "Rajahmundry", "Tirupati", "Kakinada", "Kadapa", "Anantapur", "Eluru", "Vizianagaram", "Ongole", "Nandyal", "Machilipatnam", "Adoni", "Tenali", "Proddatur", "Chittoor", "Hindupur"],
+        "Arunachal Pradesh": ["Itanagar", "Naharlagun", "Pasighat", "Tawang", "Ziro", "Bomdila", "Aalo", "Tezu", "Roing"],
+        "Assam": ["Guwahati", "Silchar", "Dibrugarh", "Jorhat", "Nagaon", "Tinsukia", "Tezpur", "Bongaigaon", "Karimganj", "Sivasagar", "Goalpara", "Barpeta", "Dhubri", "North Lakhimpur"],
+        "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Purnia", "Darbhanga", "Bihar Sharif", "Arrah", "Begusarai", "Katihar", "Munger", "Chhapra", "Danapur", "Saharsa", "Sasaram", "Hajipur", "Dehri", "Siwan", "Motihari", "Nawada"],
+        "Chandigarh": ["Chandigarh"],
+        "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur", "Korba", "Rajnandgaon", "Durg", "Raigarh", "Jagdalpur", "Ambikapur", "Dhamtari", "Mahasamund"],
+        "Dadra and Nagar Haveli and Daman and Diu": ["Daman", "Diu", "Silvassa"],
+        "Delhi": ["New Delhi", "Central Delhi", "East Delhi", "North Delhi", "North East Delhi", "North West Delhi", "Shahdara", "South Delhi", "South East Delhi", "South West Delhi", "West Delhi", "Dwarka", "Rohini", "Connaught Place", "Saket", "Vasant Kunj", "Karol Bagh"],
+        "Goa": ["Panaji", "Margao", "Vasco da Gama", "Mapusa", "Ponda", "Bicholim", "Curchorem"],
+        "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar", "Junagadh", "Gandhinagar", "Anand", "Navsari", "Morbi", "Nadiad", "Surendranagar", "Bharuch", "Mehsana", "Bhuj", "Porbandar", "Palanpur", "Valsad", "Vapi"],
+        "Haryana": ["Faridabad", "Gurugram", "Panipat", "Ambala", "Yamunanagar", "Rohtak", "Hisar", "Karnal", "Sonipat", "Panchkula", "Bhiwani", "Sirsa", "Bahadurgarh", "Jind", "Thanesar", "Kaithal", "Rewari", "Palwal"],
+        "Himachal Pradesh": ["Shimla", "Dharamshala", "Mandi", "Solan", "Kullu", "Manali", "Baddi", "Nahan", "Paonta Sahib", "Sundarnagar", "Chamba", "Una", "Hamirpur", "Bilaspur"],
+        "Jammu and Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla", "Kathua", "Udhampur", "Sopore", "Ganderbal", "Pulwama", "Kupwara"],
+        "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro Steel City", "Deoghar", "Phusro", "Hazaribagh", "Giridih", "Ramgarh", "Medininagar", "Chirkunda"],
+        "Karnataka": ["Bengaluru", "Mysuru", "Hubballi-Dharwad", "Mangaluru", "Belagavi", "Kalaburagi", "Davanagere", "Ballari", "Vijayapura", "Shivamogga", "Tumakuru", "Raichur", "Bidar", "Hosapete", "Gadag", "Hassan", "Udupi"],
+        "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode", "Kollam", "Thrissur", "Kannur", "Alappuzha", "Kottayam", "Palakkad", "Manjeri", "Thalassery", "Malappuram", "Kanhangad"],
+        "Ladakh": ["Leh", "Kargil"],
+        "Lakshadweep": ["Kavaratti", "Agatti", "Andrott"],
+        "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain", "Sagar", "Dewas", "Satna", "Ratlam", "Rewa", "Katni", "Singrauli", "Burhanpur", "Khandwa", "Morena", "Bhind", "Chhindwara", "Guna", "Shivpuri", "Vidisha"],
+        "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Pimpri-Chinchwad", "Nashik", "Kalyan-Dombivli", "Vasai-Virar", "Aurangabad (Chhatrapati Sambhaji Nagar)", "Navi Mumbai", "Panvel", "Solapur", "Mira-Bhayandar", "Bhiwandi", "Amravati", "Nanded", "Kolhapur", "Ulhasnagar", "Sangli", "Malegaon", "Jalgaon", "Akola", "Latur", "Dhule", "Ahmednagar", "Chandrapur", "Parbhani", "Ichalkaranji", "Jalna", "Ambarnath", "Bhusawal", "Ratnagiri", "Raigad", "Satara", "Wardha", "Yavatmal", "Alibag"],
+        "Manipur": ["Imphal", "Thoubal", "Bishnupur", "Churachandpur", "Ukhrul", "Kakching", "Senapati"],
+        "Meghalaya": ["Shillong", "Tura", "Nongstoin", "Jowai", "Baghmara", "Williamnagar"],
+        "Mizoram": ["Aizawl", "Lunglei", "Champhai", "Serchhip", "Kolasib"],
+        "Nagaland": ["Dimapur", "Kohima", "Mokokchung", "Tuensang", "Wokha", "Zunheboto"],
+        "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Berhampur", "Sambalpur", "Puri", "Balasore", "Bhadrak", "Baripada", "Jharsuguda", "Jeypore"],
+        "Puducherry": ["Puducherry", "Karaikal", "Mahe", "Yanam"],
+        "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bathinda", "Hoshiarpur", "Mohali", "Batala", "Pathankot", "Moga", "Abohar", "Malerkotla", "Khanna", "Phagwara", "Muktsar", "Barnala", "Firozpur"],
+        "Rajasthan": ["Jaipur", "Jodhpur", "Kota", "Bikaner", "Ajmer", "Udaipur", "Bhilwara", "Alwar", "Bharatpur", "Sikar", "Pali", "Sri Ganganagar", "Barmer", "Chittorgarh", "Beawar", "Tonk"],
+        "Sikkim": ["Gangtok", "Namchi", "Geyzing", "Mangan"],
+        "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tirunelveli", "Tiruppur", "Ranipet", "Nagercoil", "Thanjavur", "Vellore", "Kancheepuram", "Erode", "Dindigul", "Cuddalore", "Kumbakonam", "Hosur"],
+        "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Khammam", "Karimnagar", "Ramagundam", "Mahbubnagar", "Nalgonda", "Adilabad", "Siddipet", "Suryapet", "Miryalaguda"],
+        "Tripura": ["Agartala", "Dharmanagar", "Udaipur", "Kailashahar", "Belonia"],
+        "Uttar Pradesh": ["Lucknow", "Kanpur", "Ghaziabad", "Agra", "Meerut", "Varanasi", "Prayagraj (Allahabad)", "Bareilly", "Aligarh", "Moradabad", "Saharanpur", "Gorakhpur", "Noida", "Greater Noida", "Firozabad", "Jhansi", "Muzaffarnagar", "Mathura", "Budaun", "Rampur", "Shahjahanpur", "Farrukhabad", "Ayodhya", "Hapur", "Etawah", "Mirzapur", "Bulandshahr", "Sambhal", "Amroha", "Hardoi", "Fatehpur", "Raebareli", "Orai", "Sitapur", "Bahraich", "Modinagar", "Unnao", "Jaunpur", "Lakhimpur", "Hathras", "Banda", "Pilibhit", "Barabanki"],
+        "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee", "Haldwani", "Rudrapur", "Kashipur", "Rishikesh", "Kotdwar", "Mussoorie", "Nainital", "Pithoragarh", "Almora"],
+        "West Bengal": ["Kolkata", "Howrah", "Asansol", "Siliguri", "Durgapur", "Bardhaman", "Malda", "Baharampur", "Habra", "Kharagpur", "Shantipur", "Dankuni", "Dhulian", "Ranaghat", "Haldia", "Raiganj", "Krishnanagar", "Nabadwip", "Medinipur", "Jalpaiguri", "Balurghat", "Basirhat", "Bankura", "Darjeeling"]
+    };
+
     const stateInput = document.getElementById('state-select');
     const cityInput = document.getElementById('city-select');
 
@@ -513,24 +609,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const currentState = "{{ state_filter|escapejs }}";
         const currentCity = "{{ city_filter|escapejs }}";
 
-        fetch("https://countriesnow.space/api/v0.1/countries/states", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ country: "India" })
-        })
-        .then(r => r.json())
-        .then(d => {
-            if (d.data && d.data.states) {
-                const statesData = [{ value: '', label: 'All States' }].concat(
-                    d.data.states.map(s => ({ value: s.name, label: s.name }))
-                );
-                stateChoices.setChoices(statesData, 'value', 'label', true);
-                if (currentState) {
-                    stateChoices.setChoiceByValue(currentState);
-                    loadCities(currentState, currentCity);
-                }
-            }
-        });
+        const statesData = [{ value: '', label: 'All States' }].concat(
+            Object.keys(INDIA_LOCATIONS).map(s => ({ value: s, label: s }))
+        );
+        stateChoices.setChoices(statesData, 'value', 'label', true);
 
         function loadCities(stateName, selectedCity) {
             cityChoices.clearStore();
@@ -538,23 +620,45 @@ document.addEventListener("DOMContentLoaded", function () {
                 cityChoices.setChoices([{ value: '', label: 'All Cities' }], 'value', 'label', true);
                 return;
             }
-            fetch("https://countriesnow.space/api/v0.1/countries/state/cities", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ country: "India", state: stateName })
-            })
-            .then(r => r.json())
-            .then(d => {
-                if (d.data) {
-                    const citiesData = [{ value: '', label: 'All Cities' }].concat(
-                        d.data.map(c => ({ value: c, label: c }))
-                    );
-                    cityChoices.setChoices(citiesData, 'value', 'label', true);
-                    if (selectedCity) {
-                        cityChoices.setChoiceByValue(selectedCity);
+
+            const stateKey = Object.keys(INDIA_LOCATIONS).find(s => s.toLowerCase() === stateName.toLowerCase()) || stateName;
+            let cities = (INDIA_LOCATIONS[stateKey] || []).slice();
+
+            let matchedCityVal = '';
+            if (selectedCity) {
+                const cleanSelected = selectedCity.trim();
+                const directMatch = cities.find(c => c.toLowerCase() === cleanSelected.toLowerCase());
+                if (directMatch) {
+                    matchedCityVal = directMatch;
+                } else {
+                    const partialMatch = cities.find(c => cleanSelected.toLowerCase().includes(c.toLowerCase()) || c.toLowerCase().includes(cleanSelected.toLowerCase()));
+                    if (partialMatch) {
+                        matchedCityVal = partialMatch;
+                    } else {
+                        matchedCityVal = cleanSelected;
+                        cities.unshift(cleanSelected);
                     }
                 }
-            });
+            }
+
+            const citiesData = [{ value: '', label: 'All Cities' }].concat(
+                cities.map(c => ({
+                    value: c,
+                    label: c,
+                    selected: Boolean(matchedCityVal && c.toLowerCase() === matchedCityVal.toLowerCase())
+                }))
+            );
+            cityChoices.setChoices(citiesData, 'value', 'label', true);
+
+            if (matchedCityVal) {
+                cityChoices.setChoiceByValue(matchedCityVal);
+            }
+        }
+
+        if (currentState) {
+            const matchedState = Object.keys(INDIA_LOCATIONS).find(s => s.toLowerCase() === currentState.toLowerCase()) || currentState;
+            stateChoices.setChoiceByValue(matchedState);
+            loadCities(matchedState, currentCity);
         }
 
         stateInput.addEventListener('change', function () {
@@ -562,25 +666,138 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // 3. Quick Match Modal Triggering
+    // 3. Quick Match Modal Triggering & AJAX Submission
     const quickMatchModalEl = document.getElementById('quickMatchModal');
     if (quickMatchModalEl) {
         const quickMatchModal = new bootstrap.Modal(quickMatchModalEl);
         const quickMatchForm = document.getElementById('quickMatchForm');
         const modalDogName = document.getElementById('modalDogName');
         const modalOwnerName = document.getElementById('modalOwnerName');
+        let activeTargetDogId = null;
 
         document.querySelectorAll('.open-match-btn').forEach(btn => {
             btn.addEventListener('click', function () {
-                const dogId = this.dataset.dogId;
+                activeTargetDogId = this.dataset.dogId;
                 const dogName = this.dataset.dogName;
                 const ownerName = this.dataset.ownerName;
 
-                modalDogName.textContent = dogName;
-                modalOwnerName.textContent = ownerName;
-                quickMatchForm.action = `/dog/${dogId}/like/`;
+                if (modalDogName) modalDogName.textContent = dogName;
+                if (modalOwnerName) modalOwnerName.textContent = ownerName;
+                if (quickMatchForm) quickMatchForm.action = `/dog/${activeTargetDogId}/like/`;
                 quickMatchModal.show();
             });
+        });
+
+        if (quickMatchForm) {
+            quickMatchForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+                const submitBtn = quickMatchForm.querySelector('button[type="submit"]');
+                const originalHtml = submitBtn ? submitBtn.innerHTML : 'Submit Proposal';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Sending...';
+                }
+
+                const formData = new FormData(quickMatchForm);
+
+                fetch(quickMatchForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(res => res.json().catch(() => ({})))
+                .then(data => {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalHtml;
+                    }
+
+                    if (data.success || data.already_sent) {
+                        quickMatchModal.hide();
+
+                        // Trigger Popup Toast
+                        if (window.showToast) {
+                            window.showToast(
+                                data.already_sent ? "Proposal Already Sent" : "Request Sent!",
+                                data.message || "Your mating proposal was sent successfully.",
+                                data.already_sent ? "info" : "success"
+                            );
+                        }
+
+                        // Immediately update card button on the explore page
+                        const targetId = activeTargetDogId || (data.dog_id ? String(data.dog_id) : null);
+                        if (targetId) {
+                            const cardBtns = document.querySelectorAll(`.match-btn-${targetId}`);
+                            cardBtns.forEach(b => {
+                                const newBtn = document.createElement('button');
+                                newBtn.type = 'button';
+                                newBtn.className = `btn btn-soft flex-grow-1 py-2 text-decoration-none small d-flex align-items-center justify-content-center gap-1.5 text-success fw-bold match-btn-${targetId}`;
+                                newBtn.disabled = true;
+                                newBtn.innerHTML = '<i class="fas fa-check-circle text-success"></i> <span>Request Sent</span>';
+                                b.parentNode.replaceChild(newBtn, b);
+                            });
+                        }
+                    } else {
+                        if (window.showToast) {
+                            window.showToast("Notice", data.error || "Could not submit proposal.", "warning");
+                        } else {
+                            alert(data.error || "Could not submit proposal.");
+                        }
+                    }
+                })
+                .catch(err => {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalHtml;
+                    }
+                    console.error("Proposal dispatch error:", err);
+                    if (window.showToast) {
+                        window.showToast("Error", "Network error occurred while submitting proposal.", "error");
+                    }
+                });
+            });
+        }
+    }
+
+    // 4. "Near Me" Device GPS Proximity Detection
+    const nearMeBtn = document.getElementById('near-me-btn');
+    if (nearMeBtn) {
+        nearMeBtn.addEventListener('click', function () {
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser.");
+                return;
+            }
+            nearMeBtn.disabled = true;
+            nearMeBtn.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> Locating...`;
+            navigator.geolocation.getCurrentPosition(
+                function (pos) {
+                    const latInput = document.getElementById('search-user-lat');
+                    const lngInput = document.getElementById('search-user-lng');
+                    if (latInput) latInput.value = pos.coords.latitude;
+                    if (lngInput) lngInput.value = pos.coords.longitude;
+
+                    // If radius is not selected, set to 25 km
+                    const radiusSelect = document.querySelector('select[name="radius"]');
+                    if (radiusSelect && !radiusSelect.value) {
+                        radiusSelect.value = "25";
+                    }
+                    const searchForm = document.getElementById('search-filter-form');
+                    if (searchForm) {
+                        searchForm.submit();
+                    }
+                },
+                function (err) {
+                    nearMeBtn.disabled = false;
+                    nearMeBtn.innerHTML = `<i class="fas fa-crosshairs me-1"></i> Near Me`;
+                    let msg = "Could not access device location.";
+                    if (err.code === 1) msg = "Location permission denied. Please allow location access in your browser settings.";
+                    alert(msg);
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
         });
     }
 });

@@ -1,70 +1,110 @@
 {% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Log In to Your Canine Registry · K9Match{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
-                <div class="bg-primary text-white text-center py-4 px-3">
-                    <div class="display-6 mb-2">🐾</div>
-                    <h3 class="fw-bold mb-1">Welcome Back</h3>
-                    <p class="small text-white-50 mb-0">Log in to manage your dogs & matches</p>
-                </div>
-
-                <div class="card-body p-4 p-md-5 bg-white">
-                    {% if form.errors %}
-                        <div class="alert alert-danger alert-dismissible fade show rounded-3 small py-2" role="alert">
-                            <i class="fas fa-exclamation-circle me-1"></i> Invalid username or password.
-                            <button type="button" class="btn-close btn-close-white small" data-bs-dismiss="alert"></button>
+<div class="container py-5 max-w-7xl mx-auto px-3 px-lg-4" style="min-height: 80vh;">
+    <div class="row justify-content-center align-items-center g-5 py-lg-4">
+        
+        <!-- Left Column: Cheerful Trust Banner -->
+        <div class="col-lg-6 d-none d-lg-block" data-aos="fade-right">
+            <div class="p-5 rounded-5 border border-primary border-opacity-25 shadow-sm text-white position-relative overflow-hidden" style="background: linear-gradient(135deg, #004ac6 0%, #006242 100%); border-radius: 2rem !important;">
+                <div class="position-relative z-1">
+                    <span class="badge bg-white text-primary rounded-pill px-3 py-1.5 fw-bold mb-3 small shadow-xs">
+                        <i class="fas fa-shield-heart me-1"></i> Ethical Canine Matchmaking
+                    </span>
+                    <h1 class="display-6 fw-black text-white mb-3" style="font-weight: 800;">Protecting Breeds. Preserving Bloodlines.</h1>
+                    <p class="text-white-50 leading-relaxed mb-4">
+                        Access India's premier verified canine matchmaking network. Connect with certified pet parents, review comprehensive health passports, and arrange ethical breedings.
+                    </p>
+                    <div class="d-flex align-items-center gap-3 pt-3 border-top border-white border-opacity-25">
+                        <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center fw-bold shadow-xs" style="width: 44px; height: 44px; font-size: 1.1rem;">
+                            <i class="fas fa-comments"></i>
                         </div>
-                    {% endif %}
-
-                    {% if messages %}
-                    <div class="mb-3">
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags|default:'danger' }} alert-dismissible fade show rounded-3 shadow-sm d-flex align-items-center" role="alert">
-                                <i class="fas fa-exclamation-circle me-2"></i>
-                                <div>{{ message }}</div>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    </div>
-                        {% endif %}
-
-                    <form method="POST">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-secondary">Username</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-user"></i></span>
-                                <input type="text" name="username" class="form-control bg-light border-start-0 ps-0" placeholder="Enter your username" required autofocus>
-                            </div>
+                        <div>
+                            <div class="fw-bold small text-white">Live Mating Proposals &amp; Chat</div>
+                            <div class="small text-white-50" style="font-size: 0.75rem;">Discuss genetic terms and veterinary clearances securely.</div>
                         </div>
-
-                        <div class="mb-4">
-                            <label class="form-label small fw-bold text-secondary">Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-lock"></i></span>
-                                <input type="password" name="password" class="form-control bg-light border-start-0 ps-0" placeholder="Enter your password" required>
-                            </div>
-                        </div>
-
-                        <div class="d-grid mb-3">
-                            <button type="submit" class="btn btn-primary py-2 fw-bold rounded-3 shadow-sm">
-                                <i class="fas fa-sign-in-alt me-1"></i> Log In
-                            </button>
-                        </div>
-                    </form>
-
-                    <div class="text-center mt-4 pt-2 border-top">
-                        <p class="small text-muted mb-0">
-                            Don't have an account? 
-                            <a href="{% url 'register' %}" class="text-primary fw-bold text-decoration-none">Sign up here</a>
-                        </p>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Right Column: Login Card -->
+        <div class="col-lg-5 col-md-8" data-aos="fade-left">
+            <div class="bg-white rounded-5 shadow-sm p-4 p-md-5 border border-light-subtle" style="border-radius: 2rem !important;">
+                
+                <div class="text-center mb-4">
+                    <img src="{% static 'images/logo.png' %}" alt="K9Match Logo" class="mx-auto mb-2" style="max-height: 62px; width: auto; max-width: 220px; object-fit: contain;">
+                    <p class="text-muted small mb-0 mt-1">Enter your credentials to access your dogs &amp; matches.</p>
+                </div>
+
+                {% if form.errors %}
+                    <div class="alert alert-danger rounded-4 small py-2 px-3 d-flex align-items-center gap-2 mb-3 border-0">
+                        <i class="fas fa-exclamation-circle text-danger"></i>
+                        <span>Invalid username or password. Please check your credentials.</span>
+                    </div>
+                {% endif %}
+
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-muted tracking-wider mb-1">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="fas fa-user text-muted"></i></span>
+                            <input type="text" name="username" class="form-control bg-light border-0 py-2.5" placeholder="Enter your username" required autofocus>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold text-uppercase text-muted tracking-wider mb-0">Password</label>
+                            <a href="{% url 'forgot_password' %}" class="small text-primary text-decoration-none fw-semibold">Forgot Password?</a>
+                        </div>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0"><i class="fas fa-lock text-muted"></i></span>
+                            <input type="password" name="password" id="loginPassword" class="form-control bg-light border-0 py-2.5" placeholder="Enter your password" required>
+                            <button class="btn btn-light border-0" type="button" onclick="const p = document.getElementById('loginPassword'); p.type = p.type === 'password' ? 'text' : 'password';">
+                                <i class="fas fa-eye text-muted"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary-stitch py-2.5 fs-6">
+                            <i class="fas fa-sign-in-alt me-1"></i> Log In to Account
+                        </button>
+                    </div>
+
+                    <div class="d-flex align-items-center my-3">
+                        <hr class="flex-grow-1 my-0 text-muted opacity-25">
+                        <span class="px-3 text-muted small fw-bold" style="font-size: 0.72rem;">OR</span>
+                        <hr class="flex-grow-1 my-0 text-muted opacity-25">
+                    </div>
+
+                    <a href="{% url 'google_login' %}" class="btn btn-outline-secondary w-100 py-2.5 rounded-pill fw-semibold d-flex align-items-center justify-content-center gap-2 border-2 text-dark text-decoration-none shadow-2xs" style="background-color: #fff; font-size: 0.92rem;">
+                        <svg width="18" height="18" viewBox="0 0 18 18">
+                            <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.616z"/>
+                            <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+                            <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+                            <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+                        </svg>
+                        <span>Continue with Google</span>
+                    </a>
+                </form>
+
+                <div class="text-center mt-4 pt-3 border-top border-light-subtle">
+                    <p class="small text-muted mb-0">
+                        Don't have an account yet? 
+                        <a href="{% url 'register' %}" class="fw-bold text-primary text-decoration-none ms-1">Create Account</a>
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}

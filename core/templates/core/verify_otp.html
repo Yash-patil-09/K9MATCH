@@ -1,0 +1,105 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Verify Your Email · K9Match{% endblock %}
+
+{% block content %}
+<section class="py-5" style="min-height: 80vh; display: flex; align-items: center;">
+    <div class="container max-w-7xl mx-auto px-3 px-lg-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-5" data-aos="fade-up">
+                
+                <div class="text-center mb-4">
+                    <a href="{% url 'home' %}" title="K9Match">
+                        <img src="{% static 'images/logo.png' %}" alt="K9Match Logo" style="max-height: 60px; width: auto; max-width: 220px; object-fit: contain;">
+                    </a>
+                </div>
+
+                <div class="card border-0 rounded-4 shadow-xl overflow-hidden" style="background-color: #ffffff;">
+                    <!-- Card Header -->
+                    <div class="card-header border-0 text-white p-4 text-center" style="background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%);">
+                        <div class="bg-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 shadow-xs" style="width: 58px; height: 58px; color: #004ac6; font-size: 1.5rem;">
+                            <i class="fas fa-envelope-open-text"></i>
+                        </div>
+                        <h3 class="fw-bold mb-1 text-white">Verify Your Email</h3>
+                        <p class="text-white-50 small mb-0">Enter the 6-digit security code sent to your email</p>
+                    </div>
+
+                    <div class="card-body p-4 p-md-5">
+                        <div class="text-center mb-4">
+                            <p class="text-muted small mb-1">We dispatched a one-time verification code to:</p>
+                            <div class="fw-bold text-dark font-monospace fs-6 bg-light py-2 px-3 rounded-pill d-inline-block border border-light-subtle">
+                                <i class="fas fa-envelope text-primary me-1"></i> {{ email }}
+                            </div>
+                        </div>
+
+                        <form method="POST" action="{% url 'verify_registration_otp' %}" id="otpForm">
+                            {% csrf_token %}
+                            
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-uppercase text-muted tracking-wider text-center d-block mb-2">
+                                    6-Digit Verification Code
+                                </label>
+                                <input type="text" 
+                                       name="otp_code" 
+                                       id="otp_input" 
+                                       maxlength="6" 
+                                       pattern="\d{6}" 
+                                       inputmode="numeric" 
+                                       autocomplete="one-time-code"
+                                       class="form-control form-control-lg text-center font-monospace fw-bold tracking-widest py-3 border-2" 
+                                       style="letter-spacing: 0.5rem; font-size: 1.8rem; border-color: rgba(0, 74, 198, 0.35); background-color: var(--color-surface-container);" 
+                                       placeholder="------" 
+                                       required 
+                                       autofocus>
+                                <div class="form-text text-center text-muted small mt-2">
+                                    <i class="fas fa-clock text-warning me-1"></i> Code expires in <strong>10 minutes</strong>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary-stitch w-100 py-3 rounded-pill fw-bold shadow-xs d-flex align-items-center justify-content-center gap-2">
+                                <span>Verify &amp; Activate Account</span>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </form>
+
+                        <!-- Resend Option -->
+                        <div class="mt-4 pt-3 border-top text-center">
+                            <form method="POST" action="{% url 'resend_otp' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="purpose" value="signup">
+                                <p class="text-muted small mb-2">Didn't receive the email?</p>
+                                <button type="submit" class="btn btn-soft btn-sm rounded-pill px-3 py-1.5 fw-bold" id="resendBtn">
+                                    <i class="fas fa-redo-alt me-1"></i> Resend Verification Code
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <a href="{% url 'register' %}" class="small text-muted text-decoration-none hover-text-primary">
+                                <i class="fas fa-pencil me-1"></i> Change Email Address
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    // Auto-focus and only allow digits
+    const otpInput = document.getElementById('otp_input');
+    if (otpInput) {
+        otpInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length === 6) {
+                // Auto-submit when 6 digits entered
+                document.getElementById('otpForm').submit();
+            }
+        });
+    }
+</script>
+{% endblock %}

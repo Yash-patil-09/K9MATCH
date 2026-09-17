@@ -60,6 +60,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 
+<!-- Leaflet CSS & JS (For Automatic Dog Geolocation Map) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
 <!-- Premium UI Wrapper -->
 <section class="py-5" style="background-color: var(--bg-light); min-height: 80vh;">
     <div class="container py-4">
@@ -69,12 +73,12 @@
                 <div class="card border-0 shadow-lg rounded-4 overflow-hidden" data-aos="fade-up">
                     
                     <!-- Form Header -->
-                    <div class="card-header bg-primary text-white p-4 border-0 text-center">
-                        <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
-                            <i class="fas fa-dog"></i>
+                    <div class="card-header text-white p-4 border-0 text-center" style="background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%);">
+                        <div class="bg-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 shadow-xs" style="width: 58px; height: 58px; font-size: 1.5rem; color: #004ac6 !important;">
+                            <i class="fas fa-paw"></i>
                         </div>
-                        <h3 class="fw-bold mb-1">{% if is_edit %}Update{% else %}Register{% endif %} Your Dog</h3>
-                        <p class="text-white-50 small mb-0">Fill in the details below to create a comprehensive breeding profile.</p>
+                        <h3 class="fw-black mb-1" style="font-weight: 800;">{% if is_edit %}Update{% else %}Register{% endif %} Canine Profile</h3>
+                        <p class="text-white-50 small mb-0">Fill in the details below to generate an authenticated canine health and pedigree passport.</p>
                     </div>
 
                     <!-- Form Body -->
@@ -138,8 +142,132 @@
                                     {{ form.gender }}
                                 </div>
 
-                                <!-- Location -->
-                                <div class="col-md-6">
+                                <!-- Geographical Location & Proximity Picker -->
+                                <div class="col-12 mt-3">
+                                    <div class="p-3 rounded-4 border" style="background: #ffffff; border-color: #e2e8f0 !important;">
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center text-white shadow-2xs" style="width: 36px; height: 36px; background-color: var(--color-primary);">
+                                                <i class="fas fa-location-dot"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="fw-bold mb-0 text-dark">Canine Geographical Location</h6>
+                                                <small class="text-muted">Choose how you'd like to set your dog's neighborhood for 5km/10km matching:</small>
+                                            </div>
+                                        </div>
+
+                                        <!-- Two Option Selection Cards -->
+                                        <div class="row g-3 mt-1">
+                                            <!-- Option 1: Auto GPS -->
+                                            <div class="col-md-6">
+                                                <div class="card h-100 border-2 rounded-4 p-3 shadow-2xs hover-lift cursor-pointer transition-all" id="card-choice-gps" style="border-color: #bfdbfe; background-color: #f8faff;">
+                                                    <div class="d-flex align-items-start gap-3">
+                                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-primary bg-white shadow-2xs shrink-0" style="width: 42px; height: 42px; font-size: 1.1rem;">
+                                                            <i class="fas fa-crosshairs"></i>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="fw-bold mb-1 text-dark">Detect Automatically</h6>
+                                                            <p class="small text-muted mb-2" style="font-size: 0.8rem; line-height: 1.3;">1-click detection using your current device GPS coordinates (Quickest).</p>
+                                                            <button type="button" id="detect-gps-btn" class="btn btn-sm btn-primary-stitch rounded-pill px-3 py-1 fw-semibold w-100">
+                                                                <i class="fas fa-satellite-dish me-1"></i> Detect My Location
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Option 2: Select on Map -->
+                                            <div class="col-md-6">
+                                                <div class="card h-100 border-2 rounded-4 p-3 shadow-2xs hover-lift cursor-pointer transition-all" id="card-choice-map" style="border-color: #bbf7d0; background-color: #f0fdf4;">
+                                                    <div class="d-flex align-items-start gap-3">
+                                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-success bg-white shadow-2xs shrink-0" style="width: 42px; height: 42px; font-size: 1.1rem;">
+                                                            <i class="fas fa-map-location-dot"></i>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="fw-bold mb-1 text-dark">Select on Map</h6>
+                                                            <p class="small text-muted mb-2" style="font-size: 0.8rem; line-height: 1.3;">Search your colony or area and place a precise custom pin on the map.</p>
+                                                            <button type="button" id="toggle-map-btn" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 fw-semibold w-100" style="border-width: 1.5px;">
+                                                                <i class="fas fa-map me-1"></i> Open Map & Search
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Status Alert & Coordinate Summary -->
+                                        <div id="gps-status-alert" class="small mt-3 px-2 py-1.5 rounded-3 bg-light text-muted d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                            <span id="gps-status-text">
+                                                {% if dog.latitude and dog.longitude %}
+                                                    <i class="fas fa-check-circle text-success me-1"></i> Saved Location: <strong>{{ dog.location_address|default:dog.city }}</strong> ({{ dog.latitude }}, {{ dog.longitude }})
+                                                {% else %}
+                                                    <i class="fas fa-circle-info text-primary me-1"></i> Choose <strong>Detect Automatically</strong> or click <strong>Select on Map</strong> above.
+                                                {% endif %}
+                                            </span>
+                                            <button type="button" id="btn-show-map-shortcut" class="btn btn-link btn-sm p-0 text-primary text-decoration-none fw-bold" style="font-size: 0.8rem; display: {% if dog.latitude %}inline-block{% else %}none{% endif %};">
+                                                <i class="fas fa-location-dot me-1"></i> View/Adjust Pin on Map
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Leaflet Interactive Pin Map Wrapper (Hidden by default until 'Select on Map' is clicked) -->
+                                <div class="col-12 mt-2" id="map-interactive-wrapper" style="display: none;">
+                                    <div class="card border rounded-4 p-3 shadow-sm bg-white" style="border-color: #cbd5e1 !important;">
+                                        
+                                        <!-- Map Header with Locality Search & Close Button -->
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <div class="d-flex align-items-center gap-1">
+                                                <i class="fas fa-map text-success"></i>
+                                                <span class="fw-bold small text-dark">Pinpoint Neighborhood on Map</span>
+                                            </div>
+                                            <button type="button" id="btn-close-map" class="btn btn-sm btn-light rounded-pill py-0.5 px-2.5 text-muted small" title="Hide Map">
+                                                <i class="fas fa-times me-1"></i> Hide Map
+                                            </button>
+                                        </div>
+
+                                        <!-- Area Search Bar -->
+                                        <div class="input-group input-group-sm mb-2 shadow-2xs">
+                                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-magnifying-glass text-muted"></i></span>
+                                            <input type="text" id="map-search-query" class="form-control border-start-0" placeholder="Type colony, area, or landmark (e.g. Bandra West, Koramangala, Connaught Place)...">
+                                            <button type="button" id="map-search-btn" class="btn btn-primary-stitch px-3 fw-semibold">
+                                                Search Area
+                                            </button>
+                                        </div>
+                                        <div id="search-feedback-msg" class="small text-muted mb-2 px-1" style="font-size: 0.78rem;">
+                                            <i class="fas fa-lightbulb text-warning me-1"></i> Type an area and press Enter/Search to fly there, then click anywhere on the map or drag the pin.
+                                        </div>
+
+                                        <!-- Map Div -->
+                                        <div id="dog-location-map" style="height: 280px; width: 100%; border-radius: 0.75rem; border: 1px solid #e2e8f0; z-index: 1;"></div>
+
+                                        <!-- Privacy Pill under map -->
+                                        <div class="d-flex flex-wrap align-items-center justify-content-between mt-2 px-1 gap-2">
+                                            <span class="small text-muted" id="coord-display" style="font-size: 0.8rem;">
+                                                {% if dog.latitude and dog.longitude %}
+                                                    <i class="fas fa-check-circle text-success me-1"></i> Recorded: {{ dog.latitude }}, {{ dog.longitude }}
+                                                {% else %}
+                                                    Click on the map to drop a pin
+                                                {% endif %}
+                                            </span>
+                                            <span class="badge bg-success-subtle text-success-emphasis rounded-pill px-2.5 py-1 small">
+                                                <i class="fas fa-shield-halved me-1"></i> Exact pin kept 100% private from other users
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Hidden Coordinate Inputs -->
+                                <input type="hidden" name="latitude" id="id_latitude" value="{{ dog.latitude|default:form.latitude.value|default:'' }}">
+                                <input type="hidden" name="longitude" id="id_longitude" value="{{ dog.longitude|default:form.longitude.value|default:'' }}">
+
+                                <!-- Locality / Neighborhood -->
+                                <div class="col-12 mt-2">
+                                    <label class="form-label fw-bold">Neighborhood / Locality <span class="text-muted fw-normal">(Auto-detected or custom)</span></label>
+                                    <input type="text" name="location_address" id="id_location_address" class="form-control" value="{{ dog.location_address|default:form.location_address.value|default:'' }}" placeholder="e.g. Bandra West, Koramangala, Indiranagar, Jubilee Hills">
+                                </div>
+
+                                <!-- State & City Inputs -->
+                                <div class="col-md-6 mt-2">
                                     <label class="form-label fw-bold">State <span class="text-danger">*</span></label>
                                     <select name="state" class="form-select search-select" id="state-select" required>
                                         {% if dog.state %}
@@ -151,7 +279,7 @@
                                         {% endif %}
                                     </select>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-6 mt-2">
                                     <label class="form-label fw-bold">City <span class="text-danger">*</span></label>
                                     <select name="city" class="form-select search-select" id="city-select" required>
                                         {% if dog.city %}
@@ -323,7 +451,7 @@
                             </div>
 
                             <div class="d-grid gap-2 mt-5">
-                                <button type="submit" id="submit-btn" class="btn btn-primary btn-lg fw-bold rounded-pill px-5 shadow-sm hover-lift">
+                                <button type="submit" id="submit-btn" class="btn btn-primary-stitch py-3 fs-6 shadow-sm">
                                     {% if is_edit %}
                                         <i class="fas fa-save me-2"></i>Update Dog Profile
                                     {% else %}
@@ -342,10 +470,10 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const isEditMode = "{{ is_edit|default:'False' }}" === "True";
-    const savedBreed = "{{ dog.breed|default:form.breed.value|default:''|escapejs }}";
-    const currentState = "{{ dog.state|default:selected_state|default:''|escapejs }}";
-    const currentCity = "{{ dog.city|default:selected_city|default:''|escapejs }}";
+    const isEditMode = "{% if is_edit %}True{% else %}False{% endif %}" === "True";
+    const savedBreed = "{% if dog.breed %}{{ dog.breed|escapejs }}{% elif form.breed.value %}{{ form.breed.value|escapejs }}{% endif %}";
+    const currentState = "{% if dog.state %}{{ dog.state|escapejs }}{% elif selected_state %}{{ selected_state|escapejs }}{% elif form.state.value %}{{ form.state.value|escapejs }}{% endif %}";
+    const currentCity = "{% if dog.city %}{{ dog.city|escapejs }}{% elif selected_city %}{{ selected_city|escapejs }}{% elif form.city.value %}{{ form.city.value|escapejs }}{% endif %}";
 
     // 1. Breed Options Lists
     const purebredOptions = [
@@ -451,75 +579,476 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // 3. State & City Cascading (Choices.js)
+    // 3. Indian States and Cities Dataset (Offline, Fast & 100% Reliable)
+    const INDIA_LOCATIONS = {
+        "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool", "Rajahmundry", "Tirupati", "Kakinada", "Kadapa", "Anantapur", "Eluru", "Vizianagaram", "Ongole", "Nandyal", "Machilipatnam", "Adoni", "Tenali", "Proddatur", "Chittoor", "Hindupur"],
+        "Arunachal Pradesh": ["Itanagar", "Naharlagun", "Pasighat", "Tawang", "Ziro", "Bomdila", "Aalo", "Tezu", "Roing"],
+        "Assam": ["Guwahati", "Silchar", "Dibrugarh", "Jorhat", "Nagaon", "Tinsukia", "Tezpur", "Bongaigaon", "Karimganj", "Sivasagar", "Goalpara", "Barpeta", "Dhubri", "North Lakhimpur"],
+        "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Purnia", "Darbhanga", "Bihar Sharif", "Arrah", "Begusarai", "Katihar", "Munger", "Chhapra", "Danapur", "Saharsa", "Sasaram", "Hajipur", "Dehri", "Siwan", "Motihari", "Nawada"],
+        "Chandigarh": ["Chandigarh"],
+        "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur", "Korba", "Rajnandgaon", "Durg", "Raigarh", "Jagdalpur", "Ambikapur", "Dhamtari", "Mahasamund"],
+        "Dadra and Nagar Haveli and Daman and Diu": ["Daman", "Diu", "Silvassa"],
+        "Delhi": ["New Delhi", "Central Delhi", "East Delhi", "North Delhi", "North East Delhi", "North West Delhi", "Shahdara", "South Delhi", "South East Delhi", "South West Delhi", "West Delhi", "Dwarka", "Rohini", "Connaught Place", "Saket", "Vasant Kunj", "Karol Bagh"],
+        "Goa": ["Panaji", "Margao", "Vasco da Gama", "Mapusa", "Ponda", "Bicholim", "Curchorem"],
+        "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar", "Junagadh", "Gandhinagar", "Anand", "Navsari", "Morbi", "Nadiad", "Surendranagar", "Bharuch", "Mehsana", "Bhuj", "Porbandar", "Palanpur", "Valsad", "Vapi"],
+        "Haryana": ["Faridabad", "Gurugram", "Panipat", "Ambala", "Yamunanagar", "Rohtak", "Hisar", "Karnal", "Sonipat", "Panchkula", "Bhiwani", "Sirsa", "Bahadurgarh", "Jind", "Thanesar", "Kaithal", "Rewari", "Palwal"],
+        "Himachal Pradesh": ["Shimla", "Dharamshala", "Mandi", "Solan", "Kullu", "Manali", "Baddi", "Nahan", "Paonta Sahib", "Sundarnagar", "Chamba", "Una", "Hamirpur", "Bilaspur"],
+        "Jammu and Kashmir": ["Srinagar", "Jammu", "Anantnag", "Baramulla", "Kathua", "Udhampur", "Sopore", "Ganderbal", "Pulwama", "Kupwara"],
+        "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro Steel City", "Deoghar", "Phusro", "Hazaribagh", "Giridih", "Ramgarh", "Medininagar", "Chirkunda"],
+        "Karnataka": ["Bengaluru", "Mysuru", "Hubballi-Dharwad", "Mangaluru", "Belagavi", "Kalaburagi", "Davanagere", "Ballari", "Vijayapura", "Shivamogga", "Tumakuru", "Raichur", "Bidar", "Hosapete", "Gadag", "Hassan", "Udupi"],
+        "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode", "Kollam", "Thrissur", "Kannur", "Alappuzha", "Kottayam", "Palakkad", "Manjeri", "Thalassery", "Malappuram", "Kanhangad"],
+        "Ladakh": ["Leh", "Kargil"],
+        "Lakshadweep": ["Kavaratti", "Agatti", "Andrott"],
+        "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain", "Sagar", "Dewas", "Satna", "Ratlam", "Rewa", "Katni", "Singrauli", "Burhanpur", "Khandwa", "Morena", "Bhind", "Chhindwara", "Guna", "Shivpuri", "Vidisha"],
+        "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Pimpri-Chinchwad", "Nashik", "Kalyan-Dombivli", "Vasai-Virar", "Aurangabad (Chhatrapati Sambhaji Nagar)", "Navi Mumbai", "Panvel", "Solapur", "Mira-Bhayandar", "Bhiwandi", "Amravati", "Nanded", "Kolhapur", "Ulhasnagar", "Sangli", "Malegaon", "Jalgaon", "Akola", "Latur", "Dhule", "Ahmednagar", "Chandrapur", "Parbhani", "Ichalkaranji", "Jalna", "Ambarnath", "Bhusawal", "Ratnagiri", "Raigad", "Satara", "Wardha", "Yavatmal", "Alibag"],
+        "Manipur": ["Imphal", "Thoubal", "Bishnupur", "Churachandpur", "Ukhrul", "Kakching", "Senapati"],
+        "Meghalaya": ["Shillong", "Tura", "Nongstoin", "Jowai", "Baghmara", "Williamnagar"],
+        "Mizoram": ["Aizawl", "Lunglei", "Champhai", "Serchhip", "Kolasib"],
+        "Nagaland": ["Dimapur", "Kohima", "Mokokchung", "Tuensang", "Wokha", "Zunheboto"],
+        "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Berhampur", "Sambalpur", "Puri", "Balasore", "Bhadrak", "Baripada", "Jharsuguda", "Jeypore"],
+        "Puducherry": ["Puducherry", "Karaikal", "Mahe", "Yanam"],
+        "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bathinda", "Hoshiarpur", "Mohali", "Batala", "Pathankot", "Moga", "Abohar", "Malerkotla", "Khanna", "Phagwara", "Muktsar", "Barnala", "Firozpur"],
+        "Rajasthan": ["Jaipur", "Jodhpur", "Kota", "Bikaner", "Ajmer", "Udaipur", "Bhilwara", "Alwar", "Bharatpur", "Sikar", "Pali", "Sri Ganganagar", "Barmer", "Chittorgarh", "Beawar", "Tonk"],
+        "Sikkim": ["Gangtok", "Namchi", "Geyzing", "Mangan"],
+        "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tirunelveli", "Tiruppur", "Ranipet", "Nagercoil", "Thanjavur", "Vellore", "Kancheepuram", "Erode", "Dindigul", "Cuddalore", "Kumbakonam", "Hosur"],
+        "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Khammam", "Karimnagar", "Ramagundam", "Mahbubnagar", "Nalgonda", "Adilabad", "Siddipet", "Suryapet", "Miryalaguda"],
+        "Tripura": ["Agartala", "Dharmanagar", "Udaipur", "Kailashahar", "Belonia"],
+        "Uttar Pradesh": ["Lucknow", "Kanpur", "Ghaziabad", "Agra", "Meerut", "Varanasi", "Prayagraj (Allahabad)", "Bareilly", "Aligarh", "Moradabad", "Saharanpur", "Gorakhpur", "Noida", "Greater Noida", "Firozabad", "Jhansi", "Muzaffarnagar", "Mathura", "Budaun", "Rampur", "Shahjahanpur", "Farrukhabad", "Ayodhya", "Hapur", "Etawah", "Mirzapur", "Bulandshahr", "Sambhal", "Amroha", "Hardoi", "Fatehpur", "Raebareli", "Orai", "Sitapur", "Bahraich", "Modinagar", "Unnao", "Jaunpur", "Lakhimpur", "Hathras", "Banda", "Pilibhit", "Barabanki"],
+        "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee", "Haldwani", "Rudrapur", "Kashipur", "Rishikesh", "Kotdwar", "Mussoorie", "Nainital", "Pithoragarh", "Almora"],
+        "West Bengal": ["Kolkata", "Howrah", "Asansol", "Siliguri", "Durgapur", "Bardhaman", "Malda", "Baharampur", "Habra", "Kharagpur", "Shantipur", "Dankuni", "Dhulian", "Ranaghat", "Haldia", "Raiganj", "Krishnanagar", "Nabadwip", "Medinipur", "Jalpaiguri", "Balurghat", "Basirhat", "Bankura", "Darjeeling"]
+    };
+
     const stateInput = document.getElementById('state-select') || document.querySelector('[name="state"]');
     const cityInput = document.getElementById('city-select') || document.querySelector('[name="city"]');
     let stateChoices = null;
     let cityChoices = null;
 
+    function selectStateInDropdown(targetState) {
+        if (!stateChoices || !targetState) return '';
+        const stateKeys = Object.keys(INDIA_LOCATIONS);
+        const matchedState = stateKeys.find(s => s.toLowerCase() === targetState.toLowerCase() || targetState.toLowerCase().includes(s.toLowerCase())) || targetState;
+
+        const statesData = [{ value: '', label: 'Select State...' }].concat(
+            stateKeys.map(s => ({
+                value: s,
+                label: s,
+                selected: (s.toLowerCase() === matchedState.toLowerCase())
+            }))
+        );
+        stateChoices.clearStore();
+        stateChoices.setChoices(statesData, 'value', 'label', true);
+        if (stateInput) stateInput.value = matchedState;
+        return matchedState;
+    }
+
+    function loadCities(stateName, selectedCity) {
+        if (!cityChoices) return;
+        cityChoices.clearStore();
+        if (!stateName) {
+            cityChoices.setChoices([{ value: '', label: 'Select City...' }], 'value', 'label', true);
+            if (cityInput) cityInput.value = '';
+            return;
+        }
+
+        const stateKey = Object.keys(INDIA_LOCATIONS).find(s => s.toLowerCase() === stateName.toLowerCase()) || stateName;
+        let cities = (INDIA_LOCATIONS[stateKey] || []).slice();
+
+        let matchedCityVal = '';
+        if (selectedCity) {
+            const cleanSelected = selectedCity.trim();
+            const directMatch = cities.find(c => c.toLowerCase() === cleanSelected.toLowerCase());
+            if (directMatch) {
+                matchedCityVal = directMatch;
+            } else {
+                const partialMatch = cities.find(c => cleanSelected.toLowerCase().includes(c.toLowerCase()) || c.toLowerCase().includes(cleanSelected.toLowerCase()));
+                if (partialMatch) {
+                    matchedCityVal = partialMatch;
+                } else {
+                    matchedCityVal = cleanSelected;
+                    cities.unshift(cleanSelected);
+                }
+            }
+        }
+
+        const citiesData = [{ value: '', label: 'Select City...' }].concat(
+            cities.map(c => ({
+                value: c,
+                label: c,
+                selected: Boolean(matchedCityVal && c.toLowerCase() === matchedCityVal.toLowerCase())
+            }))
+        );
+        cityChoices.setChoices(citiesData, 'value', 'label', true);
+
+        if (matchedCityVal) {
+            cityChoices.setChoiceByValue(matchedCityVal);
+            if (cityInput) cityInput.value = matchedCityVal;
+        }
+    }
+
     if (stateInput && cityInput) {
         stateChoices = new Choices(stateInput, { searchEnabled: true, shouldSort: false, renderChoiceLimit: 50 });
         cityChoices = new Choices(cityInput, { searchEnabled: true, shouldSort: false, renderChoiceLimit: 100 });
 
-        function loadCities(stateName, selectedCity) {
-            cityChoices.clearStore();
-            if (!stateName) {
-                cityChoices.setChoices([{ value: '', label: 'Select City...' }], 'value', 'label', true);
-                return;
-            }
-            fetch("https://countriesnow.space/api/v0.1/countries/state/cities", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ country: "India", state: stateName })
-            })
-            .then(r => r.json())
-            .then(d => {
-                if (d.data && d.data.length > 0) {
-                    const citiesData = [{ value: '', label: 'Select City...' }].concat(
-                        d.data.map(c => ({ value: c, label: c }))
-                    );
-                    cityChoices.setChoices(citiesData, 'value', 'label', true);
-                    const targetCity = selectedCity || currentCity;
-                    if (targetCity) {
-                        cityChoices.setChoiceByValue(targetCity);
-                        cityInput.value = targetCity;
-                    }
-                }
-            })
-            .catch(err => {
-                console.warn("Cities API warning:", err);
-            });
+        // Populate all states immediately
+        const statesData = [{ value: '', label: 'Select State...' }].concat(
+            Object.keys(INDIA_LOCATIONS).map(s => ({ value: s, label: s }))
+        );
+        stateChoices.setChoices(statesData, 'value', 'label', true);
+
+        if (currentState) {
+            const matchedState = selectStateInDropdown(currentState);
+            loadCities(matchedState, currentCity);
         }
 
-        fetch("https://countriesnow.space/api/v0.1/countries/states", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ country: "India" })
-        })
-        .then(r => r.json())
-        .then(d => {
-            if (d.data && d.data.states) {
-                const statesData = [{ value: '', label: 'Select State...' }].concat(
-                    d.data.states.map(s => ({ value: s.name, label: s.name }))
-                );
-                stateChoices.setChoices(statesData, 'value', 'label', true);
-                if (currentState) {
-                    stateChoices.setChoiceByValue(currentState);
-                    stateInput.value = currentState;
-                    loadCities(currentState, currentCity);
-                }
-            }
-        })
-        .catch(err => {
-            console.warn("States API warning:", err);
-        });
-
+        // Allow user to manually change state anytime
         stateInput.addEventListener('change', function () {
             loadCities(this.value, '');
         });
     }
 
-    // 4. KCI Toggle
+    // 4. Leaflet Interactive Pin Map & Automatic GPS Location Engine
+    const mapContainer = document.getElementById('dog-location-map');
+    const coordLatInput = document.getElementById('id_latitude');
+    const coordLngInput = document.getElementById('id_longitude');
+    const coordDisplay = document.getElementById('coord-display');
+    const gpsStatusAlert = document.getElementById('gps-status-alert');
+    const detectBtn = document.getElementById('detect-gps-btn');
+    const localityInput = document.getElementById('id_location_address');
+
+    // Interactive Map Toggle & Search UI Elements
+    const mapInteractiveWrapper = document.getElementById('map-interactive-wrapper');
+    const toggleMapBtn = document.getElementById('toggle-map-btn');
+    const cardChoiceMap = document.getElementById('card-choice-map');
+    const cardChoiceGps = document.getElementById('card-choice-gps');
+    const btnShowMapShortcut = document.getElementById('btn-show-map-shortcut');
+    const btnCloseMap = document.getElementById('btn-close-map');
+    const mapSearchQuery = document.getElementById('map-search-query');
+    const mapSearchBtn = document.getElementById('map-search-btn');
+    const searchFeedbackMsg = document.getElementById('search-feedback-msg');
+
+    if (mapContainer && typeof L !== 'undefined') {
+        const initialLat = parseFloat(coordLatInput?.value) || 20.5937;
+        const initialLng = parseFloat(coordLngInput?.value) || 78.9629;
+        const hasExistingCoords = Boolean(coordLatInput?.value && coordLngInput?.value);
+        const initialZoom = hasExistingCoords ? 14 : 5;
+
+        const map = L.map('dog-location-map').setView([initialLat, initialLng], initialZoom);
+        
+        // Humanitarian OpenStreetMap (HOT) - Deep street zoom down to building level, No 403 blocks, No watermarks
+        L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+            maxZoom: 20,
+            maxNativeZoom: 19,
+            subdomains: ['a', 'b'],
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles by <a href="https://www.hotosm.org/" target="_blank">HOT</a>'
+        }).addTo(map);
+
+        let marker = null;
+        if (hasExistingCoords) {
+            marker = L.marker([initialLat, initialLng], { draggable: true }).addTo(map);
+            marker.bindPopup("<b>Dog's Locality</b><br>Drag pin if you wish to adjust.").openPopup();
+            marker.on('dragend', function(e) {
+                const pos = e.target.getLatLng();
+                onLocationSelected(pos.lat, pos.lng);
+            });
+        }
+
+        map.on('click', function(e) {
+            if (!marker) {
+                marker = L.marker(e.latlng, { draggable: true }).addTo(map);
+                marker.on('dragend', function(ev) {
+                    const pos = ev.target.getLatLng();
+                    onLocationSelected(pos.lat, pos.lng);
+                });
+            } else {
+                marker.setLatLng(e.latlng);
+            }
+            onLocationSelected(e.latlng.lat, e.latlng.lng);
+        });
+
+        function onLocationSelected(lat, lon) {
+            const formattedLat = parseFloat(lat).toFixed(6);
+            const formattedLng = parseFloat(lon).toFixed(6);
+
+            if (coordLatInput) coordLatInput.value = formattedLat;
+            if (coordLngInput) coordLngInput.value = formattedLng;
+            if (coordDisplay) {
+                coordDisplay.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i> Recorded: ${parseFloat(lat).toFixed(4)}, ${parseFloat(lon).toFixed(4)}`;
+            }
+            if (gpsStatusAlert) {
+                gpsStatusAlert.innerHTML = `<i class="fas fa-spinner fa-spin text-primary me-1"></i> Resolving locality, city, and state details...`;
+            }
+
+            // Reverse Geocode using Local Backend Proxy (No CORS issues, 100% Reliable)
+            function handleAddressData(detectedState, detectedCity, locality) {
+                if (locality && localityInput) {
+                    localityInput.value = locality;
+                    localityInput.dataset.autofilled = 'true';
+                }
+
+                // 1. Auto-select State in dropdown
+                let matchedState = '';
+                if (detectedState) {
+                    matchedState = selectStateInDropdown(detectedState);
+                }
+
+                // 2. Auto-populate & select City in dropdown
+                if (matchedState && detectedCity) {
+                    loadCities(matchedState, detectedCity);
+                } else if (detectedCity) {
+                    loadCities(stateInput ? stateInput.value : '', detectedCity);
+                }
+
+                if (gpsStatusAlert) {
+                    const locationLabel = [locality, detectedCity, matchedState || detectedState].filter(Boolean).join(', ');
+                    gpsStatusAlert.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i> Auto-detected: <strong>${locationLabel || (parseFloat(lat).toFixed(4) + ', ' + parseFloat(lon).toFixed(4))}</strong>`;
+                }
+
+                if (btnShowMapShortcut) {
+                    btnShowMapShortcut.style.display = 'inline-block';
+                }
+            }
+
+            // Call local Django proxy endpoint to guarantee 0% CORS issues and reliable geocoding
+            fetch(`/api/reverse-geocode/?lat=${lat}&lng=${lon}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.success) {
+                        handleAddressData(data.state, data.city, data.locality);
+                    } else {
+                        throw new Error(data.error || "Geocoding failed");
+                    }
+                })
+                .catch(err => {
+                    console.warn("Local reverse geocode API error, trying fallback:", err);
+                    // Fallback to client-side reverse geocoder
+                    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+                        .then(r => r.json())
+                        .then(bgData => {
+                            if (bgData) {
+                                const rawState = bgData.principalSubdivision || '';
+                                const detectedState = Object.keys(INDIA_LOCATIONS).find(
+                                    s => s.toLowerCase() === rawState.toLowerCase() || rawState.toLowerCase().includes(s.toLowerCase())
+                                ) || rawState;
+
+                                const bgCandidates = [bgData.city, bgData.locality, bgData.neighbourhood].filter(Boolean);
+                                let detectedCity = '';
+                                if (detectedState && INDIA_LOCATIONS[detectedState]) {
+                                    const stateCities = INDIA_LOCATIONS[detectedState];
+                                    for (const cand of bgCandidates) {
+                                        const found = stateCities.find(sc => sc.toLowerCase() === cand.toLowerCase() || cand.toLowerCase().includes(sc.toLowerCase()));
+                                        if (found) { detectedCity = found; break; }
+                                    }
+                                }
+                                if (!detectedCity && bgCandidates.length > 0) {
+                                    detectedCity = bgCandidates[0];
+                                }
+                                const locality = [bgData.locality, bgData.neighbourhood].filter(Boolean).join(', ') || detectedCity;
+                                handleAddressData(detectedState, detectedCity, locality);
+                            }
+                        })
+                        .catch(() => {
+                            if (gpsStatusAlert) {
+                                gpsStatusAlert.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i> Coordinates recorded (${parseFloat(lat).toFixed(4)}, ${parseFloat(lon).toFixed(4)}).`;
+                            }
+                            if (btnShowMapShortcut) {
+                                btnShowMapShortcut.style.display = 'inline-block';
+                            }
+                        });
+                });
+        }
+
+        // Open/Reveal Map Helper
+        function openMapSection(focusSearch = false) {
+            if (mapInteractiveWrapper) {
+                mapInteractiveWrapper.style.display = 'block';
+                setTimeout(() => {
+                    map.invalidateSize();
+                    if (marker) {
+                        map.panTo(marker.getLatLng());
+                    }
+                    if (focusSearch && mapSearchQuery) {
+                        mapSearchQuery.focus();
+                    }
+                }, 150);
+                mapInteractiveWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        // Map Visibility Toggle Handlers
+        if (toggleMapBtn) {
+            toggleMapBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                openMapSection(true);
+            });
+        }
+
+        if (cardChoiceMap) {
+            cardChoiceMap.addEventListener('click', function(e) {
+                if (!e.target.closest('button')) {
+                    openMapSection(true);
+                }
+            });
+        }
+
+        if (cardChoiceGps && detectBtn) {
+            cardChoiceGps.addEventListener('click', function(e) {
+                if (!e.target.closest('button')) {
+                    detectBtn.click();
+                }
+            });
+        }
+
+        if (btnShowMapShortcut) {
+            btnShowMapShortcut.addEventListener('click', function() {
+                openMapSection(false);
+            });
+        }
+
+        if (btnCloseMap) {
+            btnCloseMap.addEventListener('click', function() {
+                if (mapInteractiveWrapper) {
+                    mapInteractiveWrapper.style.display = 'none';
+                }
+            });
+        }
+
+        // Area / Locality Search Engine
+        function searchAreaOnMap() {
+            const query = mapSearchQuery ? mapSearchQuery.value.trim() : '';
+            if (!query) {
+                if (searchFeedbackMsg) {
+                    searchFeedbackMsg.innerHTML = `<span class="text-danger"><i class="fas fa-circle-exclamation me-1"></i> Please type an area, colony, or city name first.</span>`;
+                }
+                return;
+            }
+
+            if (mapSearchBtn) {
+                mapSearchBtn.disabled = true;
+                mapSearchBtn.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> Searching...`;
+            }
+            if (searchFeedbackMsg) {
+                searchFeedbackMsg.innerHTML = `<span class="text-muted"><i class="fas fa-magnifying-glass fa-spin me-1"></i> Locating "<strong>${query}</strong>"...</span>`;
+            }
+
+            // Append India if not already present to bias search accurately
+            const searchQuery = query.toLowerCase().includes('india') ? query : `${query}, India`;
+            const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(searchQuery)}`;
+
+            fetch(searchUrl)
+                .then(r => r.json())
+                .then(results => {
+                    if (mapSearchBtn) {
+                        mapSearchBtn.disabled = false;
+                        mapSearchBtn.innerHTML = `Search Area`;
+                    }
+
+                    if (results && results.length > 0) {
+                        const item = results[0];
+                        const lat = parseFloat(item.lat);
+                        const lon = parseFloat(item.lon);
+
+                        map.flyTo([lat, lon], 15, { animate: true, duration: 1.2 });
+
+                        if (!marker) {
+                            marker = L.marker([lat, lon], { draggable: true }).addTo(map);
+                            marker.on('dragend', function(ev) {
+                                const p = ev.target.getLatLng();
+                                onLocationSelected(p.lat, p.lng);
+                            });
+                        } else {
+                            marker.setLatLng([lat, lon]);
+                        }
+                        const shortName = item.display_name.split(',')[0];
+                        marker.bindPopup(`<b>${shortName}</b><br>Drag pin to adjust exact spot.`).openPopup();
+
+                        onLocationSelected(lat, lon);
+
+                        if (searchFeedbackMsg) {
+                            searchFeedbackMsg.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i> Jumped to: <strong>${item.display_name.split(',').slice(0, 3).join(', ')}</strong>. Drag the pin if needed.</span>`;
+                        }
+                    } else {
+                        if (searchFeedbackMsg) {
+                            searchFeedbackMsg.innerHTML = `<span class="text-warning"><i class="fas fa-triangle-exclamation me-1"></i> Could not locate "${query}". Try including your city name (e.g. "${query}, Mumbai").</span>`;
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.warn("Area search error:", err);
+                    if (mapSearchBtn) {
+                        mapSearchBtn.disabled = false;
+                        mapSearchBtn.innerHTML = `Search Area`;
+                    }
+                    if (searchFeedbackMsg) {
+                        searchFeedbackMsg.innerHTML = `<span class="text-danger"><i class="fas fa-circle-exclamation me-1"></i> Search network error. You can click directly on the map.</span>`;
+                    }
+                });
+        }
+
+        if (mapSearchBtn) {
+            mapSearchBtn.addEventListener('click', searchAreaOnMap);
+        }
+
+        if (mapSearchQuery) {
+            mapSearchQuery.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchAreaOnMap();
+                }
+            });
+        }
+
+        // Automatic GPS Button Handler
+        if (detectBtn) {
+            detectBtn.addEventListener('click', function() {
+                if (!navigator.geolocation) {
+                    alert("Geolocation is not supported by your browser.");
+                    return;
+                }
+                detectBtn.disabled = true;
+                detectBtn.innerHTML = `<i class="fas fa-spinner fa-spin me-1"></i> Detecting...`;
+                if (gpsStatusAlert) {
+                    gpsStatusAlert.innerHTML = `<i class="fas fa-satellite-dish fa-spin text-primary me-1"></i> Requesting GPS coordinates from your device...`;
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        const lat = pos.coords.latitude;
+                        const lon = pos.coords.longitude;
+                        map.setView([lat, lon], 14);
+                        if (!marker) {
+                            marker = L.marker([lat, lon], { draggable: true }).addTo(map);
+                            marker.on('dragend', function(ev) {
+                                const p = ev.target.getLatLng();
+                                onLocationSelected(p.lat, p.lng);
+                            });
+                        } else {
+                            marker.setLatLng([lat, lon]);
+                        }
+                        marker.bindPopup("<b>Detected Dog Location</b><br>Drag pin to fine-tune your neighborhood.").openPopup();
+                        onLocationSelected(lat, lon);
+                        detectBtn.disabled = false;
+                        detectBtn.innerHTML = `<i class="fas fa-check me-1"></i> Location Detected`;
+                        if (btnShowMapShortcut) {
+                            btnShowMapShortcut.style.display = 'inline-block';
+                        }
+                    },
+                    function(err) {
+                        console.warn("Geolocation permission/error:", err);
+                        detectBtn.disabled = false;
+                        detectBtn.innerHTML = `<i class="fas fa-crosshairs me-1"></i> Try Detect Again`;
+                        let errMsg = "Unable to retrieve GPS. You can click 'Select on Map' above to choose your location.";
+                        if (err.code === 1) errMsg = "Location access was denied. You can click 'Select on Map' above to pinpoint your location.";
+                        if (gpsStatusAlert) {
+                            gpsStatusAlert.innerHTML = `<i class="fas fa-triangle-exclamation text-warning me-1"></i> ${errMsg}`;
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            });
+        }
+    }
+
+    // 5. KCI Toggle
     const kciYes = document.getElementById('kci_yes');
     const kciNo = document.getElementById('kci_no');
     const kciContainer = document.getElementById('kci-fields-container');

@@ -1,29 +1,46 @@
 {% extends 'core/base.html' %}
 
+{% block title %}Breeding Match Proposals · K9Match{% endblock %}
+
 {% block content %}
-<section class="bg-white border-bottom py-4">
-    <div class="container" data-aos="fade-down">
-        <h2 class="fw-bold text-dark mb-1">Match Requests</h2>
-        <p class="text-muted mb-0 small">Manage your incoming and outgoing breeding proposals.</p>
+<!-- Page Header -->
+<section class="bg-white border-bottom border-light-subtle py-4">
+    <div class="container d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 max-w-7xl mx-auto px-3 px-lg-4" data-aos="fade-down">
+        <div>
+            <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2 shadow-2xs" style="background-color: var(--color-surface-container); color: var(--color-primary);">
+                <i class="fas fa-heart text-danger"></i>
+                <span class="fw-bold small" style="font-size: 0.78rem;">Breeding Proposals Hub</span>
+            </div>
+            <h2 class="fw-black text-dark mb-1">Mating Proposals &amp; Requests</h2>
+            <p class="text-muted mb-0 small">Review inbound mating proposals and track outbound requests sent to other breeders.</p>
+        </div>
+        <div>
+            <a href="{% url 'explore_dogs' %}" class="btn btn-primary-stitch btn-sm px-4 text-decoration-none">
+                <i class="fas fa-search me-1"></i> Discover Dogs
+            </a>
+        </div>
     </div>
 </section>
 
-<section class="py-5" style="background-color: var(--bg-light); min-height: 70vh;">
-    <div class="container">
+<section class="py-5 max-w-7xl mx-auto px-3 px-lg-4" style="min-height: 70vh;">
+    <div class="container-fluid px-0">
         
         <!-- Modern Pill Tabs -->
         <ul class="nav nav-pills mb-4 gap-2" id="matchTabs" role="tablist" data-aos="fade-up">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active rounded-pill px-4 fw-bold shadow-sm" id="received-tab" data-bs-toggle="tab" data-bs-target="#received" type="button" role="tab" aria-controls="received" aria-selected="true">
-                    <i class="fas fa-inbox me-2"></i> Received Requests
+                <button class="nav-link active rounded-pill px-4 fw-bold shadow-xs" id="received-tab" data-bs-toggle="tab" data-bs-target="#received" type="button" role="tab" aria-controls="received" aria-selected="true">
+                    <i class="fas fa-inbox me-2"></i> Received Proposals
                     {% if received_requests %}
-                        <span class="badge bg-white text-primary ms-2 rounded-circle">{{ received_requests.count }}</span>
+                        <span class="badge rounded-pill ms-2" style="background-color: var(--color-secondary); color: #111c2d;">{{ received_requests.count }}</span>
                     {% endif %}
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link rounded-pill px-4 fw-bold shadow-sm" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" type="button" role="tab" aria-controls="sent" aria-selected="false">
+                <button class="nav-link rounded-pill px-4 fw-bold shadow-xs" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" type="button" role="tab" aria-controls="sent" aria-selected="false">
                     <i class="fas fa-paper-plane me-2"></i> Sent Proposals
+                    {% if sent_requests %}
+                        <span class="badge rounded-pill bg-light text-dark ms-2">{{ sent_requests.count }}</span>
+                    {% endif %}
                 </button>
             </li>
         </ul>
@@ -35,71 +52,82 @@
             <div class="tab-pane fade show active" id="received" role="tabpanel" aria-labelledby="received-tab">
                 <div class="row g-4">
                     {% for req in received_requests %}
-                        <div class="col-lg-6" data-aos="fade-up" data-aos-delay="100">
-                            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 hover-lift">
-                                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
-                                    <span class="badge 
-                                        {% if req.status == 'pending' %}bg-warning text-dark
-                                        {% elif req.status == 'accepted' %}bg-success
-                                        {% else %}bg-danger{% endif %} 
-                                        rounded-pill px-3 py-2 fw-bold text-uppercase" style="font-size: 0.75rem;">
-                                        {{ req.status }}
-                                    </span>
-                                    <small class="text-muted"><i class="far fa-clock me-1"></i> {{ req.created_at|date:"M d, Y" }}</small>
-                                </div>
+                        <div class="col-lg-6" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|slice:':2' }}00">
+                            <div class="bg-white rounded-4 overflow-hidden border border-light-subtle shadow-sm hover-lift h-100 d-flex flex-column justify-content-between">
                                 
-                                <div class="card-body p-4">
-                                    <h5 class="fw-bold mb-3">
+                                <div class="p-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span class="badge rounded-pill px-3 py-1.5 fw-bold text-uppercase small
+                                            {% if req.status == 'pending' %}bg-warning text-dark
+                                            {% elif req.status == 'accepted' %}bg-success text-white
+                                            {% else %}bg-danger text-white{% endif %}">
+                                            {{ req.status }}
+                                        </span>
+                                        <small class="text-muted"><i class="far fa-clock me-1"></i> {{ req.created_at|date:"M d, Y" }}</small>
+                                    </div>
+                                    
+                                    <h5 class="fw-bold mb-3 text-dark">
                                         <a href="{% url 'dog_detail' req.sender_dog.id %}" class="text-primary text-decoration-none">{{ req.sender_dog.name }}</a> 
-                                        <span class="text-muted fw-normal mx-2">wants to match with</span> 
+                                        <span class="text-muted fw-normal mx-1">wants to pair with</span> 
                                         <a href="{% url 'dog_detail' req.target_dog.id %}" class="text-dark text-decoration-none">{{ req.target_dog.name }}</a>
                                     </h5>
                                     
-                                    <div class="d-flex align-items-center gap-2 mb-3">
-                                        <div class="bg-light text-primary rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px;">
+                                    <div class="d-flex align-items-center gap-2 mb-3 p-2 rounded-3 bg-light">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-xs shrink-0" style="width: 32px; height: 32px; background-color: var(--color-primary); font-size: 0.8rem;">
                                             {{ req.sender.username|slice:":1"|upper }}
                                         </div>
-                                        <small class="text-muted">From owner: <strong>{{ req.sender.username }}</strong></small>
+                                        <div class="small text-muted">
+                                            From owner: <strong class="text-dark">{{ req.sender.username }}</strong>
+                                        </div>
                                     </div>
                                     
                                     {% if req.message %}
-                                        <div class="p-3 bg-light rounded-3 mb-4 text-muted small border-start border-4 border-primary shadow-sm">
+                                        <div class="p-3 rounded-3 mb-3 text-muted small border-start border-3 border-primary" style="background-color: var(--color-surface-container);">
                                             "{{ req.message }}"
                                         </div>
                                     {% endif %}
-                                    
-                                    <!-- Action Buttons -->
-                                    <div class="d-flex gap-2 mt-auto">
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="p-4 pt-0">
+                                    {% if req.status == 'pending' and req.sender_dog %}
+                                        <a href="{% url 'dog_detail' req.sender_dog.id %}?proposal_id={{ req.id }}#proposal-decision-panel" class="btn btn-soft text-primary border-primary-subtle w-100 py-2 small fw-bold mb-2 d-flex align-items-center justify-content-center gap-1.5 text-decoration-none">
+                                            <i class="fas fa-id-card"></i>
+                                            <span>View Full Canine Profile &amp; Decide</span>
+                                        </a>
+                                    {% endif %}
+                                    <div class="d-flex gap-2 pt-2 border-top border-light-subtle">
                                         {% if req.status == 'pending' %}
                                             <form method="POST" action="{% url 'respond_match_request' req.id 'accept' %}" class="flex-grow-1">
                                                 {% csrf_token %}
-                                                <button type="submit" class="btn btn-success w-100 fw-bold rounded-pill shadow-sm">
-                                                    <i class="fas fa-check me-1"></i> Accept
+                                                <button type="submit" class="btn btn-primary-stitch w-100 py-2 small">
+                                                    <i class="fas fa-check me-1"></i> Accept Proposal
                                                 </button>
                                             </form>
                                             <form method="POST" action="{% url 'respond_match_request' req.id 'reject' %}" class="flex-grow-1">
                                                 {% csrf_token %}
-                                                <button type="submit" class="btn btn-outline-danger w-100 fw-bold rounded-pill">
-                                                    <i class="fas fa-times me-1"></i> Reject
+                                                <button type="submit" class="btn btn-soft text-danger w-100 py-2 small fw-bold">
+                                                    <i class="fas fa-times me-1"></i> Decline
                                                 </button>
                                             </form>
                                         {% elif req.status == 'accepted' %}
-                                            <a href="{% url 'chat_room' req.id %}" class="btn btn-primary w-100 fw-bold rounded-pill shadow-sm">
-                                                <i class="fas fa-comments me-2"></i> Open Chat
+                                            <a href="{% url 'chat_room' req.id %}" class="btn btn-primary-stitch w-100 py-2 small text-center text-decoration-none">
+                                                <i class="fas fa-comments me-2"></i> Open Realtime Chat
                                             </a>
                                         {% else %}
-                                            <button class="btn btn-secondary w-100 fw-bold rounded-pill" disabled>Request Rejected</button>
+                                            <button class="btn btn-soft w-100 py-2 small fw-bold" disabled>Proposal Declined</button>
                                         {% endif %}
                                     </div>
                                 </div>
+
                             </div>
                         </div>
                     {% empty %}
                         <div class="col-12 text-center py-5">
-                            <div class="bg-white p-5 rounded-4 shadow-sm mx-auto" style="max-width: 500px;">
+                            <div class="bg-white p-5 rounded-5 shadow-sm mx-auto border border-light-subtle" style="max-width: 500px; border-radius: 2rem !important;">
                                 <i class="fas fa-inbox fa-3x text-muted mb-3 opacity-50"></i>
-                                <h5 class="fw-bold text-dark">No Received Requests</h5>
-                                <p class="text-muted small">When other owners want to match with your dogs, their proposals will appear here.</p>
+                                <h4 class="fw-black text-dark mb-2">No Inbound Proposals Yet</h4>
+                                <p class="text-muted small mb-0">When other verified owners request to pair with your dogs, their proposals will appear here.</p>
                             </div>
                         </div>
                     {% endfor %}
@@ -111,52 +139,66 @@
                 <div class="row g-4">
                     {% for req in sent_requests %}
                         <div class="col-lg-6">
-                            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 hover-lift">
-                                <div class="card-header bg-white border-bottom-0 pt-4 pb-0 px-4 d-flex justify-content-between align-items-center">
-                                    <span class="badge 
-                                        {% if req.status == 'pending' %}bg-warning text-dark
-                                        {% elif req.status == 'accepted' %}bg-success
-                                        {% else %}bg-danger{% endif %} 
-                                        rounded-pill px-3 py-2 fw-bold text-uppercase" style="font-size: 0.75rem;">
-                                        {{ req.status }}
-                                    </span>
-                                    <small class="text-muted"><i class="far fa-clock me-1"></i> {{ req.created_at|date:"M d, Y" }}</small>
-                                </div>
-                                
-                                <div class="card-body p-4">
-                                    <h5 class="fw-bold mb-3">
+                            <div class="bg-white rounded-4 overflow-hidden border border-light-subtle shadow-sm hover-lift h-100 d-flex flex-column justify-content-between">
+                                <div class="p-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span class="badge rounded-pill px-3 py-1.5 fw-bold text-uppercase small
+                                            {% if req.status == 'pending' %}bg-warning text-dark
+                                            {% elif req.status == 'accepted' %}bg-success text-white
+                                            {% else %}bg-danger text-white{% endif %}">
+                                            {{ req.status }}
+                                        </span>
+                                        <small class="text-muted"><i class="far fa-clock me-1"></i> {{ req.created_at|date:"M d, Y" }}</small>
+                                    </div>
+
+                                    <h5 class="fw-bold mb-3 text-dark">
                                         You proposed <a href="{% url 'dog_detail' req.sender_dog.id %}" class="text-primary text-decoration-none">{{ req.sender_dog.name }}</a> 
-                                        <span class="text-muted fw-normal mx-1">for</span> 
+                                        <span class="text-muted fw-normal mx-1">to pair with</span> 
                                         <a href="{% url 'dog_detail' req.target_dog.id %}" class="text-dark text-decoration-none">{{ req.target_dog.name }}</a>
                                     </h5>
-                                    
-                                    <div class="d-flex align-items-center gap-2 mb-4">
-                                        <small class="text-muted">Sent to owner: <strong>{{ req.receiver.username }}</strong></small>
-                                    </div>
-                                    
-                                    {% if req.status == 'accepted' %}
-                                        <a href="{% url 'chat_room' req.id %}" class="btn btn-primary w-100 fw-bold rounded-pill shadow-sm mt-auto">
-                                            <i class="fas fa-comments me-2"></i> Open Chat
-                                        </a>
-                                    {% elif req.status == 'pending' %}
-                                        <div class="alert alert-light border text-center small mb-0 mt-auto rounded-pill">
-                                            Waiting for {{ req.receiver.username }} to respond...
+
+                                    <div class="d-flex align-items-center gap-2 mb-3 p-2 rounded-3 bg-light">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-xs shrink-0" style="width: 32px; height: 32px; background-color: var(--color-tertiary); font-size: 0.8rem;">
+                                            {{ req.receiver.username|slice:":1"|upper }}
                                         </div>
-                                    {% else %}
-                                        <div class="alert alert-danger border-0 text-center small mb-0 mt-auto rounded-pill">
-                                            This request was declined.
+                                        <div class="small text-muted">
+                                            Sent to owner: <strong class="text-dark">{{ req.receiver.username }}</strong>
+                                        </div>
+                                    </div>
+
+                                    {% if req.message %}
+                                        <div class="p-3 rounded-3 mb-3 text-muted small border-start border-3 border-primary" style="background-color: var(--color-surface-container);">
+                                            "{{ req.message }}"
                                         </div>
                                     {% endif %}
                                 </div>
+
+                                <div class="p-4 pt-0">
+                                    <div class="pt-3 border-top border-light-subtle">
+                                        {% if req.status == 'accepted' %}
+                                            <a href="{% url 'chat_room' req.id %}" class="btn btn-primary-stitch w-100 py-2 small text-center text-decoration-none">
+                                                <i class="fas fa-comments me-2"></i> Open Realtime Chat
+                                            </a>
+                                        {% elif req.status == 'pending' %}
+                                            <div class="p-2 rounded-3 bg-light text-center small text-muted">
+                                                <i class="fas fa-clock text-warning me-1"></i> Awaiting response from {{ req.receiver.username }}
+                                            </div>
+                                        {% else %}
+                                            <div class="p-2 rounded-3 bg-light text-center small text-muted">
+                                                <i class="fas fa-times-circle text-danger me-1"></i> Proposal was declined
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
                     {% empty %}
                         <div class="col-12 text-center py-5">
-                            <div class="bg-white p-5 rounded-4 shadow-sm mx-auto" style="max-width: 500px;">
+                            <div class="bg-white p-5 rounded-5 shadow-sm mx-auto border border-light-subtle" style="max-width: 500px; border-radius: 2rem !important;">
                                 <i class="fas fa-paper-plane fa-3x text-muted mb-3 opacity-50"></i>
-                                <h5 class="fw-bold text-dark">No Sent Proposals</h5>
-                                <p class="text-muted small">You haven't sent any match requests yet. Explore the directory to find a match!</p>
-                                <a href="{% url 'explore_dogs' %}" class="btn btn-primary fw-bold rounded-pill px-4 mt-2">Find Matches</a>
+                                <h4 class="fw-black text-dark mb-2">No Outbound Proposals</h4>
+                                <p class="text-muted small mb-0">Discover compatible canine matches and propose a breeding agreement.</p>
                             </div>
                         </div>
                     {% endfor %}
@@ -164,6 +206,7 @@
             </div>
 
         </div>
+
     </div>
 </section>
 {% endblock %}

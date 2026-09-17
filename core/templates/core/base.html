@@ -1,262 +1,642 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K9Match | Premium Dog Breeding Matches</title>
+    <title>{% block title %}K9Match · Ethical Canine Matchmaking & Pedigree Registry{% endblock %}</title>
+    <meta name="description" content="The standard in certified pedigree authentication, genetic health screening, and ethical canine breeding management.">
     
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- FontAwesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Premium Google Fonts: Plus Jakarta Sans (Headings) & Inter (Body) -->
+    <!-- Favicon & Touch Icon -->
+    <link rel="icon" type="image/png" href="{% static 'images/logo_icon.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'images/logo_icon.png' %}">
+
+    <!-- Google Fonts: Plus Jakarta Sans (300 to 800) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
     
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6.4 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- AOS Animation Library -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    {% block extra_head %}{% endblock %}
 
-    <!-- Global Custom CSS Design System -->
+    <!-- Global Custom CSS Design System (Stitch AI Tokens) -->
     <style>
         :root {
-            --primary-font: 'Inter', sans-serif;
-            --heading-font: 'Plus Jakarta Sans', sans-serif;
-            --primary-brand: #4F46E5; /* Deep Indigo */
-            --primary-hover: #4338CA;
-            --accent-warm: #F59E0B; /* Amber */
-            --bg-light: #F8FAFC;
-            --text-dark: #0F172A;
-            --text-muted: #64748B;
+            --font-main: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+            --color-primary: #004ac6;
+            --color-primary-hover: #003899;
+            --color-primary-container: #2563eb;
+            --color-primary-light: #e7eeff;
+            --color-secondary: #fea619;
+            --color-secondary-hover: #e5930e;
+            --color-secondary-dark: #855300;
+            --color-tertiary: #006242;
+            --color-tertiary-light: #6ffbbe;
+            --color-surface: #FAF9F6;
+            --color-surface-card: #ffffff;
+            --color-surface-container: #f0f3ff;
+            --color-text: #111c2d;
+            --color-text-muted: #434655;
+            --color-outline: #c3c6d7;
+            --color-danger: #ba1a1a;
+            --color-danger-bg: #ffdad6;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: var(--primary-font);
-            background-color: var(--bg-light);
-            color: var(--text-dark);
+            font-family: var(--font-main);
+            background-color: var(--color-surface);
+            color: var(--color-text);
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
-        h1, h2, h3, h4, h5, h6, .navbar-brand {
-            font-family: var(--heading-font);
-            letter-spacing: -0.02em;
+        h1, h2, h3, h4, h5, h6, .fw-black {
+            font-family: var(--font-main);
+            letter-spacing: -0.025em;
+            color: var(--color-text);
         }
 
-        /* Glassmorphism Navbar */
-        .glass-navbar {
-            background: rgba(255, 255, 255, 0.85) !important;
+        /* Glassmorphic Docks */
+        .glass-dock {
+            background: rgba(255, 255, 255, 0.92) !important;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(195, 198, 215, 0.35);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.88);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.9);
         }
 
-        .glass-navbar .navbar-brand {
-            color: var(--primary-brand) !important;
-            font-weight: 800;
-            font-size: 1.5rem;
-        }
-
-        .glass-navbar .nav-link {
-            color: var(--text-dark) !important;
-            font-weight: 500;
-            transition: color 0.2s ease;
-            position: relative;
-        }
-
-        .glass-navbar .nav-link:hover {
-            color: var(--primary-brand) !important;
-        }
-
-        /* Micro-Interactions & Hover Effects */
+        /* Interactive Hover & Shadows */
         .hover-lift {
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+            transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s ease;
         }
-        
         .hover-lift:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08) !important;
+            transform: translateY(-6px);
+            box-shadow: 0 16px 36px rgba(0, 74, 198, 0.08) !important;
         }
 
-        .btn-brand {
-            background-color: var(--primary-brand);
-            color: white;
+        .hover-scale {
+            transition: transform 0.2s ease;
+        }
+        .hover-scale:hover {
+            transform: scale(1.05);
+        }
+
+        /* Stitch Buttons */
+        .btn-primary-stitch {
+            background-color: var(--color-primary-container);
+            color: #ffffff !important;
+            font-weight: 700;
             border: none;
-            transition: all 0.3s ease;
+            border-radius: 9999px;
+            padding: 0.65rem 1.4rem;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
         }
-
-        .btn-brand:hover {
-            background-color: var(--primary-hover);
-            color: white;
+        .btn-primary-stitch:hover {
+            background-color: var(--color-primary);
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.25);
+            box-shadow: 0 8px 20px rgba(0, 74, 198, 0.3);
+            color: #ffffff !important;
         }
 
-        /* Smooth page fade in */
-        .page-fade-in {
-            animation: fadeIn 0.6s ease-out forwards;
+        .btn-secondary-stitch {
+            background-color: var(--color-secondary);
+            color: #111c2d !important;
+            font-weight: 700;
+            border: none;
+            border-radius: 9999px;
+            padding: 0.65rem 1.4rem;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px rgba(254, 166, 25, 0.25);
+        }
+        .btn-secondary-stitch:hover {
+            background-color: var(--color-secondary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(254, 166, 25, 0.35);
+            color: #111c2d !important;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .btn-soft {
+            background-color: var(--color-surface-container);
+            color: var(--color-text) !important;
+            font-weight: 700;
+            border: 1px solid rgba(195, 198, 215, 0.4);
+            border-radius: 9999px;
+            padding: 0.6rem 1.25rem;
+            transition: all 0.2s ease;
+        }
+        .btn-soft:hover {
+            background-color: #dee8ff;
+            color: var(--color-primary) !important;
+        }
+
+        /* Badges */
+        .badge-kci-gold {
+            background-color: #ffffff;
+            color: var(--color-tertiary);
+            border: 1px solid rgba(0, 98, 66, 0.25);
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            box-shadow: 0 2px 6px rgba(0, 98, 66, 0.08);
+        }
+
+        .badge-verified-mint {
+            background-color: var(--color-tertiary-light);
+            color: #002113;
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+        }
+
+        .badge-stud-fee {
+            background-color: rgba(17, 28, 45, 0.75);
+            color: #ffffff;
+            backdrop-filter: blur(8px);
+            font-weight: 600;
+            font-size: 0.75rem;
+            padding: 0.3rem 0.7rem;
+            border-radius: 9999px;
+        }
+
+        .bone-active {
+            color: var(--color-secondary) !important;
+            filter: drop-shadow(0 2px 4px rgba(254, 166, 25, 0.35));
+        }
+
+        /* Navigation Links */
+        .stitch-nav-link {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--color-text-muted) !important;
+            padding: 0.5rem 0.85rem !important;
+            border-radius: 9999px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .stitch-nav-link:hover, .stitch-nav-link.active {
+            color: var(--color-primary) !important;
+            background-color: var(--color-surface-container);
+        }
+
+        /* Subtle animations */
+        @keyframes pulseRing {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+        .animate-pulse-ring {
+            animation: pulseRing 3s infinite ease-in-out;
         }
     </style>
 </head>
-<body class="page-fade-in">
+<body>
+    <!-- Sticky Glass Navigation Dock -->
+    <header class="glass-dock sticky-top shadow-xs z-3">
+        <div class="container-fluid px-lg-5 px-3">
+            <div class="d-flex align-items-center justify-content-between" style="height: 72px;">
+                
+                <!-- Brand (Emblem on Left, Text on Right for Maximum Size & Legibility) -->
+                <a href="{% url 'home' %}" class="d-flex align-items-center gap-2.5 text-decoration-none py-1" title="K9Match - Connecting Responsible Breeders">
+                    <img src="{% static 'images/logo_emblem.png' %}" alt="K9Match Emblem" style="height: 50px; width: auto; object-fit: contain;">
+                    <img src="{% static 'images/logo_text.png' %}" alt="K9Match - Connecting Responsible Breeders" style="height: 35px; width: auto; object-fit: contain;">
+                </a>
 
-    <!-- Premium Sticky Glass Navbar -->
-    <nav class="navbar navbar-expand-lg glass-navbar sticky-top shadow-sm py-3">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'home' %}">
-                <i class="fas fa-paw text-warning"></i> K9Match
-            </a>
-            
-            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <i class="fas fa-bars text-dark fs-4"></i>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center gap-3 mt-3 mt-lg-0">
+                <!-- Center Nav Menu -->
+                <nav class="d-none d-lg-flex align-items-center gap-1">
+                    <a href="{% url 'home' %}" class="stitch-nav-link">Home</a>
+                    <a href="{% url 'explore_dogs' %}" class="stitch-nav-link">Explore Dogs</a>
+                    <a href="{% url 'vets_directory' %}" class="stitch-nav-link">Verified Vets</a>
                     {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'home' %}">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'explore_dogs' %}">Find Matches</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'my_dogs' %}">My Dogs</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link position-relative" href="{% url 'match_requests_dashboard' %}">
-                                Matches
-                                {% if navbar_pending_matches_count > 0 %}
-                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white">
-                                        {{ navbar_pending_matches_count }}
-                                    </span>
+                        <a href="{% url 'my_dogs' %}" class="stitch-nav-link">My Dogs</a>
+                        <a href="{% url 'match_requests_dashboard' %}" class="stitch-nav-link position-relative">
+                            Proposals
+                            {% if navbar_pending_matches_count > 0 %}
+                                <span class="badge rounded-pill bg-danger ms-1" style="font-size: 0.65rem;">{{ navbar_pending_matches_count }}</span>
+                            {% endif %}
+                        </a>
+                        <a href="{% url 'chats_inbox' %}" class="stitch-nav-link">Messages</a>
+                        {% if user.is_staff %}
+                            <a href="{% url 'admin_dashboard' %}" class="stitch-nav-link text-danger fw-semibold">
+                                Admin
+                                {% if admin_pending_dogs_count > 0 %}
+                                    <span class="badge rounded-pill bg-warning text-dark ms-1" style="font-size: 0.65rem;">{{ admin_pending_dogs_count }}</span>
                                 {% endif %}
                             </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'chats_inbox' %}">
-                                <i class="fas fa-comments me-1 text-primary"></i> Chats
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'vets_directory' %}">
-                                <i class="fas fa-clinic-medical me-1 text-danger"></i> Find Vets
-                            </a>
-                        </li>
-                        {% if user.is_staff %}
-                            <li class="nav-item">
-                                <a class="nav-link position-relative text-danger fw-bold" href="{% url 'admin_dashboard' %}">
-                                    <i class="fas fa-shield-alt me-1"></i> Admin
-                                    {% if admin_pending_dogs_count > 0 %}
-                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning text-dark border border-white" title="{{ admin_pending_dogs_count }} pending reviews">
-                                            {{ admin_pending_dogs_count }}
-                                        </span>
-                                    {% endif %}
-                                </a>
-                            </li>
                         {% endif %}
-                        
-                        <!-- User Dropdown -->
-                        <li class="nav-item dropdown ms-lg-2">
-                            <a class="nav-link dropdown-toggle fw-bold d-flex align-items-center gap-2" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                    {% endif %}
+                </nav>
+
+                <!-- Right Actions Section -->
+                <div class="d-flex align-items-center gap-2">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'add_dog' %}" class="btn btn-sm btn-primary-stitch rounded-pill px-3 py-1.5 d-none d-sm-inline-flex align-items-center gap-1.5 text-nowrap">
+                            <i class="fas fa-plus small"></i>
+                            <span>Register Dog</span>
+                        </a>
+
+                        <!-- User Profile Dropdown -->
+                        <div class="dropdown">
+                            <button class="btn btn-soft rounded-pill d-flex align-items-center gap-2 py-1 ps-2 pe-3" data-bs-toggle="dropdown" aria-expanded="false">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-xs" style="width: 32px; height: 32px; background-color: var(--color-primary); font-size: 0.85rem;">
                                     {{ user.username|slice:":1"|upper }}
                                 </div>
-                                {{ user.username }}
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 mt-2" aria-labelledby="userDropdown">
+                                <span class="fw-bold small d-none d-md-inline text-dark">{{ user.username }}</span>
+                                <i class="fas fa-chevron-down text-muted" style="font-size: 0.65rem;"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-xl rounded-4 p-2 mt-2" style="min-width: 220px;">
+                                <li class="px-3 py-2 border-bottom mb-1">
+                                    <div class="fw-bold text-dark small">{{ user.get_full_name|default:user.username }}</div>
+                                    <div class="text-muted small" style="font-size: 0.75rem;">{{ user.get_role_display|default:'Pet Parent' }}</div>
+                                </li>
                                 {% if user.is_staff %}
-                                    <li><a class="dropdown-item py-2 fw-semibold text-danger" href="{% url 'admin_dashboard' %}"><i class="fas fa-shield-alt me-2"></i> Admin Approvals {% if admin_pending_dogs_count > 0 %}<span class="badge bg-warning text-dark ms-1">{{ admin_pending_dogs_count }}</span>{% endif %}</a></li>
-                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item py-2 rounded-3 text-danger fw-bold" href="{% url 'admin_dashboard' %}"><i class="fas fa-shield-alt me-2"></i> Admin Moderation</a></li>
                                 {% endif %}
-                                <li><a class="dropdown-item py-2 fw-semibold text-primary" href="{% url 'add_dog' %}"><i class="fas fa-plus-circle me-2"></i> Register New Dog</a></li>
-                                <li><a class="dropdown-item py-2" href="{% url 'my_dogs' %}"><i class="fas fa-dog me-2 text-muted"></i> My Dogs Dashboard</a></li>
-                                <li><a class="dropdown-item py-2" href="{% url 'profile' %}"><i class="fas fa-user-circle me-2 text-muted"></i> Profile Settings</a></li>
-                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item py-2 rounded-3" href="{% url 'my_dogs' %}"><i class="fas fa-paw me-2 text-primary"></i> My Canine Registry</a></li>
+                                <li><a class="dropdown-item py-2 rounded-3" href="{% url 'add_dog' %}"><i class="fas fa-plus-circle me-2 text-success"></i> Register New Dog</a></li>
+                                <li><a class="dropdown-item py-2 rounded-3" href="{% url 'match_requests_dashboard' %}"><i class="fas fa-handshake me-2 text-warning"></i> Match Proposals</a></li>
+                                <li><a class="dropdown-item py-2 rounded-3" href="{% url 'chats_inbox' %}"><i class="fas fa-comments me-2 text-info"></i> Messages</a></li>
+                                <li><a class="dropdown-item py-2 rounded-3" href="{% url 'profile' %}"><i class="fas fa-user-gear me-2 text-muted"></i> Account Settings</a></li>
+                                <li><hr class="dropdown-divider my-1"></li>
                                 <li>
-                                    <form method="POST" action="{% url 'logout' %}" class="px-2">
+                                    <form method="POST" action="{% url 'logout' %}">
                                         {% csrf_token %}
-                                        <button type="submit" class="dropdown-item text-danger py-2 rounded-3 fw-bold">
-                                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                                        <button type="submit" class="dropdown-item py-2 rounded-3 text-danger fw-bold">
+                                            <i class="fas fa-sign-out-alt me-2"></i> Log Out
                                         </button>
                                     </form>
                                 </li>
                             </ul>
-                        </li>
+                        </div>
+
                     {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'vets_directory' %}"><i class="fas fa-clinic-medical me-1 text-danger"></i> Find Vets</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link fw-bold" href="{% url 'login' %}">Log In</a>
-                        </li>
-                        <li class="nav-item ms-lg-2">
-                            <a class="btn btn-brand rounded-pill px-4 fw-bold shadow-sm" href="{% url 'register' %}">Create Account</a>
-                        </li>
+                        <a href="{% url 'login' %}" class="stitch-nav-link fw-semibold text-dark text-decoration-none">
+                            Log In
+                        </a>
+                        <a href="{% url 'register' %}" class="btn btn-sm btn-primary-stitch rounded-pill px-3 py-1.5 text-decoration-none">
+                            Join K9Match
+                        </a>
                     {% endif %}
-                </ul>
+
+                    <!-- Mobile Navigation Toggle -->
+                    <button class="btn btn-soft d-lg-none rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNav">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+
             </div>
         </div>
-    </nav>
+    </header>
 
-    <!-- Main Content Block -->
+    <!-- Mobile Offcanvas Menu -->
+    <div class="offcanvas offcanvas-start border-0 shadow-lg" tabindex="-1" id="mobileNav" style="background-color: var(--color-surface); width: 280px;">
+        <div class="offcanvas-header border-bottom">
+            <a href="{% url 'home' %}" class="d-flex align-items-center gap-2 text-decoration-none" title="K9Match">
+                <img src="{% static 'images/logo_emblem.png' %}" alt="K9Match Emblem" style="height: 42px; width: auto; object-fit: contain;">
+                <img src="{% static 'images/logo_text.png' %}" alt="K9Match" style="height: 28px; width: auto; object-fit: contain;">
+            </a>
+            <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body p-3">
+            <div class="d-flex flex-column gap-1">
+                <a href="{% url 'home' %}" class="stitch-nav-link py-2"><i class="fas fa-home me-2 text-muted"></i> Home</a>
+                <a href="{% url 'explore_dogs' %}" class="stitch-nav-link py-2"><i class="fas fa-compass me-2 text-muted"></i> Explore Dogs</a>
+                <a href="{% url 'vets_directory' %}" class="stitch-nav-link py-2"><i class="fas fa-stethoscope me-2 text-muted"></i> Verified Vets</a>
+                <a href="#" class="stitch-nav-link py-2" data-bs-toggle="modal" data-bs-target="#charterModal"><i class="fas fa-shield-heart me-2 text-muted"></i> Welfare Charter</a>
+                
+                {% if user.is_authenticated %}
+                    <hr class="my-2 text-muted opacity-25">
+                    <a href="{% url 'my_dogs' %}" class="stitch-nav-link py-2"><i class="fas fa-dog me-2 text-muted"></i> My Dogs</a>
+                    <a href="{% url 'add_dog' %}" class="stitch-nav-link py-2"><i class="fas fa-plus me-2 text-muted"></i> Register Dog</a>
+                    <a href="{% url 'match_requests_dashboard' %}" class="stitch-nav-link py-2"><i class="fas fa-heart me-2 text-muted"></i> Match Proposals</a>
+                    <a href="{% url 'chats_inbox' %}" class="stitch-nav-link py-2"><i class="fas fa-comments me-2 text-muted"></i> Messages</a>
+                    <a href="{% url 'profile' %}" class="stitch-nav-link py-2"><i class="fas fa-user-gear me-2 text-muted"></i> Settings</a>
+                    {% if user.is_staff %}
+                        <a href="{% url 'admin_dashboard' %}" class="stitch-nav-link py-2 text-danger"><i class="fas fa-shield-alt me-2"></i> Admin Panel</a>
+                    {% endif %}
+                    <form method="POST" action="{% url 'logout' %}" class="mt-3">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger w-100 rounded-pill fw-bold">Log Out</button>
+                    </form>
+                {% else %}
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="{% url 'login' %}" class="btn btn-soft rounded-pill fw-bold">Log In</a>
+                        <a href="{% url 'register' %}" class="btn-primary-stitch text-center text-decoration-none">Create Account</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Stream -->
     <main style="min-height: 80vh;">
+        <!-- Global Messages Banner -->
         {% if messages %}
-            <div class="container pt-3">
+            <div class="container pt-4 global-messages-container">
                 {% for message in messages %}
-                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-4 shadow-sm border-0 d-flex align-items-center justify-content-between mb-3" role="alert">
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show rounded-4 shadow-sm border-0 d-flex align-items-center justify-content-between mb-3 auto-vanish-notification" role="alert" style="backdrop-filter: blur(12px); transition: opacity 0.5s ease, transform 0.5s ease, max-height 0.5s ease, margin 0.5s ease, padding 0.5s ease;">
                         <div class="d-flex align-items-center gap-2">
                             {% if message.tags == 'success' %}
-                                <i class="fas fa-check-circle text-success fs-5"></i>
+                                <i class="fas fa-circle-check text-success fs-5"></i>
                             {% elif message.tags == 'error' or message.tags == 'danger' %}
-                                <i class="fas fa-exclamation-circle text-danger fs-5"></i>
+                                <i class="fas fa-circle-exclamation text-danger fs-5"></i>
                             {% elif message.tags == 'warning' %}
-                                <i class="fas fa-exclamation-triangle text-warning fs-5"></i>
+                                <i class="fas fa-triangle-exclamation text-warning fs-5"></i>
                             {% else %}
-                                <i class="fas fa-info-circle text-info fs-5"></i>
+                                <i class="fas fa-circle-info text-primary fs-5"></i>
                             {% endif %}
-                            <span class="fw-semibold">{{ message }}</span>
+                            <span class="small fw-semibold">{{ message }}</span>
                         </div>
-                        <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert" aria-label="Close"></button>
+                        <button type="button" class="btn-close shadow-none small" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             </div>
         {% endif %}
 
-        {% block content %}
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
 
-    <!-- Professional Footer -->
-    <footer class="bg-white border-top py-5 mt-5">
-        <div class="container text-center">
-            <h5 class="fw-bold text-dark mb-3"><i class="fas fa-paw text-warning me-2"></i>K9Match</h5>
-            <p class="text-muted small mb-4">Connecting verified dog owners for responsible and ethical breeding matches.</p>
-            <div class="d-flex justify-content-center gap-3 mb-3">
-                <a href="#" class="text-muted text-decoration-none small hover-text-primary">About Us</a>
-                <a href="#" class="text-muted text-decoration-none small hover-text-primary">Breeding Guidelines</a>
-                <a href="#" class="text-muted text-decoration-none small hover-text-primary">Privacy Policy</a>
+    <!-- Global 4-Point Ethical Welfare Charter Modal -->
+    <div class="modal fade" id="charterModal" tabindex="-1" aria-labelledby="charterModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-2xl overflow-hidden">
+                <div class="modal-header border-0 p-4 text-white" style="background: linear-gradient(135deg, #004ac6 0%, #006242 100%);">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-white rounded-circle d-flex align-items-center justify-content-center p-1.5 shadow-xs shrink-0" style="width: 50px; height: 50px;">
+                            <img src="{% static 'images/logo_icon.png' %}" alt="K9Match Emblem" style="width: 100%; height: 100%; object-fit: contain;">
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0 text-white" id="charterModalLabel">The K9Match 4-Point Ethical Welfare Charter</h5>
+                            <p class="text-white-50 small mb-0">Prioritizing canine genetics, safety, and lifelong welfare.</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 p-md-5 bg-white">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="d-flex gap-3">
+                                <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center shrink-0" style="width: 36px; height: 36px;">
+                                    <i class="fas fa-ban"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-1 text-dark">1. Zero-Tolerance Puppy Mill Ban</h6>
+                                    <p class="small text-muted mb-0">Commercial puppy factories and unverified backyard breeding operations are strictly prohibited.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex gap-3">
+                                <div class="bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center shrink-0" style="width: 36px; height: 36px;">
+                                    <i class="fas fa-stethoscope"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-1 text-dark">2. Mandatory Veterinary Clearance</h6>
+                                    <p class="small text-muted mb-0">Up-to-date core vaccinations (Rabies, DHPPiL) and pre-mating vet fitness certification by registered clinics.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex gap-3">
+                                <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center shrink-0" style="width: 36px; height: 36px;">
+                                    <i class="fas fa-heart-pulse"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-1 text-dark">3. Maternal Health &amp; Age Safeguards</h6>
+                                    <p class="small text-muted mb-0">Minimum breeding age of 18-24 months with mandatory rest intervals between litters to safeguard the mother.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex gap-3">
+                                <div class="bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center shrink-0" style="width: 36px; height: 36px;">
+                                    <i class="fas fa-dna"></i>
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold mb-1 text-dark">4. Verified Lineage &amp; Inbreeding Protection</h6>
+                                    <p class="small text-muted mb-0">Verifiable pedigree parentage and inbreeding controls to prevent genetic bottlenecks and uphold vitality.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light p-3 px-4 d-flex justify-content-between">
+                    <span class="small text-muted"><i class="fas fa-shield-check text-success me-1"></i> Recognized Health Registry Standards</span>
+                    <button type="button" class="btn btn-primary-stitch" data-bs-dismiss="modal">I Support This Charter</button>
+                </div>
             </div>
-            <p class="text-muted extra-small mb-0">© 2026 K9Match. All rights reserved.</p>
+        </div>
+    </div>
+
+    <!-- 4-Column Modern Stitch Footer -->
+    <footer class="bg-white border-top py-5 mt-5">
+        <div class="container py-3">
+            <div class="row g-4 mb-4">
+                <div class="col-lg-5 col-md-6">
+                    <div class="mb-3">
+                        <a href="{% url 'home' %}" class="d-inline-flex align-items-center gap-2.5 text-decoration-none" title="K9Match">
+                            <img src="{% static 'images/logo_emblem.png' %}" alt="K9Match Emblem" style="height: 52px; width: auto; object-fit: contain;">
+                            <img src="{% static 'images/logo_text.png' %}" alt="K9Match" style="height: 36px; width: auto; object-fit: contain;">
+                        </a>
+                    </div>
+                    <p class="text-muted small leading-relaxed mb-4 pe-lg-4">
+                        The world standard in certified pedigree authentication, genetic health screening, and ethical canine breeding management. Protecting breeds for future generations.
+                    </p>
+                    <div class="d-flex align-items-center gap-2 text-success small fw-bold">
+                        <i class="fas fa-shield-check"></i>
+                        <span>KCI &amp; Veterinary Approved Health Registry Partner</span>
+                    </div>
+                </div>
+
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h6 class="fw-bold text-uppercase text-dark tracking-wider small mb-3">Platform</h6>
+                    <ul class="list-unstyled space-y-2 small">
+                        <li class="mb-2"><a href="{% url 'explore_dogs' %}" class="text-muted text-decoration-none hover-text-primary">Discover Matches</a></li>
+                        <li class="mb-2"><a href="{% url 'vets_directory' %}" class="text-muted text-decoration-none hover-text-primary">Partner Vet Clinics</a></li>
+                        <li class="mb-2"><a href="#" data-bs-toggle="modal" data-bs-target="#charterModal" class="text-muted text-decoration-none hover-text-primary">Ethical Charter</a></li>
+                        <li class="mb-2"><a href="{% url 'add_dog' %}" class="text-muted text-decoration-none hover-text-primary">Register Dog</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h6 class="fw-bold text-uppercase text-dark tracking-wider small mb-3">Safety &amp; Rules</h6>
+                    <ul class="list-unstyled space-y-2 small">
+                        <li class="mb-2"><span class="text-muted">Puppy Mill Ban</span></li>
+                        <li class="mb-2"><span class="text-muted">Genetic Clearances</span></li>
+                        <li class="mb-2"><span class="text-muted">Brucellosis Screening</span></li>
+                        <li class="mb-2"><span class="text-muted">Lifetime Guarantee</span></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <h6 class="fw-bold text-uppercase text-dark tracking-wider small mb-3">Canine Welfare Tip Line</h6>
+                    <p class="text-muted small mb-3">Report irresponsible breeding or unverified puppy mills to our welfare compliance board.</p>
+                    <a href="mailto:welfare@k9match.com" class="btn btn-soft btn-sm rounded-pill w-100 fw-bold">
+                        <i class="fas fa-shield-halved me-1 text-danger"></i> Report Welfare Concern
+                    </a>
+                </div>
+            </div>
+
+            <div class="pt-4 border-top d-flex flex-column flex-sm-row align-items-center justify-content-between small text-muted gap-2">
+                <div>© 2026 K9Match Technologies Inc. All rights reserved.</div>
+                <div class="d-flex align-items-center gap-1">
+                    <span>Designed with devotion to canine health &amp; breed welfare</span>
+                    <i class="fas fa-heart text-danger ms-1"></i>
+                </div>
+            </div>
         </div>
     </footer>
+
+    <!-- Floating Toast Notification System -->
+    <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 10999; max-width: 420px;">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="toast align-items-center {% if message.tags == 'success' %}bg-white border-start border-4 border-success text-dark{% elif message.tags == 'error' or message.tags == 'danger' %}bg-white border-start border-4 border-danger text-dark{% elif message.tags == 'warning' %}bg-white border-start border-4 border-warning text-dark{% else %}bg-white border-start border-4 border-primary text-dark{% endif %} shadow-2xl rounded-4 mb-2 show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3500">
+                    <div class="d-flex">
+                        <div class="toast-body d-flex align-items-start gap-3 py-3 px-3">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center shrink-0 mt-0.5" style="width: 34px; height: 34px; {% if message.tags == 'success' %}background-color: #dcfce7; color: #15803d;{% elif message.tags == 'error' or message.tags == 'danger' %}background-color: #fee2e2; color: #b91c1c;{% elif message.tags == 'warning' %}background-color: #fef3c7; color: #b45309;{% else %}background-color: #dbeafe; color: #1d4ed8;{% endif %}">
+                                <i class="fas {% if message.tags == 'success' %}fa-check{% elif message.tags == 'error' or message.tags == 'danger' %}fa-exclamation-triangle{% elif message.tags == 'warning' %}fa-triangle-exclamation{% else %}fa-info{% endif %}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong class="d-block fw-bold text-dark text-capitalize" style="font-size: 0.9rem;">{{ message.tags|default:"Notice" }}</strong>
+                                <span class="small text-muted leading-relaxed">{{ message }}</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close me-2 mt-3 shadow-none small" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
 
     <!-- Bootstrap & AOS JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
-        // Initialize Animate On Scroll
         AOS.init({
-            duration: 800,
+            duration: 700,
             once: true,
-            offset: 50
+            offset: 40
+        });
+
+        // Global Toast Notification Helper (Default duration: 3.5 seconds)
+        window.showToast = function(title, message, type = 'success', duration = 3500) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const styleConfig = {
+                'success': {
+                    borderColor: 'border-success',
+                    iconBg: '#dcfce7',
+                    iconColor: '#15803d',
+                    icon: 'fa-check-circle'
+                },
+                'error': {
+                    borderColor: 'border-danger',
+                    iconBg: '#fee2e2',
+                    iconColor: '#b91c1c',
+                    icon: 'fa-circle-xmark'
+                },
+                'danger': {
+                    borderColor: 'border-danger',
+                    iconBg: '#fee2e2',
+                    iconColor: '#b91c1c',
+                    icon: 'fa-circle-xmark'
+                },
+                'warning': {
+                    borderColor: 'border-warning',
+                    iconBg: '#fef3c7',
+                    iconColor: '#b45309',
+                    icon: 'fa-triangle-exclamation'
+                },
+                'info': {
+                    borderColor: 'border-primary',
+                    iconBg: '#dbeafe',
+                    iconColor: '#1d4ed8',
+                    icon: 'fa-circle-info'
+                }
+            };
+
+            const cfg = styleConfig[type] || styleConfig['info'];
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast align-items-center bg-white border-start border-4 ${cfg.borderColor} text-dark shadow-2xl rounded-4 mb-2 fade`;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.setAttribute('aria-live', 'assertive');
+            toastEl.setAttribute('aria-atomic', 'true');
+            toastEl.style.boxShadow = '0 12px 32px rgba(0, 74, 198, 0.16)';
+
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body d-flex align-items-start gap-3 py-3 px-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center shrink-0 mt-0.5" style="width: 36px; height: 36px; background-color: ${cfg.iconBg}; color: ${cfg.iconColor}; font-size: 1.1rem;">
+                            <i class="fas ${cfg.icon}"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <strong class="d-block fw-bold text-dark" style="font-size: 0.92rem;">${title}</strong>
+                            <span class="small text-muted leading-relaxed">${message}</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close me-2 mt-3 shadow-none small" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+
+            container.appendChild(toastEl);
+            const bsToast = new bootstrap.Toast(toastEl, { delay: duration, autohide: true });
+            bsToast.show();
+
+            toastEl.addEventListener('hidden.bs.toast', function () {
+                toastEl.remove();
+            });
+        };
+
+        // Initialize any server-rendered toasts and handle auto-vanishing notifications
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Show and auto-hide floating toasts after 3.5 seconds
+            const toastEls = document.querySelectorAll('#toast-container .toast');
+            toastEls.forEach(el => {
+                const t = new bootstrap.Toast(el, { autohide: true, delay: 3500 });
+                t.show();
+            });
+
+            // 2. Auto-dismiss in-page banner notifications (log in, request sent, actions) after 3.5 seconds
+            setTimeout(function() {
+                const bannerAlerts = document.querySelectorAll('.auto-vanish-notification, .global-messages-container .alert');
+                bannerAlerts.forEach(function(alertEl) {
+                    alertEl.style.opacity = '0';
+                    alertEl.style.transform = 'translateY(-10px)';
+                    setTimeout(function() {
+                        try {
+                            const bsAlert = bootstrap.Alert.getOrCreateInstance(alertEl);
+                            if (bsAlert) bsAlert.close();
+                            else alertEl.remove();
+                        } catch(e) {
+                            alertEl.remove();
+                        }
+                    }, 500);
+                });
+            }, 3500);
         });
     </script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

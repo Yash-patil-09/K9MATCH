@@ -29,14 +29,25 @@ class CustomUserCreationForm(UserCreationForm):
         }),
         required=True
     )
+    email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Enter email address'}),
+        help_text="A 6-digit verification code will be sent to this email."
+    )
 
     class Meta:
         model = User
         fields = ('username', 'email', 'role', 'phone_number')
         widgets = {
-            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Enter email address'}),
             'role': forms.Select(attrs={'class': 'form-select'}),
         }
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email', '').strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("An account with this email address already exists. Please log in or use Forgot Password.")
+        return email
+
 
 ALL_BREEDS = [
     ('Affenpinscher', 'Affenpinscher'), ('Afghan Hound', 'Afghan Hound'), ('Airedale Terrier', 'Airedale Terrier'),
@@ -270,10 +281,32 @@ class DogProfileForm(forms.ModelForm):
         widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 5, 'required': 'required'})
     )
 
+    latitude = forms.DecimalField(
+        required=False,
+        max_digits=9,
+        decimal_places=6,
+        widget=forms.HiddenInput(attrs={'id': 'id_latitude'})
+    )
+    longitude = forms.DecimalField(
+        required=False,
+        max_digits=9,
+        decimal_places=6,
+        widget=forms.HiddenInput(attrs={'id': 'id_longitude'})
+    )
+    location_address = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control bg-light',
+            'id': 'id_location_address',
+            'placeholder': 'Detected Area / Neighborhood (e.g. Bandra West, Koramangala)',
+        })
+    )
+
     class Meta:
         model = DogProfile
         fields = [
             'name', 'breed_type', 'breed', 'secondary_breed', 'age_years', 'age_months', 'gender', 'state', 'city',
+            'latitude', 'longitude', 'location_address',
             'weight_unit', 'weight',
             'is_vaccinated', 'medical_history',
             'kci_registered', 'kci_number', 'kci_document', 'lineage_details',
