@@ -175,4 +175,17 @@ else:
 
 # Google OAuth2 Settings
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
-GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET', '')
+
+# Google Maps / Places API Settings (Dynamic Vet Discovery Engine)
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', '')
+
+# In-Memory Cache for Dynamic Places & API Lookups
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'k9match-cache',
+        'TIMEOUT': 86400,  # 24 hours default
+    }
+}
+

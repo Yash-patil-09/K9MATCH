@@ -345,9 +345,30 @@
                                         {{ form.kci_number }}
                                     </div>
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Upload KCI Document</label>
+                                        <label class="form-label fw-bold">Upload KCI Document / Certificate <span class="text-danger">*</span></label>
                                         {{ form.kci_document }}
+                                        <small class="text-muted d-block mt-1">Official KCI pedigree certificate (.pdf, .jpg, .png).</small>
+                                        {% if dog.kci_document %}
+                                            <div class="mt-1 small"><a href="{{ dog.kci_document.url }}" target="_blank" class="text-primary fw-semibold"><i class="fas fa-file-shield me-1"></i>View Current KCI Certificate</a></div>
+                                        {% endif %}
                                     </div>
+                                </div>
+
+                                <!-- Health Documents: Vaccination Card Upload -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Upload Vaccination Card / Record</label>
+                                    {{ form.vaccination_record }}
+                                    <small class="text-muted d-block mt-1">Proof of anti-rabies and core vaccinations (.pdf, .jpg, .png).</small>
+                                    {% if dog.vaccination_record %}
+                                        <div class="mt-1 small"><a href="{{ dog.vaccination_record.url }}" target="_blank" class="text-primary fw-semibold"><i class="fas fa-file-medical me-1"></i>View Current Vaccination Card</a></div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Last Deworming Date -->
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Last Deworming Date</label>
+                                    {{ form.last_deworming_date }}
+                                    <small class="text-muted d-block mt-1">Date of most recent parasite prevention treatment.</small>
                                 </div>
 
                                 <div class="col-12">
@@ -391,24 +412,32 @@
 
                                 <!-- Available for Mating Toggle (Epic 1 Task 2.2) -->
                                 <div class="col-12 mt-3">
-                                    <div class="p-3 bg-light rounded-4 border">
+                                    <div class="p-3 bg-light rounded-4 border" id="mating-availability-container">
                                         <label class="form-label fw-bold d-block mb-1">
                                              Is your dog currently available for mating? <span class="text-danger">*</span>
                                         </label>
                                         <p class="text-muted small mb-3">
-                                            Selecting <strong>Yes</strong> enters the dog into the public search pool on the "Find Matches" page (subject to admin approval). Selecting <strong>No</strong> creates the profile as <em>Hidden</em> (private to your account).
+                                            Selecting <strong>Yes</strong> enters the dog into the public search pool on the "Find Matches" page (subject to admin approval). Selecting <strong>No</strong> creates the profile as <em>Resting / Junior</em> (private to your account).
                                         </p>
+                                        <div id="underage-warning-box" class="alert alert-warning border-warning d-none rounded-3 py-2 px-3 mb-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="fas fa-shield-dog text-warning fs-5"></i>
+                                                <div class="small">
+                                                    <strong>Ethical Breeding Safeguard:</strong> Dogs under <strong>18 months</strong> of age cannot be listed as available for mating. This canine will be registered as <strong>Resting / Junior</strong> until maturity.
+                                                </div>
+                                            </div>
+                                        </div>
                                         <div class="btn-group w-100" role="group">
                                             <input type="radio" class="btn-check" name="is_available" id="avail_yes" value="True" 
                                                 {% if not is_edit and not form.is_available.value or dog.is_available or form.is_available.value == True or form.is_available.value == 'True' %}checked{% endif %} required>
-                                            <label class="btn btn-outline-success py-2 fw-semibold" for="avail_yes">
+                                            <label class="btn btn-outline-success py-2 fw-semibold" for="avail_yes" id="avail_yes_label">
                                                 <i class="fas fa-check-circle me-1"></i> Yes, Available for Mating
                                             </label>
                                             
                                             <input type="radio" class="btn-check" name="is_available" id="avail_no" value="False" 
                                                 {% if is_edit and not dog.is_available or form.is_available.value == False or form.is_available.value == 'False' %}checked{% endif %} required>
-                                            <label class="btn btn-outline-secondary py-2 fw-semibold" for="avail_no">
-                                                <i class="fas fa-eye-slash me-1"></i> No, Keep Profile Hidden
+                                            <label class="btn btn-outline-secondary py-2 fw-semibold" for="avail_no" id="avail_no_label">
+                                                <i class="fas fa-eye-slash me-1"></i> No, Keep Profile Resting / Junior
                                             </label>
                                         </div>
                                     </div>
@@ -734,12 +763,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const map = L.map('dog-location-map').setView([initialLat, initialLng], initialZoom);
         
-        // Humanitarian OpenStreetMap (HOT) - Deep street zoom down to building level, No 403 blocks, No watermarks
+        // Humanitarian OpenStreetMap (HOT) - Free, High-Performance, No API Key, No Watermark, No 403 Blocks
         L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
-            maxZoom: 20,
-            maxNativeZoom: 19,
+            maxZoom: 19,
             subdomains: ['a', 'b'],
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles by <a href="https://www.hotosm.org/" target="_blank">HOT</a>'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/" target="_blank">HOT</a>'
         }).addTo(map);
 
         let marker = null;
@@ -1071,6 +1099,51 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // 5.5 Dynamic Breeding Age Safeguard (<18 Months Rule)
+    const ageYearsInput = document.querySelector('[name="age_years"]');
+    const ageMonthsInput = document.querySelector('[name="age_months"]');
+    const availYesRadio = document.getElementById('avail_yes');
+    const availNoRadio = document.getElementById('avail_no');
+    const availYesLabel = document.getElementById('avail_yes_label');
+    const underageWarningBox = document.getElementById('underage-warning-box');
+
+    function checkCanineBreedingAge() {
+        const y = parseInt(ageYearsInput?.value, 10) || 0;
+        const m = parseInt(ageMonthsInput?.value, 10) || 0;
+        const totalMonths = (y * 12) + m;
+
+        if (totalMonths < 18) {
+            if (underageWarningBox) underageWarningBox.classList.remove('d-none');
+            if (availYesRadio) {
+                availYesRadio.checked = false;
+                availYesRadio.disabled = true;
+            }
+            if (availYesLabel) {
+                availYesLabel.classList.add('disabled', 'opacity-50');
+                availYesLabel.style.pointerEvents = 'none';
+                availYesLabel.title = "Canines under 18 months cannot be listed as available for mating.";
+            }
+            if (availNoRadio) {
+                availNoRadio.checked = true;
+            }
+        } else {
+            if (underageWarningBox) underageWarningBox.classList.add('d-none');
+            if (availYesRadio) {
+                availYesRadio.disabled = false;
+            }
+            if (availYesLabel) {
+                availYesLabel.classList.remove('disabled', 'opacity-50');
+                availYesLabel.style.pointerEvents = 'auto';
+                availYesLabel.title = "";
+            }
+        }
+    }
+
+    if (ageYearsInput) ageYearsInput.addEventListener('input', checkCanineBreedingAge);
+    if (ageMonthsInput) ageMonthsInput.addEventListener('input', checkCanineBreedingAge);
+    // Trigger on load
+    checkCanineBreedingAge();
+
     // 6. Form Submission Validation & Feedback
     const dogForm = document.getElementById('dog-form');
     if (dogForm) {
@@ -1114,8 +1187,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 missingList.push("Breed");
             }
 
-            // 3. Age Years
+            // 3. Age Years & Breeding Age Check
             const ageYears = document.querySelector('[name="age_years"]');
+            const ageMonths = document.querySelector('[name="age_months"]');
+            const y = parseInt(ageYears?.value, 10) || 0;
+            const m = parseInt(ageMonths?.value, 10) || 0;
+            const totalMonths = (y * 12) + m;
+
             if (!ageYears || ageYears.value.trim() === '') {
                 hasErrors = true;
                 ageYears?.classList.add('border-danger');
@@ -1157,7 +1235,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 missingList.push("Fully Vaccinated");
             }
 
-            // 8. KCI Registered & Number if True
+            // 8. KCI Registered & Documents if True
             const kciChecked = document.querySelector('input[name="kci_registered"]:checked');
             if (!kciChecked) {
                 hasErrors = true;
@@ -1168,6 +1246,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     hasErrors = true;
                     kciNumber?.classList.add('border-danger');
                     missingList.push("KCI Registration Number");
+                }
+                const kciDocInput = document.querySelector('[name="kci_document"]');
+                const hasExistingKciDoc = document.querySelector('a[href*="kci_documents"]') || document.querySelector('a[href*="kci"]');
+                if (!hasExistingKciDoc && (!kciDocInput || !kciDocInput.files || kciDocInput.files.length === 0)) {
+                    hasErrors = true;
+                    kciDocInput?.classList.add('border-danger');
+                    missingList.push("KCI Pedigree Certificate Upload");
                 }
             }
 
@@ -1181,11 +1266,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
 
-            // 10. Available for Mating
+            // 10. Available for Mating & 18-month policy
             const availChecked = document.querySelector('input[name="is_available"]:checked');
             if (!availChecked) {
                 hasErrors = true;
                 missingList.push("Available for Mating");
+            } else if (availChecked.value === 'True' && totalMonths < 18) {
+                hasErrors = true;
+                missingList.push("Underage Breeding Safeguard: Dogs under 18 months cannot be available for mating");
+                if (availNoRadio) availNoRadio.checked = true;
             }
 
             const submitBtn = document.getElementById('submit-btn');

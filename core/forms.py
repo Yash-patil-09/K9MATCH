@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.core.validators import RegexValidator
-from .models import User, DogProfile, DogImage
+from .models import User, DogProfile, DogImage, ReportListing
 
 # --- User Registration Form ---
 phone_regex = RegexValidator(
@@ -308,13 +308,16 @@ class DogProfileForm(forms.ModelForm):
             'name', 'breed_type', 'breed', 'secondary_breed', 'age_years', 'age_months', 'gender', 'state', 'city',
             'latitude', 'longitude', 'location_address',
             'weight_unit', 'weight',
-            'is_vaccinated', 'medical_history',
+            'is_vaccinated', 'vaccination_record', 'last_deworming_date', 'medical_history',
             'kci_registered', 'kci_number', 'kci_document', 'lineage_details',
             'previous_litters', 'mating_terms', 'stud_fee_amount', 'shelter_provider', 'travel_range',
             'dog_friendly_rating', 'human_friendly_rating', 'energy_level_rating',
             'bio', 'is_available'
         ]
         widgets = {
+            'last_deworming_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'vaccination_record': forms.FileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png,.webp'}),
+            'kci_document': forms.FileInput(attrs={'class': 'form-control', 'accept': '.pdf,.jpg,.jpeg,.png,.webp'}),
             'medical_history': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Any vaccinations, allergies, or past medical conditions...'}),
             'lineage_details': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Sire, Dam, champion lineage, or generation details...'}),
             'bio': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Describe your dog\'s personality, temperament, habits, and mating preferences...'}),
@@ -350,23 +353,56 @@ class DogProfileForm(forms.ModelForm):
         kci_number = cleaned_data.get('kci_number')
         mating_terms = cleaned_data.get('mating_terms')
         stud_fee_amount = cleaned_data.get('stud_fee_amount')
+        age_years = cleaned_data.get('age_years') or 0
+        age_months = cleaned_data.get('age_months') or 0
+        is_available = cleaned_data.get('is_available')
 
-        # Conditional crossbreed check
+        # 1. Underage Breeding Safeguard (Petmeetly competitor flaw)
+        total_months = (age_years * 12) + age_months
+        if is_available and total_months < 18:
+            self.add_error(
+                'is_available',
+                f"Ethical Canine Welfare Rule: Your dog is {total_months} months old. "
+                "Dogs must be at least 18 months (1.5 years) old for safe and ethical breeding. "
+                "Please set availability to 'Resting / Junior' until they reach full maturity."
+            )
+
+        # 2. Conditional crossbreed check
         if breed_type == 'crossbreed' and not secondary_breed:
             self.add_error('secondary_breed', 'Please specify the secondary parent breed or crossbreed mix.')
 
-        # Conditional KCI check
+        # 3. Mandatory KCI Document Gate (PairMyPet & Petmeetly flaw)
         if kci_registered:
             existing_kci = getattr(self.instance, 'kci_number', None) if self.instance else None
             if not kci_number and not existing_kci:
                 self.add_error('kci_number', 'Official KCI registration number is required for KCI registered dogs.')
 
-        # Conditional Stud Fee check
+            kci_doc = cleaned_data.get('kci_document')
+            existing_doc = getattr(self.instance, 'kci_document', None) if self.instance else None
+            if not kci_doc and not existing_doc:
+                self.add_error('kci_document', 'Official KCI Certificate or Pedigree document upload is mandatory when claiming KCI registration.')
+
+        # 4. Conditional Stud Fee check
         if mating_terms == 'stud_fee':
             if not stud_fee_amount or stud_fee_amount <= 0:
                 self.add_error('stud_fee_amount', 'Please specify a valid stud fee amount in ₹.')
 
         return cleaned_data
+
+
+class ReportListingForm(forms.ModelForm):
+    class Meta:
+        model = ReportListing
+        fields = ['reason', 'details']
+        widgets = {
+            'reason': forms.Select(attrs={'class': 'form-select rounded-3', 'required': 'required'}),
+            'details': forms.Textarea(attrs={
+                'class': 'form-control rounded-3',
+                'rows': 4,
+                'placeholder': 'Please describe why this listing appears suspicious, fraudulent, or violates ethical breeding policies...',
+                'required': 'required'
+            }),
+        }
 
 # Helper form for uploading multiple dog photos
 class MultipleFileInput(forms.ClearableFileInput):

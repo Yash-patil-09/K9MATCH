@@ -58,7 +58,7 @@
                             </div>
 
                             <!-- Bottom Status Pill -->
-                            <div class="position-absolute bottom-0 start-0 m-3">
+                            <div class="position-absolute bottom-0 start-0 m-3" id="badge-container-{{ dog.id }}">
                                 {% if dog.approval_status == 'pending' %}
                                     <span class="badge bg-warning text-dark rounded-pill px-3 py-1 fw-bold small shadow-sm">
                                         <i class="fas fa-clock me-1"></i> Pending Moderation
@@ -69,7 +69,7 @@
                                     </span>
                                 {% elif not dog.is_available %}
                                     <span class="badge bg-secondary text-white rounded-pill px-3 py-1 fw-bold small shadow-sm">
-                                        <i class="fas fa-eye-slash me-1"></i> Hidden
+                                        <i class="fas fa-eye-slash me-1"></i> Resting / Hidden
                                     </span>
                                 {% else %}
                                     <span class="badge bg-success text-white rounded-pill px-3 py-1 fw-bold small shadow-sm">
@@ -93,11 +93,33 @@
                                     </span>
                                 </div>
                                 
-                                <p class="text-muted small mb-3">
+                                <p class="text-muted small mb-2">
                                     <i class="fas fa-map-marker-alt text-danger me-1"></i> 
                                     {{ dog.city }}{% if dog.state %}, {{ dog.state }}{% endif %}
-                                    · <span class="fw-semibold">{{ dog.age_years }} Yrs</span>
+                                    · <span class="fw-semibold">{{ dog.age_years }} Yrs {% if dog.age_months %}{{ dog.age_months }} Mo{% endif %}</span>
                                 </p>
+
+                                <!-- 1-Click Availability Switch (PairMyPet 'No Turn-Off Switch' Solution) -->
+                                <div class="p-2.5 rounded-3 mb-3 d-flex align-items-center justify-content-between border" style="background-color: var(--color-surface-container);">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="fas fa-circle-dot {% if dog.is_available %}text-success{% else %}text-secondary{% endif %} small" id="avail-dot-{{ dog.id }}"></i>
+                                        <div>
+                                            <div class="small fw-bold text-dark" id="avail-label-{{ dog.id }}" style="font-size: 0.8rem;">
+                                                {% if dog.is_available %}Available for Mating{% else %}Resting / Inactive{% endif %}
+                                            </div>
+                                            <div class="text-muted" style="font-size: 0.7rem;">
+                                                {% if not dog.is_breeding_age %}
+                                                    <span class="text-warning fw-bold"><i class="fas fa-shield-dog me-1"></i>Junior (&lt;18 Mo)</span>
+                                                {% else %}
+                                                    1-Click Mating Toggle
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-check form-switch m-0">
+                                        <input class="form-check-input availability-toggle-switch cursor-pointer" type="checkbox" role="switch" id="availSwitch{{ dog.id }}" data-dog-id="{{ dog.id }}" data-dog-name="{{ dog.name }}" {% if dog.is_available %}checked{% endif %} {% if not dog.is_breeding_age %}disabled title="Canines under 18 months cannot be listed for mating."{% endif %}>
+                                    </div>
+                                </div>
 
                                 {% if dog.approval_status == 'rejected' and dog.admin_rejection_reason %}
                                     <div class="alert alert-danger rounded-3 p-2 small mb-3 border-0">
@@ -110,6 +132,9 @@
                             <div class="d-flex gap-2 pt-3 border-top border-light-subtle">
                                 <a href="{% url 'dog_detail' dog.id %}" class="btn btn-primary-stitch flex-grow-1 btn-sm py-2 text-decoration-none text-center">
                                     <span>View Passport</span>
+                                </a>
+                                <a href="{% url 'export_dog_passport_pdf' dog.id %}" class="btn btn-soft rounded-circle p-0 d-flex align-items-center justify-content-center shrink-0 text-primary" style="width: 38px; height: 38px;" title="Download Official Pedigree Passport (PDF)">
+                                    <i class="fas fa-file-pdf small"></i>
                                 </a>
                                 <a href="{% url 'edit_dog' dog.id %}" class="btn btn-soft rounded-circle p-0 d-flex align-items-center justify-content-center shrink-0" style="width: 38px; height: 38px;" title="Edit Canine Details">
                                     <i class="fas fa-edit small text-primary"></i>
@@ -142,4 +167,89 @@
         
     </div>
 </section>
+
+<!-- AJAX Toggle Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const switches = document.querySelectorAll('.availability-toggle-switch');
+    
+    function getCsrfToken() {
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    switches.forEach(sw => {
+        sw.addEventListener('change', function() {
+            const dogId = this.dataset.dogId;
+            const dogName = this.dataset.dogName;
+            const currentChecked = this.checked;
+            const originalState = !currentChecked;
+
+            const labelEl = document.getElementById(`avail-label-${dogId}`);
+            const dotEl = document.getElementById(`avail-dot-${dogId}`);
+            const badgeContainer = document.getElementById(`badge-container-${dogId}`);
+
+            this.disabled = true;
+
+            fetch(`/dog/${dogId}/toggle-availability/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                this.disabled = false;
+                if (data.success) {
+                    if (labelEl) labelEl.textContent = data.status_text;
+                    if (dotEl) {
+                        dotEl.className = `fas fa-circle-dot small ${data.is_available ? 'text-success' : 'text-secondary'}`;
+                    }
+                    if (badgeContainer) {
+                        if (data.is_available) {
+                            badgeContainer.innerHTML = `<span class="badge bg-success text-white rounded-pill px-3 py-1 fw-bold small shadow-sm"><i class="fas fa-check-circle me-1"></i> Available for Mating</span>`;
+                        } else {
+                            badgeContainer.innerHTML = `<span class="badge bg-secondary text-white rounded-pill px-3 py-1 fw-bold small shadow-sm"><i class="fas fa-eye-slash me-1"></i> Resting / Hidden</span>`;
+                        }
+                    }
+                    
+                    // Show a notification banner / toast
+                    const toast = document.createElement('div');
+                    toast.className = 'alert alert-success position-fixed top-0 start-50 translate-middle-x mt-4 shadow-lg rounded-pill px-4 py-2 z-3';
+                    toast.style.zIndex = '9999';
+                    toast.innerHTML = `<i class="fas fa-check-circle me-2"></i> ${data.message}`;
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                        toast.style.transition = 'opacity 0.4s';
+                        toast.style.opacity = '0';
+                        setTimeout(() => toast.remove(), 400);
+                    }, 2500);
+                } else {
+                    // Revert checkbox state
+                    this.checked = originalState;
+                    alert(data.error || 'Failed to update availability status.');
+                }
+            })
+            .catch(err => {
+                this.disabled = false;
+                this.checked = originalState;
+                console.error("Toggle error:", err);
+                alert('A network error occurred while updating availability.');
+            });
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -12,14 +12,16 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.conf import settings
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.urls import reverse
 from django.utils import timezone
 
-from .forms import CustomUserCreationForm, DogProfileForm, DogImageForm, PUREBRED_CHOICES, CROSSBREED_CHOICES
-from .models import DogProfile, DogImage, MatchRequest, ChatMessage, VeterinaryClinic, EmailOTP
-from .utils import get_city_coordinates, haversine_distance
+from .forms import CustomUserCreationForm, DogProfileForm, DogImageForm, ReportListingForm, PUREBRED_CHOICES, CROSSBREED_CHOICES
+from .models import DogProfile, DogImage, MatchRequest, ChatMessage, VeterinaryClinic, EmailOTP, ReportListing
+from .utils import get_city_coordinates, get_state_coordinates, haversine_distance
 from .email_utils import send_otp_email
+from .pdf_utils import generate_canine_passport_pdf
+from .places_service import get_nearby_vets_dynamic
 
 
 
@@ -1082,13 +1084,16 @@ def admin_dashboard(request):
     approved_count = DogProfile.objects.filter(approval_status='approved').count()
     rejected_count = DogProfile.objects.filter(approval_status='rejected').count()
 
+    reports = ReportListing.objects.select_related('reporter', 'reported_dog', 'reported_dog__owner').order_by('-created_at')
+    unresolved_reports_count = reports.filter(is_resolved=False).count()
+
     dogs = DogProfile.objects.select_related('owner').prefetch_related('images').order_by('-created_at')
 
     if status_filter in ['pending', 'approved', 'rejected']:
         dogs = dogs.filter(approval_status=status_filter)
 
     search_q = request.GET.get('q', '').strip()
-    if search_q:
+    if search_q and status_filter != 'reports':
         dogs = dogs.filter(
             Q(name__icontains=search_q) |
             Q(breed__icontains=search_q) |
@@ -1099,6 +1104,8 @@ def admin_dashboard(request):
 
     context = {
         'dogs': dogs,
+        'reports': reports,
+        'unresolved_reports_count': unresolved_reports_count,
         'status_filter': status_filter,
         'search_q': search_q,
         'total_dogs': total_dogs,
@@ -1107,6 +1114,30 @@ def admin_dashboard(request):
         'rejected_count': rejected_count,
     }
     return render(request, 'core/admin_dashboard.html', context)
+
+
+@staff_member_required
+def admin_resolve_report(request, report_id):
+    report = get_object_or_404(ReportListing, id=report_id)
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        admin_notes = request.POST.get('admin_notes', '').strip()
+        if action == 'resolve':
+            report.is_resolved = True
+            report.admin_notes = admin_notes if admin_notes else 'Verified & dismissed by moderator.'
+            report.save()
+            messages.success(request, f"Report #{report.id} marked as resolved.")
+        elif action == 'suspend_dog':
+            dog = report.reported_dog
+            dog.approval_status = 'rejected'
+            dog.is_available = False
+            dog.admin_rejection_reason = f"Suspended following community report: {report.get_reason_display()} - {admin_notes}"
+            dog.save()
+            report.is_resolved = True
+            report.admin_notes = admin_notes if admin_notes else "Listing suspended due to report."
+            report.save()
+            messages.warning(request, f"Canine {dog.name} has been suspended from the public directory.")
+    return redirect(f"{reverse('admin_dashboard')}?status=reports")
 
 
 @staff_member_required
@@ -1131,8 +1162,6 @@ def admin_approve_reject_dog(request, dog_id, action):
 
 
 def vets_directory(request):
-    clinics = VeterinaryClinic.objects.all().order_by('-rating', '-created_at')
-
     # Filter parameters
     state_filter = request.GET.get('state', '').strip()
     city_filter = request.GET.get('city', '').strip()
@@ -1140,82 +1169,159 @@ def vets_directory(request):
     radius_filter = request.GET.get('radius', '').strip()
     search_q = request.GET.get('q', '').strip()
 
-    if state_filter:
-        clinics = clinics.filter(state__iexact=state_filter)
-
-    if city_filter:
-        clinics = clinics.filter(city__iexact=city_filter)
-
-    if emergency_filter == 'true':
-        clinics = clinics.filter(is_24x7_emergency=True)
-
-    if search_q:
-        clinics = clinics.filter(
-            Q(name__icontains=search_q) |
-            Q(doctor_name__icontains=search_q) |
-            Q(specialization__icontains=search_q) |
-            Q(address__icontains=search_q) |
-            Q(city__icontains=search_q) |
-            Q(services_offered__icontains=search_q)
-        )
-
-    # Reference coordinates for distance
+    # Reference coordinates for distance calculation
+    user_lat_param = request.GET.get('user_lat', '').strip()
+    user_lng_param = request.GET.get('user_lng', '').strip()
     ref_lat = None
     ref_lng = None
     ref_location_label = ""
+    is_live_gps = False
 
-    if city_filter:
+    # 1. Highest priority: Live GPS coordinates from device
+    if user_lat_param and user_lng_param:
+        try:
+            ref_lat = float(user_lat_param)
+            ref_lng = float(user_lng_param)
+            is_live_gps = True
+            ref_location_label = "Your Live GPS Location"
+        except (ValueError, TypeError):
+            ref_lat, ref_lng = None, None
+
+    # 2. Second priority: Filtered city coordinates
+    if ref_lat is None and city_filter:
         c_lat, c_lng = get_city_coordinates(city_filter)
         if c_lat and c_lng:
             ref_lat, ref_lng = c_lat, c_lng
-            ref_location_label = city_filter
-    elif request.user.is_authenticated:
+            ref_location_label = city_filter.title()
+
+    # 3. Third priority: Filtered state coordinates (State Capital / Region Hub)
+    elif ref_lat is None and state_filter:
+        s_lat, s_lng = get_state_coordinates(state_filter)
+        if s_lat and s_lng:
+            ref_lat, ref_lng = s_lat, s_lng
+            ref_location_label = f"State of {state_filter.title()}"
+
+    # 4. Fourth priority: Logged-in user's dog location
+    elif ref_lat is None and request.user.is_authenticated:
         user_dog = request.user.dogs.first()
         if user_dog and user_dog.latitude and user_dog.longitude:
-            ref_lat, ref_lng = user_dog.latitude, user_dog.longitude
-            ref_location_label = f"your registered location ({user_dog.city})"
+            try:
+                ref_lat, ref_lng = float(user_dog.latitude), float(user_dog.longitude)
+                ref_location_label = f"Your Registered Area ({user_dog.city})"
+            except (ValueError, TypeError):
+                pass
 
-    clinics_list = list(clinics)
-    for clinic in clinics_list:
-        if not clinic.latitude or not clinic.longitude:
-            c_lat, c_lng = get_city_coordinates(clinic.city)
-            if c_lat and c_lng:
-                clinic.latitude, clinic.longitude = c_lat, c_lng
-
-        if ref_lat is not None and ref_lng is not None and clinic.latitude is not None and clinic.longitude is not None:
-            dist = haversine_distance(ref_lat, ref_lng, clinic.latitude, clinic.longitude)
-            clinic.distance_km = round(dist, 1) if dist is not None else None
-        else:
-            clinic.distance_km = None
-
-    if radius_filter:
+    active_radius_km = None
+    if radius_filter and radius_filter.lower() != 'all':
         try:
-            r_val = float(radius_filter)
-            clinics_list = [c for c in clinics_list if c.distance_km is not None and c.distance_km <= r_val]
+            active_radius_km = float(radius_filter)
         except (ValueError, TypeError):
-            pass
+            active_radius_km = None
 
-    if ref_lat is not None and ref_lng is not None:
-        clinics_list.sort(key=lambda c: (c.distance_km is None, c.distance_km if c.distance_km is not None else float('inf')))
+    # Execute dynamic veterinary discovery engine (Option 1: Google Places with fallback)
+    dynamic_data = get_nearby_vets_dynamic(
+        lat=ref_lat,
+        lng=ref_lng,
+        radius_km=active_radius_km,
+        search_q=search_q,
+        emergency_only=(emergency_filter == 'true'),
+        city=city_filter,
+        state=state_filter
+    )
+
+    clinics_list = dynamic_data['clinics']
+    google_places_active = dynamic_data['google_places_active']
+    google_places_configured = dynamic_data['google_places_configured']
+    has_expanded_fallback = dynamic_data.get('has_expanded_fallback', False)
+    max_fallback_dist = dynamic_data.get('max_fallback_dist')
 
     available_states = VeterinaryClinic.objects.exclude(state__isnull=True).exclude(state='').values_list('state', flat=True).distinct().order_by('state')
     available_cities = VeterinaryClinic.objects.values_list('city', flat=True).distinct().order_by('city')
     total_emergency = VeterinaryClinic.objects.filter(is_24x7_emergency=True).count()
 
+    clinics_json = json.dumps([
+        {
+            'id': c.get('id', ''),
+            'name': c.get('name', ''),
+            'doctor': c.get('doctor_name', ''),
+            'specialization': c.get('specialization') or "Canine Care",
+            'address': c.get('address', ''),
+            'city': c.get('city', ''),
+            'phone': c.get('phone_number', ''),
+            'rating': float(c.get('rating', 4.8)),
+            'emergency': bool(c.get('is_24x7_emergency')),
+            'lat': float(c['latitude']) if c.get('latitude') is not None else None,
+            'lng': float(c['longitude']) if c.get('longitude') is not None else None,
+            'distance_km': c.get('distance_km'),
+            'is_verified': bool(c.get('is_verified', False)),
+            'source': c.get('source', 'database'),
+            'maps_url': c.get('maps_url', '')
+        }
+        for c in clinics_list if c.get('latitude') is not None and c.get('longitude') is not None
+    ])
+
     context = {
         'clinics': clinics_list,
+        'clinics_json': clinics_json,
+        'ref_lat': ref_lat,
+        'ref_lng': ref_lng,
+        'user_lat': user_lat_param if is_live_gps else '',
+        'user_lng': user_lng_param if is_live_gps else '',
+        'is_live_gps': is_live_gps,
         'total_clinics': len(clinics_list),
         'state_filter': state_filter,
         'city_filter': city_filter,
         'emergency_filter': emergency_filter,
         'radius_filter': radius_filter,
+        'active_radius_km': active_radius_km,
+        'has_expanded_fallback': has_expanded_fallback,
+        'max_fallback_dist': max_fallback_dist,
         'search_q': search_q,
         'ref_location_label': ref_location_label,
         'available_states': available_states,
         'available_cities': available_cities,
         'total_emergency': total_emergency,
+        'google_places_active': google_places_active,
+        'google_places_configured': google_places_configured,
     }
     return render(request, 'core/vets_directory.html', context)
+
+
+def api_nearby_vets(request):
+    """
+    Dynamic AJAX endpoint: Returns veterinary clinics near (lat, lng) or city/state.
+    Streams live Google Places clinics (or graceful fallback) directly to the frontend map & cards.
+    """
+    user_lat = request.GET.get('lat') or request.GET.get('user_lat')
+    user_lng = request.GET.get('lng') or request.GET.get('user_lng')
+    radius = request.GET.get('radius', '10')
+    search_q = request.GET.get('q', '').strip()
+    emergency = request.GET.get('emergency', '').strip().lower() in ('true', '1', 'yes')
+    city = request.GET.get('city', '').strip()
+    state = request.GET.get('state', '').strip()
+
+    try:
+        lat_val = float(user_lat) if user_lat else None
+        lng_val = float(user_lng) if user_lng else None
+    except (ValueError, TypeError):
+        lat_val, lng_val = None, None
+
+    try:
+        radius_val = float(radius) if (radius and radius.lower() != 'all') else None
+    except (ValueError, TypeError):
+        radius_val = None
+
+    result = get_nearby_vets_dynamic(
+        lat=lat_val,
+        lng=lng_val,
+        radius_km=radius_val,
+        search_q=search_q,
+        emergency_only=emergency,
+        city=city,
+        state=state
+    )
+    return JsonResponse(result)
+
 
 
 # Custom HTTP Error Page Views
@@ -1289,3 +1395,70 @@ def reverse_geocode_api(request):
                 })
         except Exception as e2:
             return JsonResponse({'success': False, 'error': str(e2)}, status=500)
+
+
+@login_required
+def toggle_dog_availability(request, dog_id):
+    """
+    1-Click Availability Toggle (AJAX) - Overcoming PairMyPet's 'No Turn-Off Switch' limitation.
+    Allows owners to immediately take a pregnant or resting canine off the mating market.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST method required.'}, status=405)
+
+    dog = get_object_or_404(DogProfile, id=dog_id, owner=request.user)
+
+    if not dog.is_available:
+        # Enforce ethical minimum age requirement before marking active
+        if not dog.is_breeding_age:
+            return JsonResponse({
+                'success': False,
+                'error': f"Ethical Safeguard: {dog.name} is under 18 months ({dog.total_age_months} months old). Canines under 18 months cannot be listed as available for mating."
+            }, status=400)
+        dog.is_available = True
+    else:
+        dog.is_available = False
+
+    dog.save(update_fields=['is_available'])
+    return JsonResponse({
+        'success': True,
+        'is_available': dog.is_available,
+        'status_text': 'Available for Mating' if dog.is_available else 'Resting / Inactive',
+        'message': f"{dog.name} is now {'available for mating' if dog.is_available else 'marked as resting / hidden'}."
+    })
+
+
+@login_required
+def export_dog_passport_pdf(request, dog_id):
+    """
+    Exportable Canine Pedigree & Health Passport PDF generator - Overcoming Herobreeder's 'Data Lock-In'.
+    Generates an official, printable canine passport with pedigree and health clearance credentials.
+    """
+    dog = get_object_or_404(DogProfile, id=dog_id)
+    pdf_bytes = generate_canine_passport_pdf(dog)
+
+    filename = f"{dog.name.replace(' ', '_')}_K9Match_Passport.pdf"
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+def report_dog_listing(request, dog_id):
+    """
+    Community Reporting View - Overcoming DogSpot and Dogs India's unmoderated spam listings.
+    Allows owners to report suspicious listings, fraud, or welfare policy violations to admins.
+    """
+    dog = get_object_or_404(DogProfile, id=dog_id)
+    if request.method == 'POST':
+        form = ReportListingForm(request.POST)
+        if form.is_valid():
+            report = form.save(commit=False)
+            report.reporter = request.user
+            report.reported_dog = dog
+            report.save()
+            messages.success(request, f"Thank you. Your report regarding {dog.name} has been submitted for administrative review.")
+            return redirect('dog_detail', dog_id=dog.id)
+        else:
+            messages.error(request, "Please provide a valid reason and description for your report.")
+    return redirect('dog_detail', dog_id=dog.id)

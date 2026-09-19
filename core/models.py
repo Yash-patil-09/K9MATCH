@@ -101,6 +101,9 @@ class DogProfile(models.Model):
 
     # Health & KCI Verification
     is_vaccinated = models.BooleanField(null=True, blank=False)  # Explicit Choice Needed
+    vaccination_record = models.FileField(upload_to='health_documents/', blank=True, null=True, help_text="Official vaccination booklet or Rabies certificate")
+    has_brucellosis_clearance = models.BooleanField(default=False, help_text="Brucellosis PCR negative lab test clearance")
+    last_deworming_date = models.DateField(blank=True, null=True, help_text="Most recent internal parasite deworming date")
     medical_history = models.TextField(blank=True)
 
     kci_registered = models.BooleanField(null=True, blank=False) # Explicit Choice Needed
@@ -137,6 +140,35 @@ class DogProfile(models.Model):
     location_address = models.CharField(max_length=255, blank=True, null=True, help_text="General neighborhood or locality")
     
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def total_age_months(self):
+        return (self.age_years or 0) * 12 + (self.age_months or 0)
+
+    @property
+    def is_breeding_age(self):
+        return self.total_age_months >= 18
+
+    def clean(self):
+        super().clean()
+        from django.core.exceptions import ValidationError
+
+        # 1. Ethical Breeding Age Check (Petmeetly competitor limitation)
+        # Dogs under 18 months cannot be marked as Available for Mating
+        if self.is_available and self.total_age_months < 18:
+            raise ValidationError({
+                'is_available': (
+                    f"Canine Welfare Policy: {self.name} is {self.total_age_months} months old. "
+                    "Dogs must be at least 18 months (1.5 years) old for safe breeding. "
+                    "You can register this dog, but availability must be set to 'Resting / Junior'."
+                )
+            })
+
+        # 2. Mandatory KCI Document Gate (PairMyPet & Petmeetly limitation)
+        if self.kci_registered and not self.kci_document:
+            raise ValidationError({
+                'kci_document': "Official KCI Certificate or Pedigree document is mandatory when claiming KCI registration."
+            })
 
     class Meta:
         indexes = [
@@ -365,3 +397,35 @@ class EmailOTP(models.Model):
         self.is_used = True
         self.save(update_fields=['is_used'])
         return True, "Success"
+
+
+class ReportListing(models.Model):
+    """
+    Community Moderation & Anti-Scam Reporting System
+    Solves competitor flaw (DogSpot, Dogs India, Pets Mate Finder: Unmoderated classifieds, scams, fake profiles).
+    """
+    REASON_CHOICES = (
+        ('underage', 'Underage Canine (<18 Months)'),
+        ('puppy_mill', 'Commercial Puppy Mill / Unethical Breeding'),
+        ('fake_kci', 'Fake or Tampered KCI Certificate'),
+        ('health_concern', 'Unhealthy / Sick Canine / Fraudulent Vaccination'),
+        ('inappropriate_content', 'Misleading or Inappropriate Photos'),
+        ('spam', 'Commercial Spam / Advertisement'),
+        ('other', 'Other Policy or Animal Welfare Violation'),
+    )
+    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reported_listings')
+    reported_dog = models.ForeignKey(DogProfile, on_delete=models.CASCADE, related_name='reports')
+    reason = models.CharField(max_length=30, choices=REASON_CHOICES)
+    details = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_resolved = models.BooleanField(default=False)
+    admin_notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['is_resolved', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f"Report #{self.id} on {self.reported_dog.name} by {self.reporter.username} ({self.get_reason_display()})"

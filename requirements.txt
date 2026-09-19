@@ -6,3 +6,4 @@ asgiref==3.12.1
 tzdata==2026.3
 dj-database-url>=3.1.2
 psycopg2-binary>=2.9.13
+reportlab>=5.0.0

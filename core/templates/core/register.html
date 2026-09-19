@@ -90,7 +90,14 @@
                                     {{ field.label }} {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
                                 </label>
                                 <div class="form-control-wrapper">
-                                    {{ field }}
+                                    {% if field.name == 'phone_number' %}
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light text-muted fw-bold border-end-0" style="border-radius: 0.75rem 0 0 0.75rem;">+91</span>
+                                            {{ field }}
+                                        </div>
+                                    {% else %}
+                                        {{ field }}
+                                    {% endif %}
                                 </div>
                                 {% if field.help_text %}
                                     <div class="form-text text-muted" style="font-size: 0.72rem;">

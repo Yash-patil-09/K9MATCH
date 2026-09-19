@@ -1,11 +1,14 @@
-from django.test import TestCase, Client, RequestFactory
+import json
+from unittest.mock import patch
+from django.test import TestCase, Client, RequestFactory, override_settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.conf import settings
-from core.models import DogProfile, VeterinaryClinic, ChatMessage, MatchRequest
+from core.models import DogProfile, VeterinaryClinic, ChatMessage, MatchRequest, ReportListing
 from core.forms import DogProfileForm
 from core.utils import get_city_coordinates, haversine_distance
 from core.views import custom_404_view, custom_403_view, custom_500_view
+from core.places_service import get_nearby_vets_dynamic, fetch_google_places_vets
 
 User = get_user_model()
 
@@ -598,6 +601,7 @@ class Epic5AdminWorkflowTest(TestCase):
         self.assertEqual(self.pending_dog.admin_rejection_reason, 'Vaccination certificate illegible')
 
 
+@override_settings(GOOGLE_MAPS_API_KEY='')
 class Epic6VeterinaryDirectoryTest(TestCase):
     def setUp(self):
         self.client = Client()
@@ -679,6 +683,15 @@ class Epic6VeterinaryDirectoryTest(TestCase):
         self.assertEqual(len(clinics), 1)
         self.assertEqual(clinics[0].name, "Pune Pet Care Clinic")
 
+    def test_vets_directory_state_filter(self):
+        """Filtering by state returns only clinics located in that state."""
+        response = self.client.get(reverse('vets_directory'), {'state': 'Maharashtra'})
+        self.assertEqual(response.status_code, 200)
+        clinics = response.context['clinics']
+        self.assertEqual(len(clinics), 2)
+        for c in clinics:
+            self.assertEqual(c.state, "Maharashtra")
+
     def test_vets_directory_distance_calculation(self):
         """Clinics should have distance_km calculated relative to city reference point."""
         response = self.client.get(reverse('vets_directory'), {'city': 'Mumbai'})
@@ -686,6 +699,33 @@ class Epic6VeterinaryDirectoryTest(TestCase):
         clinics = response.context['clinics']
         self.assertTrue(hasattr(clinics[0], 'distance_km'))
         self.assertIsNotNone(clinics[0].distance_km)
+
+    def test_vets_directory_live_gps_distance_and_radius(self):
+        """Passing user_lat, user_lng, and radius=5 should filter clinics within 5km."""
+        # Clinic Mumbai is at (19.0596, 72.8295). User is at (19.0600, 72.8300) - ~0.1 km away
+        response = self.client.get(reverse('vets_directory'), {
+            'user_lat': '19.0600',
+            'user_lng': '72.8300',
+            'radius': '5'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['is_live_gps'])
+        clinics = response.context['clinics']
+        self.assertEqual(len(clinics), 1)
+        self.assertEqual(clinics[0].name, "Mumbai 24/7 Animal Hospital")
+        self.assertLess(clinics[0].distance_km, 5.0)
+
+    def test_vets_directory_smart_fallback_when_none_in_radius(self):
+        """When 0 clinics are within strict radius, smart fallback provides closest clinics."""
+        # Location far from any test clinic (e.g. 24.0, 78.0)
+        response = self.client.get(reverse('vets_directory'), {
+            'user_lat': '24.0000',
+            'user_lng': '78.0000',
+            'radius': '5'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['has_expanded_fallback'])
+        self.assertGreater(len(response.context['clinics']), 0)
 
 
 class Phase3SecurityAndPerformanceTest(TestCase):
@@ -1175,6 +1215,253 @@ class MatchProposalWorkflowTests(TestCase):
         res = self.client.get(reverse('chats_inbox'))
         self.assertEqual(res.status_code, 200)
         self.assertEqual(len(res.context['conversations']), 1)
+
+
+class CompetitorLimitationsResolutionTests(TestCase):
+    """
+    Automated test coverage ensuring K9Match overcomes competitor limitations:
+    1. Petmeetly Underage Breeding Prevention (<18 months).
+    2. PairMyPet / Petmeetly Mandatory KCI & Health Document Verification.
+    3. PairMyPet 1-Click Availability Switch.
+    4. Herobreeder Data Portability (Exportable PDF Canine Passport).
+    5. DogSpot / Dogs India Community Listing Reporting & Moderation.
+    """
+
+    def setUp(self):
+        self.client = Client()
+        self.owner = User.objects.create_user(
+            username='breeder_owner',
+            email='owner@k9match.com',
+            phone_number='9876543210',
+            password='Password123'
+        )
+        self.staff_admin = User.objects.create_user(
+            username='moderator_staff',
+            email='admin@k9match.com',
+            phone_number='9876543211',
+            password='Password123',
+            is_staff=True
+        )
+        self.reporter = User.objects.create_user(
+            username='vigilant_user',
+            email='reporter@k9match.com',
+            phone_number='9876543212',
+            password='Password123'
+        )
+
+        self.adult_dog = DogProfile.objects.create(
+            owner=self.owner,
+            name='Thor',
+            breed='German Shepherd',
+            age_years=2,
+            age_months=4,
+            gender='male',
+            city='Mumbai',
+            weight=32.0,
+            is_vaccinated=True,
+            is_available=True,
+            approval_status='approved'
+        )
+
+        self.junior_dog = DogProfile.objects.create(
+            owner=self.owner,
+            name='PuppyRex',
+            breed='Golden Retriever',
+            age_years=1,
+            age_months=2, # 14 months total (< 18 months)
+            gender='male',
+            city='Pune',
+            weight=20.0,
+            is_vaccinated=True,
+            is_available=False,
+            approval_status='approved'
+        )
+
+    def test_underage_breeding_validation_error(self):
+        """Underage dog (<18 months) cannot be marked available for mating."""
+        from django.core.exceptions import ValidationError
+        self.junior_dog.is_available = True
+        with self.assertRaises(ValidationError):
+            self.junior_dog.clean()
+
+    def test_underage_breeding_allowed_when_resting(self):
+        """Underage dog can be registered and saved as long as is_available=False."""
+        self.junior_dog.is_available = False
+        # clean() should not raise any validation error
+        self.junior_dog.clean()
+        self.assertFalse(self.junior_dog.is_breeding_age)
+        self.assertEqual(self.junior_dog.total_age_months, 14)
+
+    def test_kci_registration_requires_document_in_clean(self):
+        """Canine marked as KCI registered must provide kci_document."""
+        from django.core.exceptions import ValidationError
+        self.adult_dog.kci_registered = True
+        self.adult_dog.kci_document = None
+        with self.assertRaises(ValidationError):
+            self.adult_dog.clean()
+
+    def test_toggle_dog_availability_ajax_success(self):
+        """Owner can toggle adult dog availability on and off via 1-click AJAX."""
+        self.client.login(username='breeder_owner', password='Password123')
+        url = reverse('toggle_dog_availability', args=[self.adult_dog.id])
+
+        # Toggle from available (True) to resting (False)
+        res = self.client.post(url)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertFalse(data['is_available'])
+        self.adult_dog.refresh_from_db()
+        self.assertFalse(self.adult_dog.is_available)
+
+        # Toggle back to available (True)
+        res2 = self.client.post(url)
+        self.assertEqual(res2.status_code, 200)
+        data2 = res2.json()
+        self.assertTrue(data2['success'])
+        self.assertTrue(data2['is_available'])
+        self.adult_dog.refresh_from_db()
+        self.assertTrue(self.adult_dog.is_available)
+
+    def test_toggle_dog_availability_blocks_underage(self):
+        """Attempting to activate an underage dog via 1-click toggle fails with 400 error."""
+        self.client.login(username='breeder_owner', password='Password123')
+        url = reverse('toggle_dog_availability', args=[self.junior_dog.id])
+
+        res = self.client.post(url)
+        self.assertEqual(res.status_code, 400)
+        data = res.json()
+        self.assertFalse(data['success'])
+        self.assertIn('Ethical Safeguard', data['error'])
+        self.junior_dog.refresh_from_db()
+        self.assertFalse(self.junior_dog.is_available)
+
+    def test_export_dog_passport_pdf_generation(self):
+        """User can download authenticated canine passport PDF."""
+        self.client.login(username='breeder_owner', password='Password123')
+        url = reverse('export_dog_passport_pdf', args=[self.adult_dog.id])
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res['Content-Type'], 'application/pdf')
+        self.assertIn('Thor_K9Match_Passport.pdf', res['Content-Disposition'])
+        self.assertTrue(len(res.content) > 1000)
+
+    def test_report_dog_listing_workflow(self):
+        """Community member can report a suspicious listing and admin can resolve it."""
+        self.client.login(username='vigilant_user', password='Password123')
+        report_url = reverse('report_dog_listing', args=[self.adult_dog.id])
+
+        post_data = {
+            'reason': 'puppy_mill',
+            'details': 'Suspicious commercial breeder advertising multiple unrelated litters.'
+        }
+        res = self.client.post(report_url, data=post_data, follow=True)
+        self.assertEqual(res.status_code, 200)
+
+        report = ReportListing.objects.filter(reported_dog=self.adult_dog).first()
+        self.assertIsNotNone(report)
+        self.assertEqual(report.reporter, self.reporter)
+        self.assertEqual(report.reason, 'puppy_mill')
+        self.assertFalse(report.is_resolved)
+
+        # Admin resolves the report and suspends the dog
+        self.client.login(username='moderator_staff', password='Password123')
+        resolve_url = reverse('admin_resolve_report', args=[report.id])
+        admin_res = self.client.post(resolve_url, data={
+            'action': 'suspend_dog',
+            'admin_notes': 'Confirmed commercial puppy mill violation.'
+        }, follow=True)
+        self.assertEqual(admin_res.status_code, 200)
+
+        report.refresh_from_db()
+        self.assertTrue(report.is_resolved)
+        self.adult_dog.refresh_from_db()
+        self.assertEqual(self.adult_dog.approval_status, 'rejected')
+        self.assertFalse(self.adult_dog.is_available)
+
+
+class DynamicVeterinaryRadarTests(TestCase):
+    def setUp(self):
+        from django.core.cache import cache
+        cache.clear()
+        self.clinic = VeterinaryClinic.objects.create(
+            name="Panvel Pet Clinic & Surgical Centre",
+            doctor_name="Dr. Vivek Deshmukh",
+            specialization="Canine Theriogenology",
+            address="Shop 4, Near Station, Old Panvel",
+            city="Panvel",
+            state="Maharashtra",
+            latitude=18.9894,
+            longitude=73.1175,
+            is_24x7_emergency=True,
+            rating=4.9
+        )
+
+    def test_dynamic_vets_fallback_without_api_key(self):
+        """When no Google Maps API key is set, dynamic service falls back to local database."""
+        with patch.object(settings, 'GOOGLE_MAPS_API_KEY', ''):
+            result = get_nearby_vets_dynamic(lat=18.9894, lng=73.1175, radius_km=10, city="Panvel")
+            self.assertEqual(result['status'], 'success')
+            self.assertFalse(result['google_places_active'])
+            self.assertFalse(result['google_places_configured'])
+            self.assertGreaterEqual(result['total_count'], 1)
+            self.assertEqual(result['clinics'][0].name, "Panvel Pet Clinic & Surgical Centre")
+            self.assertEqual(result['clinics'][0].distance_km, 0.0)
+
+    @patch('core.places_service.urllib.request.urlopen')
+    def test_dynamic_vets_with_google_places_mock(self, mock_urlopen):
+        """When Google Maps API key is present, queries Google Places and standardizes clinics."""
+        mock_response = {
+            "places": [
+                {
+                    "id": "ChIJ1234567890",
+                    "displayName": {"text": "Panvel 24/7 Advanced Veterinary Hospital"},
+                    "formattedAddress": "Sector 15, New Panvel, Panvel, Maharashtra",
+                    "rating": 4.8,
+                    "userRatingCount": 95,
+                    "location": {"latitude": 18.9950, "longitude": 73.1200},
+                    "currentOpeningHours": {"openNow": True},
+                    "types": ["veterinary_care", "hospital"]
+                },
+                {
+                    "id": "ChIJ0987654321",
+                    "displayName": {"text": "Khanda Colony Pet Clinic"},
+                    "formattedAddress": "Khanda Colony, Panvel, Maharashtra",
+                    "rating": 4.6,
+                    "userRatingCount": 42,
+                    "location": {"latitude": 19.0060, "longitude": 73.1100},
+                    "currentOpeningHours": {"openNow": False},
+                    "types": ["veterinary_care"]
+                }
+            ]
+        }
+        mock_urlopen.return_value.__enter__.return_value.read.return_value = json.dumps(mock_response).encode('utf-8')
+
+        with patch.object(settings, 'GOOGLE_MAPS_API_KEY', 'AIzaFakeTestKeyForGooglePlaces123'):
+            result = get_nearby_vets_dynamic(lat=18.9894, lng=73.1175, radius_km=10)
+            self.assertEqual(result['status'], 'success')
+            self.assertTrue(result['google_places_active'])
+            self.assertTrue(result['google_places_configured'])
+            self.assertGreaterEqual(result['total_count'], 2)
+            names = [c.name for c in result['clinics']]
+            self.assertIn("Panvel 24/7 Advanced Veterinary Hospital", names)
+            self.assertIn("Khanda Colony Pet Clinic", names)
+            gp_emergency = next(c for c in result['clinics'] if c.name == "Panvel 24/7 Advanced Veterinary Hospital")
+            self.assertTrue(gp_emergency.is_24x7_emergency)
+
+    def test_api_nearby_vets_endpoint(self):
+        """API endpoint /api/vets/nearby/ returns JSON HTTP 200 with dynamic search results."""
+        url = reverse('api_nearby_vets')
+        res = self.client.get(url, {'lat': '18.9894', 'lng': '73.1175', 'radius': '10', 'city': 'Panvel'})
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('clinics', data)
+        self.assertIn('google_places_active', data)
+        self.assertIn('total_count', data)
+        self.assertGreaterEqual(data['total_count'], 1)
+
+
 
 
 

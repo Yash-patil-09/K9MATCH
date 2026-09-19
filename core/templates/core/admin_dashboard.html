@@ -114,6 +114,14 @@
                             All Dogs
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-pill fw-bold px-3 {% if status_filter == 'reports' %}active bg-danger text-white{% else %}text-muted{% endif %}" href="?status=reports">
+                            <i class="fas fa-flag me-1"></i> Community Reports
+                            {% if unresolved_reports_count > 0 %}
+                                <span class="badge bg-white text-danger rounded-pill ms-1">{{ unresolved_reports_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
                 </ul>
 
                 <!-- Search Input -->
@@ -135,9 +143,78 @@
             </div>
         </div>
 
-        <!-- Submissions Feed / Cards -->
-        <div class="d-flex flex-column gap-4">
-            {% for dog in dogs %}
+        {% if status_filter == 'reports' %}
+            <!-- Community Reports Feed (Overcoming DogSpot & Dogs India Unmoderated Listings) -->
+            <div class="d-flex flex-column gap-3">
+                {% for rep in reports %}
+                    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white border-start {% if not rep.is_resolved %}border-danger border-4{% else %}border-secondary border-3 opacity-75{% endif %}">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
+                                    <span class="badge {% if not rep.is_resolved %}bg-danger text-white{% else %}bg-secondary text-white{% endif %} rounded-pill px-3 py-1 fw-bold small">
+                                        {{ rep.get_reason_display }}
+                                    </span>
+                                    <span class="text-muted small">
+                                        <i class="fas fa-clock me-1"></i> {{ rep.created_at|timesince }} ago
+                                    </span>
+                                    <span class="text-muted small">
+                                        reported by <strong class="text-dark">{{ rep.reporter.username }}</strong>
+                                    </span>
+                                    {% if rep.is_resolved %}
+                                        <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-0.5 small fw-bold">
+                                            <i class="fas fa-check-circle me-1"></i> Resolved
+                                        </span>
+                                    {% endif %}
+                                </div>
+
+                                <h5 class="fw-bold text-dark mb-1">
+                                    Reported Canine: <a href="{% url 'dog_detail' rep.reported_dog.id %}" target="_blank" class="text-primary text-decoration-none">{{ rep.reported_dog.name }}</a>
+                                    <span class="small text-muted fw-normal">({{ rep.reported_dog.breed }} · Owner: {{ rep.reported_dog.owner.username }})</span>
+                                </h5>
+
+                                <p class="text-secondary small mb-2 bg-light p-3 rounded-3 mt-2 border">
+                                    <strong>Complainant Note:</strong> {{ rep.details }}
+                                </p>
+
+                                {% if rep.admin_notes %}
+                                    <div class="small text-muted">
+                                        <strong>Admin Action Notes:</strong> {{ rep.admin_notes }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            {% if not rep.is_resolved %}
+                                <div class="d-flex flex-column gap-2 shrink-0">
+                                    <form method="POST" action="{% url 'admin_resolve_report' rep.id %}" class="d-flex gap-2">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="resolve">
+                                        <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold text-nowrap">
+                                            <i class="fas fa-check me-1"></i> Dismiss / Resolved
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{% url 'admin_resolve_report' rep.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="suspend_dog">
+                                        <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3 fw-bold text-nowrap w-100" onclick="return confirm('Suspend {{ rep.reported_dog.name }} from public matching?');">
+                                            <i class="fas fa-ban me-1"></i> Suspend Dog
+                                        </button>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-center py-5 bg-white rounded-4 shadow-sm">
+                        <i class="fas fa-shield-dog fa-3x text-success mb-2 opacity-50"></i>
+                        <h5 class="fw-bold text-dark">No Community Reports</h5>
+                        <p class="text-muted small mb-0">No active complaints or violations have been submitted by the community.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- Submissions Feed / Cards -->
+            <div class="d-flex flex-column gap-4">
+                {% for dog in dogs %}
                 <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white hover-lift" data-aos="fade-up">
                     <div class="row g-0">
                         
@@ -315,6 +392,7 @@
                 </div>
             {% endfor %}
         </div>
+        {% endif %}
 
     </div>
 </section>
