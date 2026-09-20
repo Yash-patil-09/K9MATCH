@@ -174,8 +174,11 @@ class DogProfile(models.Model):
         indexes = [
             models.Index(fields=['approval_status', 'is_available']),
             models.Index(fields=['city']),
+            models.Index(fields=['state']),
             models.Index(fields=['breed']),
             models.Index(fields=['gender']),
+            models.Index(fields=['approval_status', 'is_available', 'city']),
+            models.Index(fields=['approval_status', 'is_available', 'breed']),
             models.Index(fields=['latitude', 'longitude']),
             models.Index(fields=['-created_at']),
         ]
@@ -216,6 +219,7 @@ class MatchRequest(models.Model):
             models.Index(fields=['sender', 'status']),
             models.Index(fields=['receiver', 'status']),
             models.Index(fields=['target_dog', 'status']),
+            models.Index(fields=['sender', 'receiver', 'status']),
             models.Index(fields=['-created_at']),
         ]
 

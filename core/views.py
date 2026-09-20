@@ -44,9 +44,9 @@ def home(request):
     total_clinics = VeterinaryClinic.objects.count()
     
     # 5. Featured spotlight dogs
-    featured_dogs = DogProfile.objects.filter(approval_status='approved', is_available=True).prefetch_related('images')[:6]
+    featured_dogs = DogProfile.objects.filter(approval_status='approved', is_available=True).select_related('owner').prefetch_related('images')[:6]
     if not featured_dogs.exists():
-        featured_dogs = DogProfile.objects.prefetch_related('images')[:6]
+        featured_dogs = DogProfile.objects.select_related('owner').prefetch_related('images')[:6]
 
     context = {
         'total_dogs': total_dogs,
@@ -402,13 +402,13 @@ def add_dog(request):
 @login_required
 def my_dogs(request):
     # Retrieve all dogs owned by the currently logged-in user
-    dogs = DogProfile.objects.filter(owner=request.user).order_by('-id')
+    dogs = DogProfile.objects.filter(owner=request.user).prefetch_related('images').order_by('-id')
     return render(request, 'core/my_dogs.html', {'dogs': dogs})
 
 @login_required
 def dog_detail(request, dog_id):
-    dog = get_object_or_404(DogProfile, id=dog_id)  
-    user_dogs = DogProfile.objects.filter(owner=request.user)
+    dog = get_object_or_404(DogProfile.objects.select_related('owner').prefetch_related('images'), id=dog_id)  
+    user_dogs = DogProfile.objects.filter(owner=request.user).prefetch_related('images')
 
     # 1. Check if an accepted match exists involving this dog and request.user
     accepted_match = MatchRequest.objects.filter(
@@ -554,13 +554,13 @@ def profile_view(request):
 
 def explore_dogs(request):
     # Base discovery pool: strictly approved and available dogs
-    dogs = DogProfile.objects.filter(approval_status='approved', is_available=True).order_by('-id')
+    dogs = DogProfile.objects.filter(approval_status='approved', is_available=True).select_related('owner').prefetch_related('images').order_by('-id')
 
     # Epic 2 Task 2.2: Exclude user's own dogs from search results
     user_dogs = []
     if request.user.is_authenticated:
         dogs = dogs.exclude(owner=request.user)
-        user_dogs = list(DogProfile.objects.filter(owner=request.user))
+        user_dogs = list(DogProfile.objects.filter(owner=request.user).prefetch_related('images'))
 
     # Extract structured filter parameters (Task 3.1 & 3.3)
     breed_type_filter = request.GET.get('breed_type', '').strip()
@@ -852,8 +852,13 @@ def send_match_request(request, dog_id):
 
 @login_required
 def match_requests_dashboard(request):
-    received_requests = MatchRequest.objects.filter(receiver=request.user).order_by('-created_at')
-    sent_requests = MatchRequest.objects.filter(sender=request.user).order_by('-created_at')
+    received_requests = MatchRequest.objects.filter(receiver=request.user).select_related(
+        'sender', 'receiver', 'target_dog', 'sender_dog', 'target_dog__owner', 'sender_dog__owner'
+    ).prefetch_related('target_dog__images', 'sender_dog__images').order_by('-created_at')
+
+    sent_requests = MatchRequest.objects.filter(sender=request.user).select_related(
+        'sender', 'receiver', 'target_dog', 'sender_dog', 'target_dog__owner', 'sender_dog__owner'
+    ).prefetch_related('target_dog__images', 'sender_dog__images').order_by('-created_at')
     
     # Count ONLY pending requests that need action
     pending_received_count = MatchRequest.objects.filter(receiver=request.user, status='pending').count()

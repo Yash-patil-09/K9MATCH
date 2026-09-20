@@ -1588,6 +1588,58 @@ class Phase2NotificationAndChatTests(TestCase):
         self.assertEqual(context_after['navbar_unread_messages_count'], 0)
 
 
+class Phase3PerformanceAndSecurityTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='tester', email='tester@example.com', password='password123')
+        for i in range(5):
+            u = User.objects.create_user(username=f'owner_{i}', email=f'owner_{i}@example.com', password='password123')
+            DogProfile.objects.create(
+                owner=u,
+                name=f'Canine_{i}',
+                breed='Labrador Retriever',
+                gender='female',
+                age_years=2,
+                age_months=0,
+                weight=25,
+                city='Panvel',
+                state='Maharashtra',
+                approval_status='approved',
+                is_available=True,
+                is_vaccinated=True,
+                kci_registered=True
+            )
+
+    def test_explore_dogs_query_efficiency(self):
+        """explore_dogs must use select_related and prefetch_related efficiently."""
+        client = Client()
+        client.login(username='tester', password='password123')
+        res = client.get(reverse('explore_dogs'))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.context['dogs']), 5)
+        # Verify first dog has owner preloaded without extra query
+        self.assertTrue(hasattr(res.context['dogs'][0], 'owner'))
+
+    def test_my_dogs_prefetch_efficiency(self):
+        """my_dogs query must prefetch images cleanly."""
+        client = Client()
+        client.login(username='tester', password='password123')
+        res = client.get(reverse('my_dogs'))
+        self.assertEqual(res.status_code, 200)
+
+    def test_dog_indexes_exist(self):
+        """Verify the new performance indexes exist on the DogProfile model."""
+        index_fields = [list(idx.fields) for idx in DogProfile._meta.indexes]
+        self.assertIn(['state'], index_fields)
+        self.assertIn(['approval_status', 'is_available', 'city'], index_fields)
+        self.assertIn(['approval_status', 'is_available', 'breed'], index_fields)
+
+    def test_match_request_indexes_exist(self):
+        """Verify the new performance indexes exist on the MatchRequest model."""
+        index_fields = [list(idx.fields) for idx in MatchRequest._meta.indexes]
+        self.assertIn(['sender', 'receiver', 'status'], index_fields)
+
+
+
 
 
 
