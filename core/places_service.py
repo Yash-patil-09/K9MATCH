@@ -51,6 +51,8 @@ def fetch_google_places_vets(lat, lng, radius_km=10, search_q=None, city=None, s
         return None
 
     r_km = radius_km if radius_km is not None else 'all'
+    r_km_num = radius_km if radius_km is not None else 25
+    radius_meters = float(r_km_num * 1000)
     cache_key = f"gplaces_vets_v3_{round(lat, 3) if lat else 0}_{round(lng, 3) if lng else 0}_{r_km}_{city or ''}_{state or ''}_{search_q or ''}".replace(' ', '_')
     cached_data = cache.get(cache_key)
     if cached_data is not None:
@@ -256,7 +258,7 @@ def fetch_google_places_vets(lat, lng, radius_km=10, search_q=None, city=None, s
         keyword = f"veterinary clinic pet hospital {search_q}".strip() if search_q else "veterinary clinic pet hospital"
         params = {
             'location': f"{lat},{lng}",
-            'radius': int(radius_meters),
+            'radius': int(min(radius_meters, 50000.0)),
             'type': 'veterinary_care',
             'keyword': keyword,
             'key': api_key
