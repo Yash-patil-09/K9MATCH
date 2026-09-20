@@ -1,4 +1,5 @@
 import json
+import os
 from unittest.mock import patch
 from django.test import TestCase, Client, RequestFactory, override_settings
 from django.contrib.auth import get_user_model
@@ -1637,6 +1638,60 @@ class Phase3PerformanceAndSecurityTests(TestCase):
         """Verify the new performance indexes exist on the MatchRequest model."""
         index_fields = [list(idx.fields) for idx in MatchRequest._meta.indexes]
         self.assertIn(['sender', 'receiver', 'status'], index_fields)
+
+
+class Phase4DeploymentAndStorageTests(TestCase):
+    def test_whitenoise_middleware_configured(self):
+        """WhiteNoise middleware must be in MIDDLEWARE right after SecurityMiddleware."""
+        middleware = settings.MIDDLEWARE
+        self.assertIn('whitenoise.middleware.WhiteNoiseMiddleware', middleware)
+        sec_idx = middleware.index('django.middleware.security.SecurityMiddleware')
+        wn_idx = middleware.index('whitenoise.middleware.WhiteNoiseMiddleware')
+        self.assertEqual(wn_idx, sec_idx + 1)
+
+    def test_static_and_storages_configuration(self):
+        """STATIC_ROOT and STORAGES must be properly configured for WhiteNoise."""
+        self.assertTrue(settings.STATIC_ROOT)
+        self.assertEqual(settings.STATIC_URL, '/static/')
+        self.assertIn('staticfiles', settings.STORAGES)
+        self.assertEqual(
+            settings.STORAGES['staticfiles']['BACKEND'],
+            'whitenoise.storage.CompressedManifestStaticFilesStorage'
+        )
+        self.assertIn('default', settings.STORAGES)
+
+    def test_export_db_data_command(self):
+        """export_db_data management command should output valid JSON seed data."""
+        from django.core.management import call_command
+        import tempfile
+        import json
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            call_command('export_db_data', output=tmp_path)
+            self.assertTrue(os.path.exists(tmp_path))
+            self.assertGreater(os.path.getsize(tmp_path), 0)
+            with open(tmp_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            self.assertIsInstance(data, list)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_postgresql_database_url_parsing(self):
+        """Ensure dj_database_url correctly parses PostgreSQL connection strings."""
+        import dj_database_url
+        sample_url = 'postgresql://k9user:k9pass@db.example.com:5432/k9production'
+        config = dj_database_url.parse(sample_url, conn_max_age=600, conn_health_checks=True)
+        self.assertEqual(config['ENGINE'], 'django.db.backends.postgresql')
+        self.assertEqual(config['USER'], 'k9user')
+        self.assertEqual(config['PASSWORD'], 'k9pass')
+        self.assertEqual(config['HOST'], 'db.example.com')
+        self.assertEqual(config['PORT'], 5432)
+        self.assertEqual(config['NAME'], 'k9production')
+        self.assertEqual(config['CONN_MAX_AGE'], 600)
+        self.assertTrue(config['CONN_HEALTH_CHECKS'])
 
 
 
