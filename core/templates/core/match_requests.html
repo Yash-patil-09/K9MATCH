@@ -111,9 +111,15 @@
                                                 </button>
                                             </form>
                                         {% elif req.status == 'accepted' %}
-                                            <a href="{% url 'chat_room' req.id %}" class="btn btn-primary-stitch w-100 py-2 small text-center text-decoration-none">
-                                                <i class="fas fa-comments me-2"></i> Open Realtime Chat
-                                            </a>
+                                            <div class="d-flex flex-column w-100 gap-2">
+                                                <a href="{% url 'chat_room' req.id %}" class="btn btn-primary-stitch w-100 py-2 small text-center text-decoration-none">
+                                                    <i class="fas fa-comments me-2"></i> Open Realtime Chat
+                                                </a>
+                                                <a href="{% url 'export_breeding_contract_pdf' req.id %}" target="_blank" class="btn btn-soft text-primary border-primary-subtle w-100 py-1.5 small fw-bold text-center text-decoration-none d-flex align-items-center justify-content-center gap-1.5">
+                                                    <i class="fa-solid fa-file-contract"></i>
+                                                    <span>Mating Agreement (PDF)</span>
+                                                </a>
+                                            </div>
                                         {% else %}
                                             <button class="btn btn-soft w-100 py-2 small fw-bold" disabled>Proposal Declined</button>
                                         {% endif %}
@@ -176,9 +182,15 @@
                                 <div class="p-4 pt-0">
                                     <div class="pt-3 border-top border-light-subtle">
                                         {% if req.status == 'accepted' %}
-                                            <a href="{% url 'chat_room' req.id %}" class="btn btn-primary-stitch w-100 py-2 small text-center text-decoration-none">
-                                                <i class="fas fa-comments me-2"></i> Open Realtime Chat
-                                            </a>
+                                            <div class="d-flex flex-column w-100 gap-2">
+                                                <a href="{% url 'chat_room' req.id %}" class="btn btn-primary-stitch w-100 py-2 small text-center text-decoration-none">
+                                                    <i class="fas fa-comments me-2"></i> Open Realtime Chat
+                                                </a>
+                                                <a href="{% url 'export_breeding_contract_pdf' req.id %}" target="_blank" class="btn btn-soft text-primary border-primary-subtle w-100 py-1.5 small fw-bold text-center text-decoration-none d-flex align-items-center justify-content-center gap-1.5">
+                                                    <i class="fa-solid fa-file-contract"></i>
+                                                    <span>Mating Agreement (PDF)</span>
+                                                </a>
+                                            </div>
                                         {% elif req.status == 'pending' %}
                                             <div class="p-2 rounded-3 bg-light text-center small text-muted">
                                                 <i class="fas fa-clock text-warning me-1"></i> Awaiting response from {{ req.receiver.username }}

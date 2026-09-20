@@ -20,7 +20,7 @@ from .forms import CustomUserCreationForm, DogProfileForm, DogImageForm, ReportL
 from .models import DogProfile, DogImage, MatchRequest, ChatMessage, VeterinaryClinic, EmailOTP, ReportListing
 from .utils import get_city_coordinates, get_state_coordinates, haversine_distance
 from .email_utils import send_otp_email, send_match_proposal_email, send_match_accepted_email, send_match_declined_email
-from .pdf_utils import generate_canine_passport_pdf
+from .pdf_utils import generate_canine_passport_pdf, generate_breeding_contract_pdf
 from .places_service import get_nearby_vets_dynamic
 
 
@@ -1484,6 +1484,139 @@ def report_dog_listing(request, dog_id):
             report.save()
             messages.success(request, f"Thank you. Your report regarding {dog.name} has been submitted for administrative review.")
             return redirect('dog_detail', dog_id=dog.id)
-        else:
-            messages.error(request, "Please provide a valid reason and description for your report.")
-    return redirect('dog_detail', dog_id=dog.id)
+
+
+@login_required
+def export_breeding_contract_pdf(request, match_id):
+    """
+    Generates and exports an official, customized Canine Breeding & Stud Agreement PDF
+    for an accepted match between two dogs.
+    Supports both default pre-filled export (GET) and custom negotiated terms (POST).
+    """
+    match = get_object_or_404(MatchRequest, id=match_id)
+    if request.user != match.sender and request.user != match.receiver:
+        messages.error(request, "Unauthorized. You can only access agreements for your own canine matches.")
+        return redirect('chats_inbox')
+
+    if match.status != 'accepted':
+        messages.warning(request, "Breeding agreements can only be generated for accepted matches.")
+        return redirect('chat_room', match_id=match.id)
+
+    custom_data = {}
+    if request.method == 'POST':
+        custom_data = {
+            'mating_terms': request.POST.get('mating_terms', '').strip(),
+            'stud_fee_amount': request.POST.get('stud_fee_amount', '').strip(),
+            'payment_schedule': request.POST.get('payment_schedule', '').strip(),
+            'pick_of_litter_terms': request.POST.get('pick_of_litter_terms', '').strip(),
+            'mating_dates': request.POST.get('mating_dates', '').strip(),
+            'mating_location': request.POST.get('mating_location', '').strip(),
+            'mating_method': request.POST.get('mating_method', '').strip(),
+            'repeat_mating_guarantee': request.POST.get('repeat_mating_guarantee', '').strip(),
+            'special_conditions': request.POST.get('special_conditions', '').strip(),
+        }
+
+    pdf_bytes = generate_breeding_contract_pdf(match, custom_data)
+    filename = f"K9Match_Breeding_Agreement_{match.id:05d}.pdf"
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+def heat_calculator_view(request):
+    """
+    Canine Heat Cycle & Ovulation Readiness Calculator.
+    Calculates fertile mating windows, progesterone testing dates, and next heat estimate.
+    """
+    user_female_dogs = []
+    if request.user.is_authenticated:
+        user_female_dogs = DogProfile.objects.filter(owner=request.user, gender='female')
+
+    last_heat_str = request.GET.get('last_heat') or request.POST.get('last_heat', '')
+    cycle_months_val = request.GET.get('cycle_months') or request.POST.get('cycle_months', '6')
+    try:
+        cycle_months = int(cycle_months_val)
+    except (ValueError, TypeError):
+        cycle_months = 6
+
+    selected_dog_id = request.GET.get('dog_id') or request.POST.get('dog_id', '')
+    result = None
+    selected_dog = None
+
+    if selected_dog_id and request.user.is_authenticated:
+        selected_dog = user_female_dogs.filter(id=selected_dog_id).first()
+
+    if last_heat_str:
+        try:
+            from datetime import datetime, timedelta
+            last_heat = datetime.strptime(last_heat_str.strip(), "%Y-%m-%d").date()
+            today = timezone.now().date()
+
+            # Proestrus: Days 1 - 9
+            proestrus_start = last_heat
+            proestrus_end = last_heat + timedelta(days=8)
+
+            # Estrus (Peak Fertile Window): Days 9 - 14
+            estrus_start = last_heat + timedelta(days=9)
+            estrus_end = last_heat + timedelta(days=14)
+
+            # Progesterone testing checkpoint: Days 7 - 9
+            prog_test_start = last_heat + timedelta(days=7)
+            prog_test_end = last_heat + timedelta(days=9)
+
+            # Diestrus: Days 15 - 60
+            diestrus_start = last_heat + timedelta(days=15)
+            diestrus_end = last_heat + timedelta(days=60)
+
+            # Next estimated heat
+            days_in_cycle = int(cycle_months * 30.4375)
+            next_heat_date = last_heat + timedelta(days=days_in_cycle)
+            days_until_next_heat = (next_heat_date - today).days
+
+            # Phase detection
+            if today < last_heat:
+                current_phase = "Future Date (Upcoming Cycle)"
+                phase_status = "upcoming"
+            elif today <= proestrus_end:
+                current_phase = "Proestrus (Vulvar Swelling & Bleeding)"
+                phase_status = "active_proestrus"
+            elif today <= estrus_end:
+                current_phase = "Estrus (Peak Fertile Ovulation Window!)"
+                phase_status = "active_estrus"
+            elif today <= diestrus_end:
+                current_phase = "Diestrus (Gestation or Hormonal Reset)"
+                phase_status = "active_diestrus"
+            elif today < next_heat_date:
+                current_phase = f"Anestrus (Resting Period - {days_until_next_heat} days until next heat)"
+                phase_status = "resting"
+            else:
+                current_phase = "Heat Cycle Due / Overdue"
+                phase_status = "due"
+
+            result = {
+                'last_heat': last_heat,
+                'cycle_months': cycle_months,
+                'proestrus_start': proestrus_start,
+                'proestrus_end': proestrus_end,
+                'estrus_start': estrus_start,
+                'estrus_end': estrus_end,
+                'prog_test_start': prog_test_start,
+                'prog_test_end': prog_test_end,
+                'diestrus_start': diestrus_start,
+                'diestrus_end': diestrus_end,
+                'next_heat_date': next_heat_date,
+                'days_until_next_heat': days_until_next_heat,
+                'current_phase': current_phase,
+                'phase_status': phase_status,
+            }
+        except (ValueError, TypeError):
+            pass
+
+    context = {
+        'user_female_dogs': user_female_dogs,
+        'selected_dog': selected_dog,
+        'last_heat_str': last_heat_str,
+        'cycle_months': cycle_months,
+        'result': result,
+    }
+    return render(request, 'core/heat_calculator.html', context)

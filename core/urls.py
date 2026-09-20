@@ -38,4 +38,6 @@ urlpatterns = [
     path('vets/', views.vets_directory, name='vets_directory'),
     path('api/vets/nearby/', views.api_nearby_vets, name='api_nearby_vets'),
     path('api/reverse-geocode/', views.reverse_geocode_api, name='reverse_geocode_api'),
+    path('match/<int:match_id>/contract/pdf/', views.export_breeding_contract_pdf, name='export_breeding_contract_pdf'),
+    path('heat-calculator/', views.heat_calculator_view, name='heat_calculator'),
 ]

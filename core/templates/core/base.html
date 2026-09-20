@@ -227,6 +227,7 @@
                     <a href="{% url 'home' %}" class="stitch-nav-link">Home</a>
                     <a href="{% url 'explore_dogs' %}" class="stitch-nav-link">Explore Dogs</a>
                     <a href="{% url 'vets_directory' %}" class="stitch-nav-link">Verified Vets</a>
+                    <a href="{% url 'heat_calculator' %}" class="stitch-nav-link">Heat Tracker</a>
                     {% if user.is_authenticated %}
                         <a href="{% url 'my_dogs' %}" class="stitch-nav-link">My Dogs</a>
                         <a href="{% url 'match_requests_dashboard' %}" class="stitch-nav-link position-relative">
@@ -333,6 +334,7 @@
                 <a href="{% url 'home' %}" class="stitch-nav-link py-2"><i class="fas fa-home me-2 text-muted"></i> Home</a>
                 <a href="{% url 'explore_dogs' %}" class="stitch-nav-link py-2"><i class="fas fa-compass me-2 text-muted"></i> Explore Dogs</a>
                 <a href="{% url 'vets_directory' %}" class="stitch-nav-link py-2"><i class="fas fa-stethoscope me-2 text-muted"></i> Verified Vets</a>
+                <a href="{% url 'heat_calculator' %}" class="stitch-nav-link py-2"><i class="fas fa-calculator me-2 text-muted"></i> Heat Tracker</a>
                 <a href="#" class="stitch-nav-link py-2" data-bs-toggle="modal" data-bs-target="#charterModal"><i class="fas fa-shield-heart me-2 text-muted"></i> Welfare Charter</a>
                 
                 {% if user.is_authenticated %}

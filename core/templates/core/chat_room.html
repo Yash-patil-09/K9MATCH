@@ -31,6 +31,10 @@
                 </div>
                 
                 <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill d-inline-flex align-items-center gap-1.5 shadow-sm" data-bs-toggle="modal" data-bs-target="#agreementModal" title="Generate Legal Canine Breeding & Stud Agreement">
+                        <i class="fa-solid fa-file-contract text-primary"></i>
+                        <span class="d-none d-md-inline fw-semibold">Mating Agreement</span>
+                    </button>
                     <a href="{% url 'dog_detail' match_req.target_dog.id %}" class="btn btn-sm btn-outline-secondary rounded-pill d-none d-sm-inline-flex align-items-center gap-1">
                         <i class="fas fa-paw"></i> Partner Dog
                     </a>
@@ -195,6 +199,123 @@
                     </button>
                 </div>
             </div>
+</div>
+
+<!-- Mating Agreement Customization & PDF Generation Modal -->
+<div class="modal fade" id="agreementModal" tabindex="-1" aria-labelledby="agreementModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header border-bottom p-4" style="background: linear-gradient(135deg, #004ac6 0%, #1e40af 100%); color: white;">
+                <div>
+                    <span class="badge bg-white text-primary rounded-pill px-3 py-1 fw-bold small mb-1">
+                        <i class="fa-solid fa-shield-halved me-1"></i> LEGAL & WELFARE SUITE
+                    </span>
+                    <h5 class="modal-title fw-bold text-white mb-0" id="agreementModalLabel">
+                        Canine Breeding & Stud Service Agreement
+                    </h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form method="POST" action="{% url 'export_breeding_contract_pdf' match_req.id %}" target="_blank">
+                {% csrf_token %}
+                <div class="modal-body p-4 p-md-5 bg-white">
+                    <div class="alert alert-info border-0 rounded-3 small mb-4 d-flex align-items-start gap-2">
+                        <i class="fa-solid fa-circle-info fs-5 mt-0.5 text-primary"></i>
+                        <div>
+                            Review and adjust your negotiated terms below. K9Match will automatically generate an official, legally structured agreement with both owners' details, health warranties, and signature blocks.
+                        </div>
+                    </div>
+
+                    <!-- Dogs Summary Strip -->
+                    <div class="row g-3 mb-4 p-3 rounded-3 bg-light border">
+                        <div class="col-sm-6">
+                            <span class="text-muted small text-uppercase fw-bold d-block">Sire (Male):</span>
+                            <span class="fw-bold text-dark fs-6">{{ match_req.sender_dog.name }} ({{ match_req.sender_dog.breed }})</span>
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="text-muted small text-uppercase fw-bold d-block">Dam (Female):</span>
+                            <span class="fw-bold text-dark fs-6">{{ match_req.target_dog.name }} ({{ match_req.target_dog.breed }})</span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark text-uppercase">Agreed Terms Type</label>
+                            <select name="mating_terms" class="form-select rounded-3">
+                                <option value="Stud Fee (Cash)" {% if match_req.sender_dog.mating_terms == 'stud_fee' %}selected{% endif %}>Stud Fee (Cash Compensation)</option>
+                                <option value="Want Puppy (Pick of Litter)" {% if match_req.sender_dog.mating_terms == 'want_puppy' %}selected{% endif %}>Pick of the Litter (Puppy)</option>
+                                <option value="Negotiated / Split Litter" {% if match_req.sender_dog.mating_terms == 'negotiable' %}selected{% endif %}>Negotiated / Split Litter</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark text-uppercase">Stud Fee Amount (if applicable)</label>
+                            <input type="text" name="stud_fee_amount" class="form-control rounded-3" 
+                                   value="{% if match_req.sender_dog.stud_fee_amount %}₹ {{ match_req.sender_dog.stud_fee_amount }}{% elif match_req.target_dog.stud_fee_amount %}₹ {{ match_req.target_dog.stud_fee_amount }}{% else %}₹ 15,000{% endif %}" 
+                                   placeholder="e.g. ₹ 15,000 or Pick of Litter">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-dark text-uppercase">Payment Schedule / Terms</label>
+                            <input type="text" name="payment_schedule" class="form-control rounded-3" 
+                                   value="50% due upon first confirmed mating tie; 50% due upon veterinary ultrasound pregnancy confirmation at 30 days.">
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-dark text-uppercase">Pick of Litter Terms (if puppy agreed)</label>
+                            <input type="text" name="pick_of_litter_terms" class="form-control rounded-3" 
+                                   value="Sire owner is entitled to first choice puppy at 45 days of age, provided a minimum of two (2) surviving puppies are whelped.">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark text-uppercase">Planned Mating Dates</label>
+                            <input type="text" name="mating_dates" class="form-control rounded-3" 
+                                   value="During female estrus cycle (estimated Days 9–14 from onset of bleeding)">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark text-uppercase">Mating Location</label>
+                            <input type="text" name="mating_location" class="form-control rounded-3" 
+                                   value="{{ match_req.sender_dog.city }} (Sire residence or designated Veterinary Clinic)">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark text-uppercase">Mating Method</label>
+                            <select name="mating_method" class="form-select rounded-3">
+                                <option value="Supervised Natural Mating" selected>Supervised Natural Mating</option>
+                                <option value="Veterinary Artificial Insemination (AI / TCI)">Veterinary Artificial Insemination (AI / TCI)</option>
+                                <option value="Either Natural or AI (As advised by Attending Vet)">Either Natural or AI (As advised by Attending Vet)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark text-uppercase">Repeat Service Policy</label>
+                            <select name="repeat_mating_guarantee" class="form-select rounded-3">
+                                <option value="YES. If Dam fails to conceive (verified by vet ultrasound at 30 days), 1 complimentary repeat service on her next heat cycle." selected>Yes, 1 Free Repeat Service if Dam Misses</option>
+                                <option value="No repeat service (Single cycle service only)">No Repeat Service</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-dark text-uppercase">Special Covenants / Extra Conditions</label>
+                            <textarea name="special_conditions" class="form-control rounded-3" rows="2">Both parties warrant Brucellosis negative status and agree to register all resulting puppies in compliance with Kennel Club rules.</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light border-top p-4 d-flex flex-column flex-sm-row justify-content-between gap-2">
+                    <a href="{% url 'export_breeding_contract_pdf' match_req.id %}" target="_blank" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+                        <i class="fa-solid fa-download me-1"></i> Quick Default Download
+                    </a>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-light rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary-stitch rounded-pill px-4 fw-bold text-white shadow-sm">
+                            <i class="fa-solid fa-file-pdf me-1"></i> Generate Customized PDF
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>

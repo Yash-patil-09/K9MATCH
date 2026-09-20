@@ -1,0 +1,246 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Canine Heat Cycle & Ovulation Readiness Calculator · K9Match{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header Banner -->
+    <div class="row justify-content-center text-center mb-5">
+        <div class="col-lg-8" data-aos="fade-up">
+            <span class="badge px-3 py-2 rounded-pill mb-3" style="background-color: #fef3c7; color: #92400e; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.05em;">
+                <i class="fa-solid fa-calculator me-1"></i> REPRODUCTIVE WELLNESS SUITE
+            </span>
+            <h1 class="display-5 fw-black mb-3" style="letter-spacing: -0.03em;">Canine Heat & Ovulation Tracker</h1>
+            <p class="lead text-muted mx-auto" style="max-width: 650px;">
+                Calculate your female dog's fertile ovulation window, optimal veterinary progesterone testing checkpoints, and future estrus cycles for ethical, scientifically timed breeding.
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <!-- Calculator Input Card -->
+        <div class="col-lg-5" data-aos="fade-right">
+            <div class="card border-0 shadow-sm p-4 p-md-5 rounded-4 h-100" style="background: white; border: 1px solid #e2e8f0;">
+                <h4 class="fw-bold text-dark mb-4 d-flex align-items-center">
+                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center me-3" style="width: 42px; height: 42px; background: #e7eeff; color: var(--color-primary);">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </span>
+                    Cycle Parameters
+                </h4>
+
+                <form method="GET" action="{% url 'heat_calculator' %}">
+                    {% if user_female_dogs %}
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary-dark small text-uppercase">Select Registered Dog</label>
+                        <select name="dog_id" id="dogSelector" class="form-select form-select-lg rounded-3 fs-6" onchange="this.form.submit()">
+                            <option value="">-- Choose Your Female Dog (Optional) --</option>
+                            {% for dog in user_female_dogs %}
+                            <option value="{{ dog.id }}" {% if selected_dog and selected_dog.id == dog.id %}selected{% endif %}>
+                                {{ dog.name }} ({{ dog.breed }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text small">Selecting a registered dog links calculations to her health profile.</div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <label for="last_heat" class="form-label fw-bold text-secondary-dark small text-uppercase">
+                            First Day of Last Heat (Bleeding Onset) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light border-end-0 text-muted rounded-start-3">
+                                <i class="fa-regular fa-calendar-days"></i>
+                            </span>
+                            <input type="date" class="form-control rounded-end-3 fs-6 border-start-0" id="last_heat" name="last_heat" value="{{ last_heat_str }}" required>
+                        </div>
+                        <div class="form-text small text-muted">Enter the day you first observed vulvar swelling or bleeding discharge.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="cycle_months" class="form-label fw-bold text-secondary-dark small text-uppercase">
+                            Typical Heat Cycle Interval
+                        </label>
+                        <select class="form-select form-select-lg rounded-3 fs-6" id="cycle_months" name="cycle_months">
+                            <option value="5" {% if cycle_months == 5 %}selected{% endif %}>Every 5 Months (Frequent / Small Breeds)</option>
+                            <option value="6" {% if cycle_months == 6 %}selected{% endif %}>Every 6 Months (Standard Average)</option>
+                            <option value="7" {% if cycle_months == 7 %}selected{% endif %}>Every 7 Months</option>
+                            <option value="8" {% if cycle_months == 8 %}selected{% endif %}>Every 8 Months (Larger Breeds)</option>
+                            <option value="10" {% if cycle_months == 10 %}selected{% endif %}>Every 10-12 Months (Giant / Sight Hounds)</option>
+                        </select>
+                        <div class="form-text small text-muted">Most domestic dogs experience estrus every 6 months (twice annually).</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary-stitch w-100 py-3 rounded-pill fw-bold text-white shadow-sm mt-3">
+                        <i class="fa-solid fa-calculator me-2"></i> Calculate Fertility Windows
+                    </button>
+                </form>
+
+                <div class="mt-4 pt-3 border-top">
+                    <div class="d-flex align-items-center text-muted small">
+                        <i class="fa-solid fa-shield-halved text-success me-2 fs-5"></i>
+                        <span>Aligned with Canine Reproductive Endocrinology and Kennel Club standards.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calculator Results & Timeline -->
+        <div class="col-lg-7" data-aos="fade-left">
+            {% if result %}
+            <!-- Current Status Alert Card -->
+            <div class="card border-0 shadow-sm p-4 rounded-4 mb-4" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white;">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                    <div>
+                        <span class="badge px-3 py-1 rounded-pill mb-2" style="background: rgba(255, 255, 255, 0.15); color: #6ffbbe; font-size: 0.75rem;">
+                            ESTIMATED BIOLOGICAL PHASE TODAY
+                        </span>
+                        <h3 class="fw-bold mb-1 text-white">{{ result.current_phase }}</h3>
+                        <p class="text-slate-300 small mb-0" style="color: #cbd5e1;">
+                            Calculated from bleeding onset date: <b>{{ result.last_heat|date:"d M, Y" }}</b>
+                        </p>
+                    </div>
+                    {% if result.phase_status == 'active_estrus' %}
+                    <div class="mt-3 mt-md-0 text-md-end">
+                        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold fs-6">
+                            <i class="fa-solid fa-fire me-1"></i> OPTIMAL FERTILE WINDOW
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Visual Timeline Card -->
+            <div class="card border-0 shadow-sm p-4 p-md-5 rounded-4 mb-4" style="background: white; border: 1px solid #e2e8f0;">
+                <h4 class="fw-bold text-dark mb-4 d-flex align-items-center">
+                    <i class="fa-solid fa-timeline text-primary me-3"></i>
+                    Cycle Breakdown & Ovulation Windows
+                </h4>
+
+                <div class="timeline-stepper">
+                    <!-- Phase 1: Proestrus -->
+                    <div class="p-3 mb-3 rounded-3" style="background: #f8fafc; border-left: 4px solid #94a3b8;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-1 text-dark">
+                                <i class="fa-solid fa-droplet text-danger me-2"></i> Phase 1: Proestrus (Early Heat)
+                            </h6>
+                            <span class="badge bg-secondary text-white rounded-pill px-3 py-1">Days 1 – 9</span>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            Vulvar swelling and bloody discharge. Males are attracted, but the female will reject mating attempts.
+                        </p>
+                        <div class="fw-bold text-secondary small">
+                            <i class="fa-regular fa-clock me-1"></i> {{ result.proestrus_start|date:"d M, Y" }} &nbsp;—&nbsp; {{ result.proestrus_end|date:"d M, Y" }}
+                        </div>
+                    </div>
+
+                    <!-- Phase 2: Estrus (Fertile Window) -->
+                    <div class="p-4 mb-3 rounded-3 position-relative" style="background: #ecfdf5; border-left: 5px solid #10b981; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.1);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="fw-bold mb-1 text-success d-flex align-items-center">
+                                <i class="fa-solid fa-star text-warning me-2"></i> Phase 2: Estrus (Peak Fertile Window)
+                            </h5>
+                            <span class="badge bg-success text-white rounded-pill px-3 py-1">Days 9 – 14</span>
+                        </div>
+                        <p class="small text-dark mb-2">
+                            Discharge turns straw-colored. Luteinizing Hormone (LH) surge and ovulation occurs (Day 11–13). <b>Prime window for natural supervised tie or vet artificial insemination.</b>
+                        </p>
+                        <div class="fw-bold text-success fs-6">
+                            <i class="fa-regular fa-calendar-check me-1"></i> {{ result.estrus_start|date:"d M, Y" }} &nbsp;—&nbsp; {{ result.estrus_end|date:"d M, Y" }}
+                        </div>
+                    </div>
+
+                    <!-- Vet Checkpoint -->
+                    <div class="p-3 mb-3 rounded-3" style="background: #eff6ff; border-left: 4px solid #3b82f6;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-1 text-primary">
+                                <i class="fa-solid fa-stethoscope me-2"></i> Vet Checkpoint: Progesterone Test Window
+                            </h6>
+                            <span class="badge bg-primary text-white rounded-pill px-3 py-1">Days 7 – 9</span>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            Take your female to a veterinary clinic for blood serum progesterone level testing to pinpoint exact ovulation day.
+                        </p>
+                        <div class="fw-bold text-primary small">
+                            <i class="fa-solid fa-syringe me-1"></i> Recommended Testing: {{ result.prog_test_start|date:"d M, Y" }} – {{ result.prog_test_end|date:"d M, Y" }}
+                        </div>
+                    </div>
+
+                    <!-- Phase 3: Diestrus -->
+                    <div class="p-3 mb-3 rounded-3" style="background: #f8fafc; border-left: 4px solid #94a3b8;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-1 text-dark">
+                                <i class="fa-solid fa-shield-heart text-info me-2"></i> Phase 3: Diestrus (Gestation / Luteal Phase)
+                            </h6>
+                            <span class="badge bg-secondary text-white rounded-pill px-3 py-1">Days 15 – 60</span>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            The female no longer accepts males. If mating was successful, pregnancy lasts ~63 days. Schedule veterinary ultrasound around Day 30 post-mating.
+                        </p>
+                        <div class="fw-bold text-secondary small">
+                            <i class="fa-regular fa-clock me-1"></i> {{ result.diestrus_start|date:"d M, Y" }} &nbsp;—&nbsp; {{ result.diestrus_end|date:"d M, Y" }}
+                        </div>
+                    </div>
+
+                    <!-- Next Estimated Heat -->
+                    <div class="p-3 rounded-3" style="background: #fefce8; border-left: 4px solid #eab308;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-1 text-dark">
+                                <i class="fa-solid fa-repeat text-warning me-2"></i> Next Estimated Heat Cycle
+                            </h6>
+                            <span class="badge bg-warning text-dark rounded-pill px-3 py-1">~{{ result.cycle_months }} Months Later</span>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            Estimated onset for the subsequent heat cycle. Mark your calendar for health checkups.
+                        </p>
+                        <div class="fw-bold text-dark fs-6">
+                            <i class="fa-solid fa-bell text-warning me-1"></i> Estimated Next Heat: <b>{{ result.next_heat_date|date:"F d, Y" }}</b>
+                            {% if result.days_until_next_heat > 0 %}
+                            <span class="text-muted small">({{ result.days_until_next_heat }} days away)</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action CTAs -->
+                <div class="mt-4 pt-4 border-top d-flex flex-column flex-sm-row gap-3">
+                    <a href="{% url 'vets_directory' %}" class="btn btn-outline-primary py-2 px-4 rounded-pill fw-bold text-decoration-none">
+                        <i class="fa-solid fa-hospital me-2"></i> Find Nearby Reproductive Vets
+                    </a>
+                    <a href="{% url 'explore_dogs' %}?gender=male" class="btn btn-primary-stitch py-2 px-4 rounded-pill fw-bold text-white text-decoration-none">
+                        <i class="fa-solid fa-magnifying-glass me-2"></i> Find Certified Stud Dogs
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <!-- Initial Educational Guide Card -->
+            <div class="card border-0 shadow-sm p-5 rounded-4 text-center h-100 d-flex justify-content-center align-items-center" style="background: white; border: 1px solid #e2e8f0;">
+                <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-4" style="width: 80px; height: 80px; background: #e7eeff; color: var(--color-primary);">
+                    <i class="fa-solid fa-dna fa-2x"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-2">Ready to Track Your Dog's Cycle?</h4>
+                <p class="text-muted mb-4" style="max-width: 480px;">
+                    Select the first date of bleeding on the left and hit calculate to visualize your female dog's optimal breeding window, ovulation timeline, and next heat estimate.
+                </p>
+
+                <div class="row g-3 text-start w-100" style="max-width: 500px;">
+                    <div class="col-12 p-3 rounded-3 bg-light d-flex align-items-center">
+                        <i class="fa-solid fa-check-circle text-success fs-4 me-3"></i>
+                        <span class="small text-dark">Pinpoint peak 48-hour ovulation window (LH surge).</span>
+                    </div>
+                    <div class="col-12 p-3 rounded-3 bg-light d-flex align-items-center">
+                        <i class="fa-solid fa-check-circle text-success fs-4 me-3"></i>
+                        <span class="small text-dark">Know exactly when to schedule progesterone blood tests.</span>
+                    </div>
+                    <div class="col-12 p-3 rounded-3 bg-light d-flex align-items-center">
+                        <i class="fa-solid fa-check-circle text-success fs-4 me-3"></i>
+                        <span class="small text-dark">Prevent premature or failed mating attempts.</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -198,3 +198,304 @@ def generate_canine_passport_pdf(dog):
     pdf_bytes = buffer.getvalue()
     buffer.close()
     return pdf_bytes
+
+
+def generate_breeding_contract_pdf(match, custom_data=None):
+    """
+    Generates a legally structured, professional Canine Breeding & Stud Service Agreement PDF
+    binding both canine owners to agreed financial terms, health warranties, and ethical mating covenants.
+    """
+    custom_data = custom_data or {}
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=36,
+        leftMargin=36,
+        topMargin=36,
+        bottomMargin=36
+    )
+
+    styles = getSampleStyleSheet()
+
+    # Colors
+    primary_color = colors.HexColor("#004ac6")
+    secondary_color = colors.HexColor("#006242")
+    dark_color = colors.HexColor("#0f172a")
+    gray_color = colors.HexColor("#64748b")
+    light_bg = colors.HexColor("#f8fafc")
+    gold_color = colors.HexColor("#b45309")
+    border_color = colors.HexColor("#cbd5e1")
+
+    title_style = ParagraphStyle(
+        'ContractTitle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=18,
+        leading=22,
+        textColor=primary_color,
+        alignment=1
+    )
+
+    subtitle_style = ParagraphStyle(
+        'ContractSubTitle',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=9,
+        leading=13,
+        textColor=gray_color,
+        alignment=1
+    )
+
+    section_heading = ParagraphStyle(
+        'ContractSectionHeading',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=11,
+        leading=15,
+        textColor=primary_color,
+        spaceBefore=8,
+        spaceAfter=4
+    )
+
+    cell_label = ParagraphStyle(
+        'ContractCellLabel',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=8.5,
+        leading=11,
+        textColor=dark_color
+    )
+
+    cell_val = ParagraphStyle(
+        'ContractCellVal',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=8.5,
+        leading=11,
+        textColor=dark_color
+    )
+
+    legal_text_style = ParagraphStyle(
+        'ContractLegalText',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=8,
+        leading=11,
+        textColor=dark_color
+    )
+
+    # Determine Sire (Male) and Dam (Female)
+    sender_dog = match.sender_dog
+    target_dog = match.target_dog
+
+    if sender_dog and sender_dog.gender.lower() == 'male':
+        sire_dog = sender_dog
+        sire_owner = match.sender
+        dam_dog = target_dog
+        dam_owner = match.receiver
+    elif target_dog and target_dog.gender.lower() == 'male':
+        sire_dog = target_dog
+        sire_owner = match.receiver
+        dam_dog = sender_dog
+        dam_owner = match.sender
+    else:
+        # Fallback if both genders not distinct
+        sire_dog = sender_dog or target_dog
+        sire_owner = match.sender
+        dam_dog = target_dog or sender_dog
+        dam_owner = match.receiver
+
+    story = []
+
+    # Contract Header
+    contract_id = f"K9M-AGR-{match.id:05d}"
+    agreement_date = custom_data.get('agreement_date') or datetime.now().strftime("%B %d, %Y")
+
+    story.append(Paragraph("CANINE BREEDING & STUD SERVICE AGREEMENT", title_style))
+    story.append(Paragraph(
+        f"K9Match Verified Breeding Contract · Contract Reference: <b>{contract_id}</b> · Date: <b>{agreement_date}</b>",
+        subtitle_style
+    ))
+    story.append(Spacer(1, 8))
+    story.append(HRFlowable(width="100%", thickness=2, color=primary_color, spaceAfter=8))
+
+    # Preamble
+    sire_owner_name = sire_owner.get_full_name() or sire_owner.username
+    dam_owner_name = dam_owner.get_full_name() or dam_owner.username
+    preamble_text = (
+        f"This legally structured Canine Breeding & Stud Service Agreement is entered into on <b>{agreement_date}</b> by and between "
+        f"<b>{sire_owner_name}</b> (hereinafter referred to as the <i>'Sire Owner'</i>) and "
+        f"<b>{dam_owner_name}</b> (hereinafter referred to as the <i>'Dam Owner'</i>) through the K9Match Ethical Canine Matchmaking Platform. "
+        "Both parties mutually agree to the terms, warranties, and obligations set forth herein."
+    )
+    story.append(Paragraph(preamble_text, legal_text_style))
+    story.append(Spacer(1, 8))
+
+    # Section 1: Canine Parties Identification
+    story.append(Paragraph("1. IDENTIFICATION OF SIRE & DAM", section_heading))
+
+    sire_kci = f"KCI #{sire_dog.kci_number}" if (sire_dog and sire_dog.kci_registered and sire_dog.kci_number) else ("KCI Registered" if (sire_dog and sire_dog.kci_registered) else "Pedigree Record Pending")
+    dam_kci = f"KCI #{dam_dog.kci_number}" if (dam_dog and dam_dog.kci_registered and dam_dog.kci_number) else ("KCI Registered" if (dam_dog and dam_dog.kci_registered) else "Pedigree Record Pending")
+    
+    sire_name = sire_dog.name if sire_dog else "N/A"
+    dam_name = dam_dog.name if dam_dog else "N/A"
+    sire_breed = sire_dog.breed if sire_dog else "N/A"
+    dam_breed = dam_dog.breed if dam_dog else "N/A"
+    sire_age = f"{sire_dog.age_years}y {sire_dog.age_months}m" if sire_dog else "N/A"
+    dam_age = f"{dam_dog.age_years}y {dam_dog.age_months}m" if dam_dog else "N/A"
+    sire_city = sire_dog.city if sire_dog else "N/A"
+    dam_city = dam_dog.city if dam_dog else "N/A"
+
+    canine_table_data = [
+        [
+            Paragraph("<b>SIRE (MALE CANINE)</b>", cell_label),
+            Paragraph("<b>DETAILS</b>", cell_label),
+            Paragraph("<b>DAM (FEMALE CANINE)</b>", cell_label),
+            Paragraph("<b>DETAILS</b>", cell_label),
+        ],
+        [
+            Paragraph("Canine Name:", cell_label), Paragraph(sire_name, cell_val),
+            Paragraph("Canine Name:", cell_label), Paragraph(dam_name, cell_val),
+        ],
+        [
+            Paragraph("Breed:", cell_label), Paragraph(sire_breed, cell_val),
+            Paragraph("Breed:", cell_label), Paragraph(dam_breed, cell_val),
+        ],
+        [
+            Paragraph("Age / Location:", cell_label), Paragraph(f"{sire_age} · {sire_city}", cell_val),
+            Paragraph("Age / Location:", cell_label), Paragraph(f"{dam_age} · {dam_city}", cell_val),
+        ],
+        [
+            Paragraph("Registry:", cell_label), Paragraph(sire_kci, cell_val),
+            Paragraph("Registry:", cell_label), Paragraph(dam_kci, cell_val),
+        ],
+        [
+            Paragraph("Owner Name:", cell_label), Paragraph(f"{sire_owner_name} ({sire_owner.username})", cell_val),
+            Paragraph("Owner Name:", cell_label), Paragraph(f"{dam_owner_name} ({dam_owner.username})", cell_val),
+        ],
+        [
+            Paragraph("Owner Contact:", cell_label), Paragraph(f"{sire_owner.phone_number or sire_owner.email}", cell_val),
+            Paragraph("Owner Contact:", cell_label), Paragraph(f"{dam_owner.phone_number or dam_owner.email}", cell_val),
+        ],
+    ]
+
+    canine_table = Table(canine_table_data, colWidths=[1.3*inch, 2.4*inch, 1.3*inch, 2.4*inch])
+    canine_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#e7eeff")),
+        ('GRID', (0,0), (-1,-1), 0.5, border_color),
+        ('TOPPADDING', (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(canine_table)
+    story.append(Spacer(1, 8))
+
+    # Section 2: Compensation & Mating Terms
+    story.append(Paragraph("2. MATING TERMS & FINANCIAL COMPENSATION", section_heading))
+
+    fee_type = custom_data.get('mating_terms') or (sire_dog.get_mating_terms_display() if sire_dog else "Negotiated")
+    fee_amount = custom_data.get('stud_fee_amount') or (f"₹ {sire_dog.stud_fee_amount:,}" if (sire_dog and sire_dog.stud_fee_amount) else "Mutually Agreed")
+    payment_schedule = custom_data.get('payment_schedule') or "50% due on first successful natural mating tie; remaining 50% due on veterinary ultrasound confirmation of pregnancy (at Day 30)."
+    pick_of_litter = custom_data.get('pick_of_litter_terms') or "Sire owner is entitled to first selection of the litter (Pick of Litter) at 45 days of age, provided a minimum of two (2) surviving puppies are whelped."
+
+    terms_data = [
+        [Paragraph("Agreed Terms Type:", cell_label), Paragraph(str(fee_type), cell_val)],
+        [Paragraph("Agreed Stud Fee:", cell_label), Paragraph(str(fee_amount), cell_val)],
+        [Paragraph("Payment Schedule:", cell_label), Paragraph(str(payment_schedule), cell_val)],
+        [Paragraph("Pick of Litter Terms:", cell_label), Paragraph(str(pick_of_litter), cell_val)],
+    ]
+
+    terms_table = Table(terms_data, colWidths=[1.8*inch, 5.6*inch])
+    terms_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#f8fafc")),
+        ('GRID', (0,0), (-1,-1), 0.5, border_color),
+        ('TOPPADDING', (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(terms_table)
+    story.append(Spacer(1, 8))
+
+    # Section 3: Logistics & Health Clearances
+    story.append(Paragraph("3. LOGISTICS, METHOD & VETERINARY HEALTH COVENANTS", section_heading))
+
+    mating_dates = custom_data.get('mating_dates') or "Optimal estrus window (estimated Days 10–14 of female heat cycle)"
+    mating_location = custom_data.get('mating_location') or (f"{sire_dog.city} (Sire's residence or designated Veterinary Clinic)" if sire_dog else "Mutually Agreed Location")
+    mating_method = custom_data.get('mating_method') or "Supervised Natural Mating (or Transcervical/Artificial Insemination by licensed vet)"
+    repeat_policy = custom_data.get('repeat_mating_guarantee') or "YES. If the Dam fails to conceive (as verified by licensed vet ultrasound at 30 days post-mating), the Sire owner guarantees one (1) complimentary repeat service on her next heat cycle."
+
+    logistics_data = [
+        [Paragraph("Planned Dates:", cell_label), Paragraph(str(mating_dates), cell_val)],
+        [Paragraph("Planned Location:", cell_label), Paragraph(str(mating_location), cell_val)],
+        [Paragraph("Mating Method:", cell_label), Paragraph(str(mating_method), cell_val)],
+        [Paragraph("Repeat Service Policy:", cell_label), Paragraph(str(repeat_policy), cell_val)],
+        [Paragraph("Health Warranties:", cell_label), Paragraph(
+            "Both parties warrant that both canines are in sound health, free from infectious or contagious diseases, "
+            "up to date on core vaccinations (Rabies, DHPPiL), certified Canine Brucellosis negative, and free from transmissible venereal tumors (TVT).",
+            cell_val
+        )],
+    ]
+
+    logistics_table = Table(logistics_data, colWidths=[1.8*inch, 5.6*inch])
+    logistics_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor("#f8fafc")),
+        ('GRID', (0,0), (-1,-1), 0.5, border_color),
+        ('TOPPADDING', (0,0), (-1,-1), 3),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(logistics_table)
+    story.append(Spacer(1, 8))
+
+    # Special Conditions
+    special_notes = custom_data.get('special_conditions') or "Both parties agree to treat both animals humanely, avoid excessive breeding ties, and register all resulting puppies in accordance with Kennel Club rules."
+    story.append(Paragraph("4. SPECIAL CONDITIONS & ETHICAL COVENANTS", section_heading))
+    story.append(Paragraph(f"<i>{special_notes}</i>", legal_text_style))
+    story.append(Spacer(1, 10))
+
+    # Section 5: Signature Blocks
+    story.append(Paragraph("5. EXECUTION & SIGNATURES", section_heading))
+
+    sig_data = [
+        [
+            Paragraph("<b>SIRE OWNER SIGNATURE</b>", cell_label),
+            Paragraph("<b>DAM OWNER SIGNATURE</b>", cell_label),
+        ],
+        [
+            Paragraph(f"Full Name: <b>{sire_owner_name}</b>", cell_val),
+            Paragraph(f"Full Name: <b>{dam_owner_name}</b>", cell_val),
+        ],
+        [
+            Paragraph(f"Date: {agreement_date}", cell_val),
+            Paragraph(f"Date: {agreement_date}", cell_val),
+        ],
+        [
+            Paragraph("<br/><br/>________________________________________<br/>Signature", cell_val),
+            Paragraph("<br/><br/>________________________________________<br/>Signature", cell_val),
+        ],
+    ]
+
+    sig_table = Table(sig_data, colWidths=[3.7*inch, 3.7*inch])
+    sig_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor("#f0fdf4")),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor("#86efac")),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    story.append(sig_table)
+    story.append(Spacer(1, 8))
+
+    # Footer note
+    footer_text = Paragraph(
+        "<i>Notice: This official agreement is executed through K9Match. Both parties acknowledge compliance with the Prevention of Cruelty to Animals (Dog Breeding and Marketing) Rules and ethical breeding standards.</i>",
+        subtitle_style
+    )
+    story.append(footer_text)
+
+    # Build PDF
+    doc.build(story)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes

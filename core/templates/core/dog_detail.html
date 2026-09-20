@@ -125,6 +125,11 @@
                 <a href="{% url 'export_dog_passport_pdf' dog.id %}" class="btn btn-soft btn-sm rounded-pill px-3 py-2 fw-bold text-decoration-none">
                     <i class="fas fa-file-pdf me-1 text-danger"></i> Export Passport PDF
                 </a>
+                {% if dog.gender == 'female' %}
+                    <a href="{% url 'heat_calculator' %}?dog_id={{ dog.id }}" class="btn btn-soft btn-sm rounded-pill px-3 py-2 fw-bold text-decoration-none">
+                        <i class="fa-solid fa-calculator me-1 text-warning"></i> Heat Tracker
+                    </a>
+                {% endif %}
                 <button type="button" class="btn btn-soft btn-sm rounded-pill px-3 py-2 fw-bold d-none d-md-inline-block" onclick="window.print()">
                     <i class="fas fa-print me-1 text-primary"></i> Print
                 </button>

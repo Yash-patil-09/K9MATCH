@@ -1694,6 +1694,136 @@ class Phase4DeploymentAndStorageTests(TestCase):
         self.assertTrue(config['CONN_HEALTH_CHECKS'])
 
 
+class Phase5LegalAndHealthUtilitiesTests(TestCase):
+    def setUp(self):
+        self.owner_a = User.objects.create_user(username='sire_owner', email='sire@example.com', password='password123')
+        self.owner_b = User.objects.create_user(username='dam_owner', email='dam@example.com', password='password123')
+        self.owner_c = User.objects.create_user(username='outsider', email='outsider@example.com', password='password123')
+
+        self.sire = DogProfile.objects.create(
+            owner=self.owner_a,
+            name='Thor',
+            breed='German Shepherd',
+            gender='male',
+            age_years=2,
+            age_months=6,
+            city='Mumbai',
+            approval_status='approved',
+            is_available=True,
+            is_vaccinated=True,
+            kci_registered=True,
+            kci_number='KCI-GSD-9988',
+            stud_fee_amount=20000,
+            mating_terms='stud_fee'
+        )
+
+        self.dam = DogProfile.objects.create(
+            owner=self.owner_b,
+            name='Freya',
+            breed='German Shepherd',
+            gender='female',
+            age_years=2,
+            age_months=0,
+            city='Pune',
+            approval_status='approved',
+            is_available=True,
+            is_vaccinated=True,
+            kci_registered=True,
+            kci_number='KCI-GSD-7766'
+        )
+
+        self.match = MatchRequest.objects.create(
+            sender=self.owner_a,
+            receiver=self.owner_b,
+            sender_dog=self.sire,
+            target_dog=self.dam,
+            status='accepted'
+        )
+
+    def test_generate_breeding_contract_pdf(self):
+        """generate_breeding_contract_pdf should create a valid PDF binary stream."""
+        from core.pdf_utils import generate_breeding_contract_pdf
+        pdf_bytes = generate_breeding_contract_pdf(self.match)
+        self.assertTrue(pdf_bytes.startswith(b'%PDF-'))
+        self.assertGreater(len(pdf_bytes), 1000)
+
+    def test_generate_breeding_contract_pdf_with_custom_data(self):
+        """generate_breeding_contract_pdf should incorporate negotiated terms without error."""
+        from core.pdf_utils import generate_breeding_contract_pdf
+        custom_data = {
+            'mating_terms': 'Pick of Litter',
+            'stud_fee_amount': 'First choice female puppy at 6 weeks',
+            'payment_schedule': 'No cash payment',
+            'mating_dates': 'October 15-20, 2026',
+            'mating_location': 'Panvel Veterinary Specialty Clinic',
+            'mating_method': 'Veterinary AI',
+            'repeat_mating_guarantee': 'Yes, 1 complimentary repeat service',
+            'special_conditions': 'Both dogs checked for Brucellosis within 30 days.'
+        }
+        pdf_bytes = generate_breeding_contract_pdf(self.match, custom_data)
+        self.assertTrue(pdf_bytes.startswith(b'%PDF-'))
+        self.assertGreater(len(pdf_bytes), 1000)
+
+    def test_export_breeding_contract_view_access(self):
+        """Only participants of accepted match can export the breeding agreement."""
+        client = Client()
+
+        # Non-participant should be redirected with error
+        client.login(username='outsider', password='password123')
+        res = client.get(reverse('export_breeding_contract_pdf', args=[self.match.id]))
+        self.assertEqual(res.status_code, 302)
+
+        # Participant should successfully download PDF
+        client.login(username='sire_owner', password='password123')
+        res = client.get(reverse('export_breeding_contract_pdf', args=[self.match.id]))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res['Content-Type'], 'application/pdf')
+        self.assertTrue(res.content.startswith(b'%PDF-'))
+
+    def test_export_breeding_contract_post_custom_terms(self):
+        """POST request to export_breeding_contract_pdf with custom terms should generate customized PDF."""
+        client = Client()
+        client.login(username='dam_owner', password='password123')
+        post_data = {
+            'mating_terms': 'Stud Fee',
+            'stud_fee_amount': '₹ 18,000',
+            'payment_schedule': '100% on first tie',
+            'mating_location': 'Pune Clinic',
+            'mating_dates': 'Nov 1-5, 2026',
+            'mating_method': 'Supervised Natural',
+            'repeat_mating_guarantee': 'Yes',
+            'special_conditions': 'Attending vet Dr. Sharma'
+        }
+        res = client.post(reverse('export_breeding_contract_pdf', args=[self.match.id]), post_data)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res['Content-Type'], 'application/pdf')
+        self.assertTrue(res.content.startswith(b'%PDF-'))
+
+    def test_heat_calculator_view(self):
+        """heat_calculator view should correctly compute canine ovulation and next heat date."""
+        client = Client()
+        client.login(username='dam_owner', password='password123')
+
+        # GET initial page
+        res = client.get(reverse('heat_calculator'))
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('user_female_dogs', res.context)
+
+        # GET with calculation parameters
+        res = client.get(reverse('heat_calculator'), {
+            'last_heat': '2026-08-01',
+            'cycle_months': '6',
+            'dog_id': self.dam.id
+        })
+        self.assertEqual(res.status_code, 200)
+        result = res.context['result']
+        self.assertIsNotNone(result)
+        self.assertIn('estrus_start', result)
+        self.assertIn('estrus_end', result)
+        self.assertIn('next_heat_date', result)
+        self.assertEqual(result['cycle_months'], 6)
+
+
 
 
 
