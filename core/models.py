@@ -300,11 +300,13 @@ class ChatMessage(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_edited = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
+    is_read = models.BooleanField(default=False, db_index=True)
 
     class Meta:
         ordering = ['timestamp']
         indexes = [
             models.Index(fields=['match', 'timestamp']),
+            models.Index(fields=['match', 'is_read']),
         ]
 
     def __str__(self):

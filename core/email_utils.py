@@ -48,6 +48,26 @@ class InlineImageEmailMessage(EmailMultiAlternatives):
         return msg
 
 
+def _get_logo_bytes():
+    """Loads official logo for inline CID rendering."""
+    logo_path = os.path.join(settings.BASE_DIR, 'core', 'static', 'images', 'logo.png')
+    if os.path.exists(logo_path):
+        try:
+            with open(logo_path, 'rb') as f:
+                return f.read()
+        except Exception:
+            pass
+    return None
+
+
+def _get_from_email():
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+    if not from_email:
+        host_user = getattr(settings, 'EMAIL_HOST_USER', '')
+        from_email = f"K9Match <{host_user}>" if host_user else 'K9Match <no-reply@k9match.com>'
+    return from_email
+
+
 def send_otp_email(email, purpose='signup'):
     """
     Generates a secure 6-digit OTP and dispatches a branded HTML email to the user with the official K9Match logo.
@@ -62,12 +82,7 @@ def send_otp_email(email, purpose='signup'):
         else:
             subject = f"{otp_obj.otp_code} is your K9Match Password Reset Code"
 
-        # Load official logo for inline CID rendering
-        logo_path = os.path.join(settings.BASE_DIR, 'core', 'static', 'images', 'logo.png')
-        logo_bytes = None
-        if os.path.exists(logo_path):
-            with open(logo_path, 'rb') as f:
-                logo_bytes = f.read()
+        logo_bytes = _get_logo_bytes()
 
         context = {
             'email': email,
@@ -84,10 +99,7 @@ def send_otp_email(email, purpose='signup'):
             f"— The K9Match Team"
         )
 
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
-        if not from_email:
-            host_user = getattr(settings, 'EMAIL_HOST_USER', '')
-            from_email = f"K9Match <{host_user}>" if host_user else 'K9Match <no-reply@k9match.com>'
+        from_email = _get_from_email()
 
         msg = InlineImageEmailMessage(
             subject=subject,
@@ -101,9 +113,181 @@ def send_otp_email(email, purpose='signup'):
             msg.attach_inline_image(logo_bytes, 'image', 'png', 'k9match_logo', 'logo.png')
 
         msg.send(fail_silently=False)
-
         return True, otp_obj, None
 
     except Exception as e:
         logger.exception("Failed to send OTP email to %s: %s", email, str(e))
         return False, None, str(e)
+
+
+def send_match_proposal_email(match_request, request=None):
+    """
+    Dispatches a transactional email to the target canine's owner when a breeding proposal is sent.
+    """
+    try:
+        recipient = match_request.receiver
+        if not recipient or not recipient.email:
+            return False, "Recipient has no email address"
+
+        sender_user = match_request.sender
+        sender_dog = match_request.sender_dog
+        target_dog = match_request.target_dog
+
+        from django.urls import reverse
+        rel_url = reverse('match_requests_dashboard')
+        action_url = request.build_absolute_uri(rel_url) if request else f"https://k9match.com{rel_url}"
+
+        subject = f"🐾 New Breeding Match Proposal for {target_dog.name} from {sender_user.username}"
+
+        context = {
+            'recipient_name': recipient.first_name or recipient.username,
+            'sender_username': sender_user.username,
+            'sender_dog_name': sender_dog.name if sender_dog else None,
+            'sender_dog_breed': sender_dog.breed if sender_dog else None,
+            'sender_dog_city': sender_dog.city if sender_dog else None,
+            'target_dog_name': target_dog.name,
+            'proposal_message': match_request.message,
+            'action_url': action_url,
+            'subject': subject,
+        }
+
+        html_content = render_to_string('emails/match_proposal_email.html', context)
+        text_content = (
+            f"Hello {recipient.username},\n\n"
+            f"{sender_user.username} has sent a breeding match proposal for {target_dog.name}!\n"
+            f"{'Proposing canine: ' + sender_dog.name if sender_dog else ''}\n"
+            f"{'Note: ' + match_request.message if match_request.message else ''}\n\n"
+            f"Review and respond to this proposal here: {action_url}\n\n"
+            f"— The K9Match Team"
+        )
+
+        msg = InlineImageEmailMessage(
+            subject=subject,
+            body=text_content,
+            from_email=_get_from_email(),
+            to=[recipient.email]
+        )
+        msg.attach_alternative(html_content, "text/html")
+
+        logo_bytes = _get_logo_bytes()
+        if logo_bytes:
+            msg.attach_inline_image(logo_bytes, 'image', 'png', 'k9match_logo', 'logo.png')
+
+        msg.send(fail_silently=False)
+        return True, None
+
+    except Exception as e:
+        logger.exception("Failed to send match proposal email for match %s: %s", getattr(match_request, 'id', None), str(e))
+        return False, str(e)
+
+
+def send_match_accepted_email(match_request, request=None):
+    """
+    Dispatches a celebratory email to the proposing user when their match proposal is accepted.
+    """
+    try:
+        recipient = match_request.sender
+        if not recipient or not recipient.email:
+            return False, "Recipient has no email address"
+
+        partner_user = match_request.receiver
+        sender_dog = match_request.sender_dog
+        target_dog = match_request.target_dog
+
+        from django.urls import reverse
+        rel_url = reverse('chat_room', args=[match_request.id])
+        chat_url = request.build_absolute_uri(rel_url) if request else f"https://k9match.com{rel_url}"
+
+        subject = f"🎉 Great News! Match Proposal Accepted for {target_dog.name}"
+
+        context = {
+            'recipient_name': recipient.first_name or recipient.username,
+            'partner_username': partner_user.username,
+            'sender_dog_name': sender_dog.name if sender_dog else 'Your canine',
+            'target_dog_name': target_dog.name,
+            'chat_url': chat_url,
+            'subject': subject,
+        }
+
+        html_content = render_to_string('emails/match_accepted_email.html', context)
+        text_content = (
+            f"Congratulations {recipient.username}!\n\n"
+            f"{partner_user.username} has accepted your breeding match proposal between "
+            f"{sender_dog.name if sender_dog else 'your canine'} and {target_dog.name}.\n\n"
+            f"You can now chat directly to coordinate details: {chat_url}\n\n"
+            f"— The K9Match Team"
+        )
+
+        msg = InlineImageEmailMessage(
+            subject=subject,
+            body=text_content,
+            from_email=_get_from_email(),
+            to=[recipient.email]
+        )
+        msg.attach_alternative(html_content, "text/html")
+
+        logo_bytes = _get_logo_bytes()
+        if logo_bytes:
+            msg.attach_inline_image(logo_bytes, 'image', 'png', 'k9match_logo', 'logo.png')
+
+        msg.send(fail_silently=False)
+        return True, None
+
+    except Exception as e:
+        logger.exception("Failed to send match accepted email for match %s: %s", getattr(match_request, 'id', None), str(e))
+        return False, str(e)
+
+
+def send_match_declined_email(match_request, request=None):
+    """
+    Dispatches a polite update to the proposing user when their match proposal is declined.
+    """
+    try:
+        recipient = match_request.sender
+        if not recipient or not recipient.email:
+            return False, "Recipient has no email address"
+
+        partner_user = match_request.receiver
+        target_dog = match_request.target_dog
+
+        from django.urls import reverse
+        rel_url = reverse('explore_dogs')
+        explore_url = request.build_absolute_uri(rel_url) if request else f"https://k9match.com{rel_url}"
+
+        subject = f"Update on your Match Proposal for {target_dog.name}"
+
+        context = {
+            'recipient_name': recipient.first_name or recipient.username,
+            'partner_username': partner_user.username,
+            'target_dog_name': target_dog.name,
+            'explore_url': explore_url,
+            'subject': subject,
+        }
+
+        html_content = render_to_string('emails/match_declined_email.html', context)
+        text_content = (
+            f"Hello {recipient.username},\n\n"
+            f"{partner_user.username} was unable to accept your breeding match proposal for {target_dog.name} at this time.\n\n"
+            f"You can explore more available canines here: {explore_url}\n\n"
+            f"— The K9Match Team"
+        )
+
+        msg = InlineImageEmailMessage(
+            subject=subject,
+            body=text_content,
+            from_email=_get_from_email(),
+            to=[recipient.email]
+        )
+        msg.attach_alternative(html_content, "text/html")
+
+        logo_bytes = _get_logo_bytes()
+        if logo_bytes:
+            msg.attach_inline_image(logo_bytes, 'image', 'png', 'k9match_logo', 'logo.png')
+
+        msg.send(fail_silently=False)
+        return True, None
+
+    except Exception as e:
+        logger.exception("Failed to send match declined email for match %s: %s", getattr(match_request, 'id', None), str(e))
+        return False, str(e)
+

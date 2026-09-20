@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject|default:"Update on your Match Proposal" }}</title>
+    <style>
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+        body { margin: 0; padding: 0; width: 100% !important; background-color: #f4f6fb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f6fb; color: #1e293b;">
+
+    <!-- Wrapper Table -->
+    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f6fb; padding: 40px 15px;">
+        <tr>
+            <td align="center">
+                
+                <!-- Container Card -->
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 580px; background-color: #ffffff; border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 74, 198, 0.07); border: 1px solid #e2e8f0;">
+                    
+                    <!-- Header with White Background & Official Logo -->
+                    <tr>
+                        <td align="center" style="background-color: #ffffff; padding: 34px 30px 22px 30px; text-align: center; border-bottom: 1px solid #f1f5f9;">
+                            <img src="cid:k9match_logo" alt="K9Match" width="220" style="max-width: 220px; width: 100%; height: auto; display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none;">
+                        </td>
+                    </tr>
+
+                    <!-- Body Content -->
+                    <tr>
+                        <td style="padding: 36px 36px 28px 36px;">
+                            <div style="display: inline-block; background-color: #f1f5f9; color: #475569; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; padding: 6px 14px; border-radius: 20px; margin-bottom: 14px;">
+                                🐾 Match Status Update
+                            </div>
+                            <h2 style="font-size: 21px; font-weight: 700; color: #0f172a; margin: 0 0 14px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+                                Hello, {{ recipient_name }}
+                            </h2>
+                            <p style="font-size: 15px; line-height: 24px; color: #475569; margin: 0 0 20px 0;">
+                                We're writing to let you know that <strong>{{ partner_username }}</strong> was unable to accept your breeding match proposal for <strong style="color: #0f172a;">{{ target_dog_name }}</strong> at this time.
+                            </p>
+                            <p style="font-size: 14px; line-height: 22px; color: #64748b; margin: 0 0 26px 0;">
+                                Breeding partners frequently decline due to resting cycles, schedule conflicts, or distance. There are many other verified canine candidates in your area!
+                            </p>
+
+                            <!-- CTA Button -->
+                            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 24px 0 24px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{ explore_url }}" style="background: linear-gradient(135deg, #004ac6 0%, #1e40af 100%); color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 34px; border-radius: 30px; display: inline-block; box-shadow: 0 4px 14px rgba(0, 74, 198, 0.25);">
+                                            Explore More Verified Mates →
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #fafbfd; border-top: 1px solid #f1f5f9; padding: 22px 34px; text-align: center;">
+                            <p style="font-size: 12px; color: #94a3b8; margin: 0 0 6px 0;">
+                                © 2026 K9Match Technologies Inc. · Dedicated to Responsible Canine Care
+                            </p>
+                            <p style="font-size: 11px; color: #cbd5e1; margin: 0;">
+                                Need assistance? Reach out anytime at <a href="mailto:support@k9match.com" style="color: #004ac6; text-decoration: none;">support@k9match.com</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

@@ -56,34 +56,31 @@ graph TD
 
 ---
 
-## 🔐 Phase 2: Authentication Extensions & Notification Engine (Days 21–23)
+## 🔐 Phase 2: Authentication Extensions & Notification Engine (Days 21–23) — [COMPLETED ✅]
 
-### 2.1 Third-Party & Account Authentication
+### 2.1 Third-Party & Account Authentication ✅
 - **Google OAuth2 Social Sign-In**:
-  - Integrate `django-allauth` for seamless one-click Google login and sign-up.
-  - Custom adapter to ensure user profiles, roles, and usernames are configured on first login.
+  - Implemented one-click Google OAuth2 login & callback flows with automatic account provisioning.
 - **Email Verification Lifecycle**:
-  - Token-based email verification on registration.
-  - Verification email dispatch with signed activation links.
-  - Custom activation landing page and resend-verification flow.
+  - Secure 6-digit OTP verification on registration with branded HTML email & inline logo packaging (`cid:k9match_logo`).
 - **End-to-End Password Reset Flow**:
-  - Password reset request view with email dispatch.
-  - Secure, timed token generation (`PasswordResetTokenGenerator`).
-  - Branded Password Reset Confirm and Password Reset Complete pages.
+  - Secure timed OTP verification with 5-attempt brute-force protection and password reset confirm flow.
 
-### 2.2 Transactional Email Notification System
-- **SMTP Provider Integration**:
-  - Configure production-grade SMTP backend (SendGrid, Amazon SES, or Mailgun) with fallback support for local console in development.
+### 2.2 Transactional Email Notification System ✅
+- **SMTP Integration**:
+  - Configured Gmail SMTP backend in `settings.py` with automatic console fallback for development.
 - **Automated Responsive HTML Email Templates**:
-  - **New Match Proposal**: Sent to the dog owner when a breeding request is received, with a direct CTA button to review the proposal.
-  - **Match Accepted Notification**: Sent to the sender with a "Chat Now" CTA.
-  - **Match Declined Notification**: Polite update to the sender.
+  - **New Match Proposal (`match_proposal_email.html`)**: Sent to the recipient with dog details, message, and direct CTA to review the proposal.
+  - **Match Accepted (`match_accepted_email.html`)**: Celebratory notification sent to the sender with a "Chat Now" CTA linking to the chat room.
+  - **Match Declined (`match_declined_email.html`)**: Polite update sent to the sender encouraging exploration of other mates.
 
-### 2.3 In-App Alerts & Activity Badges
+### 2.3 In-App Alerts & Activity Badges ✅
 - **Unread Message & Pending Request Badges**:
-  - Dynamic navbar notification counter for unread messages and pending incoming match requests.
+  - Added `is_read` field to `ChatMessage` with database index `['match', 'is_read']`.
+  - Dynamic navbar counter (`navbar_unread_messages_count`) across desktop nav, mobile offcanvas, and user dropdown.
+  - Automatic unread marking upon opening the chat room or polling messages via API.
 - **Live Visual Alerts (Toast Notifications)**:
-  - Floating toast notifications in the UI when match request statuses change or new messages arrive.
+  - Global toast notification engine (`window.showToast`) in `base.html` for asynchronous match and message interactions.
 
 ---
 

@@ -19,7 +19,7 @@ from django.utils import timezone
 from .forms import CustomUserCreationForm, DogProfileForm, DogImageForm, ReportListingForm, PUREBRED_CHOICES, CROSSBREED_CHOICES
 from .models import DogProfile, DogImage, MatchRequest, ChatMessage, VeterinaryClinic, EmailOTP, ReportListing
 from .utils import get_city_coordinates, get_state_coordinates, haversine_distance
-from .email_utils import send_otp_email
+from .email_utils import send_otp_email, send_match_proposal_email, send_match_accepted_email, send_match_declined_email
 from .pdf_utils import generate_canine_passport_pdf
 from .places_service import get_nearby_vets_dynamic
 
@@ -822,6 +822,10 @@ def send_match_request(request, dog_id):
             )
             match_req.full_clean()
             match_req.save()
+
+            # Dispatch transactional email notification
+            send_match_proposal_email(match_req, request)
+
             success_msg = f"❤️ Match request sent to {target_dog.name}'s owner ({target_dog.owner.username})!"
             if is_ajax:
                 return JsonResponse({
@@ -870,6 +874,10 @@ def respond_match_request(request, request_id, action):
     if action == 'accept':
         match_req.status = 'accepted'
         match_req.save()
+
+        # Dispatch match accepted email notification
+        send_match_accepted_email(match_req, request)
+
         success_msg = f"You accepted the match proposal from {match_req.sender.username} for {match_req.sender_dog.name if match_req.sender_dog else 'their canine'}!"
         if is_ajax:
             return JsonResponse({
@@ -882,6 +890,10 @@ def respond_match_request(request, request_id, action):
     elif action in ['decline', 'reject']:
         match_req.status = 'declined'
         match_req.save()
+
+        # Dispatch match declined email notification
+        send_match_declined_email(match_req, request)
+
         info_msg = "Match proposal declined."
         if is_ajax:
             return JsonResponse({'success': True, 'action': 'declined', 'message': info_msg})
@@ -935,6 +947,7 @@ def chats_inbox(request):
             'is_deleted': is_deleted,
             'last_time': last_time,
             'has_messages': bool(last_msg),
+            'unread_count': m.messages.filter(is_read=False).exclude(sender=request.user).count(),
         })
 
     conversations.sort(key=lambda c: c['last_time'], reverse=True)
@@ -952,6 +965,9 @@ def chat_room(request, match_id):
     if request.user != match_req.sender and request.user != match_req.receiver:
         messages.error(request, "You do not have access to this conversation.")
         return redirect('match_requests_dashboard')
+
+    # Mark incoming unread messages as read
+    match_req.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
 
     other_user = match_req.receiver if request.user == match_req.sender else match_req.sender
     chat_messages = match_req.messages.all()
@@ -986,7 +1002,8 @@ def send_message_api(request, match_id):
         msg = ChatMessage.objects.create(
             match=match_req,
             sender=request.user,
-            message=sanitized_text
+            message=sanitized_text,
+            is_read=False
         )
         # Convert timestamp to local time zone
         local_time = timezone.localtime(msg.timestamp).strftime('%I:%M %p')
@@ -1008,6 +1025,9 @@ def get_messages_api(request, match_id):
     
     if request.user != match_req.sender and request.user != match_req.receiver:
         return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    # Mark incoming unread messages as read upon polling
+    match_req.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
 
     messages_data = [
         {

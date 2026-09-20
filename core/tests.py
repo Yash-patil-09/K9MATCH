@@ -1462,6 +1462,133 @@ class DynamicVeterinaryRadarTests(TestCase):
         self.assertGreaterEqual(data['total_count'], 1)
 
 
+from django.core import mail
+from core.context_processors import global_notifications
+
+class Phase2NotificationAndChatTests(TestCase):
+    def setUp(self):
+        self.user1 = User.objects.create_user(username='alice', email='alice@example.com', password='password123')
+        self.user2 = User.objects.create_user(username='bob', email='bob@example.com', password='password123')
+        self.dog1 = DogProfile.objects.create(
+            owner=self.user1,
+            name='Rocky',
+            breed='Golden Retriever',
+            gender='male',
+            age_years=2,
+            age_months=0,
+            weight=30,
+            city='Panvel',
+            state='Maharashtra',
+            approval_status='approved',
+            is_available=True,
+            is_vaccinated=True,
+            kci_registered=True
+        )
+        self.dog2 = DogProfile.objects.create(
+            owner=self.user2,
+            name='Bella',
+            breed='Golden Retriever',
+            gender='female',
+            age_years=2,
+            age_months=6,
+            weight=26,
+            city='Panvel',
+            state='Maharashtra',
+            approval_status='approved',
+            is_available=True,
+            is_vaccinated=True,
+            kci_registered=True
+        )
+        self.client1 = Client()
+        self.client1.login(username='alice', password='password123')
+        self.client2 = Client()
+        self.client2.login(username='bob', password='password123')
+
+    def test_send_match_proposal_email(self):
+        """When a user sends a match request, an email notification is dispatched to the recipient."""
+        mail.outbox = []
+        res = self.client1.post(reverse('send_match_request', args=[self.dog2.id]), {
+            'sender_dog': self.dog1.id,
+            'message': 'Would love for Rocky and Bella to mate!'
+        })
+        self.assertEqual(MatchRequest.objects.count(), 1)
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertIn('bob@example.com', email.to)
+        self.assertIn('Bella', email.subject)
+        self.assertIn('Rocky', email.body)
+
+    def test_respond_match_request_accept_email(self):
+        """When an owner accepts a match request, an acceptance email is dispatched to the sender."""
+        match_req = MatchRequest.objects.create(
+            sender=self.user1,
+            receiver=self.user2,
+            sender_dog=self.dog1,
+            target_dog=self.dog2,
+            status='pending'
+        )
+        mail.outbox = []
+        res = self.client2.get(reverse('respond_match_request', args=[match_req.id, 'accept']))
+        match_req.refresh_from_db()
+        self.assertEqual(match_req.status, 'accepted')
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertIn('alice@example.com', email.to)
+        self.assertIn('Accepted', email.subject)
+
+    def test_respond_match_request_decline_email(self):
+        """When an owner declines a match request, a polite decline email is dispatched to the sender."""
+        match_req = MatchRequest.objects.create(
+            sender=self.user1,
+            receiver=self.user2,
+            sender_dog=self.dog1,
+            target_dog=self.dog2,
+            status='pending'
+        )
+        mail.outbox = []
+        res = self.client2.get(reverse('respond_match_request', args=[match_req.id, 'decline']))
+        match_req.refresh_from_db()
+        self.assertEqual(match_req.status, 'declined')
+        self.assertEqual(len(mail.outbox), 1)
+        email = mail.outbox[0]
+        self.assertIn('alice@example.com', email.to)
+        self.assertIn('Update', email.subject)
+
+    def test_chat_message_is_read_flag_and_navbar_counter(self):
+        """New messages default to is_read=False, increment navbar counter, and mark is_read=True on chat open."""
+        match_req = MatchRequest.objects.create(
+            sender=self.user1,
+            receiver=self.user2,
+            sender_dog=self.dog1,
+            target_dog=self.dog2,
+            status='accepted'
+        )
+        # Alice sends a message to Bob
+        msg = ChatMessage.objects.create(
+            match=match_req,
+            sender=self.user1,
+            message="Hello Bob!"
+        )
+        self.assertFalse(msg.is_read)
+
+        # Context processor for Bob should show 1 unread message
+        factory = RequestFactory()
+        req_bob = factory.get('/')
+        req_bob.user = self.user2
+        context = global_notifications(req_bob)
+        self.assertEqual(context['navbar_unread_messages_count'], 1)
+
+        # Bob opens chat room: message should be marked as read
+        self.client2.get(reverse('chat_room', args=[match_req.id]))
+        msg.refresh_from_db()
+        self.assertTrue(msg.is_read)
+
+        # Context processor for Bob should now show 0 unread messages
+        context_after = global_notifications(req_bob)
+        self.assertEqual(context_after['navbar_unread_messages_count'], 0)
+
+
+
 
 
 

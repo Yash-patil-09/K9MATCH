@@ -235,7 +235,12 @@
                                 <span class="badge rounded-pill bg-danger ms-1" style="font-size: 0.65rem;">{{ navbar_pending_matches_count }}</span>
                             {% endif %}
                         </a>
-                        <a href="{% url 'chats_inbox' %}" class="stitch-nav-link">Messages</a>
+                        <a href="{% url 'chats_inbox' %}" class="stitch-nav-link position-relative">
+                            Messages
+                            {% if navbar_unread_messages_count > 0 %}
+                                <span class="badge rounded-pill bg-danger ms-1" style="font-size: 0.65rem;">{{ navbar_unread_messages_count }}</span>
+                            {% endif %}
+                        </a>
                         {% if user.is_staff %}
                             <a href="{% url 'admin_dashboard' %}" class="stitch-nav-link text-danger fw-semibold">
                                 Admin
@@ -274,15 +279,21 @@
                                 {% endif %}
                                 <li><a class="dropdown-item py-2 rounded-3" href="{% url 'my_dogs' %}"><i class="fas fa-paw me-2 text-primary"></i> My Canine Registry</a></li>
                                 <li><a class="dropdown-item py-2 rounded-3" href="{% url 'add_dog' %}"><i class="fas fa-plus-circle me-2 text-success"></i> Register New Dog</a></li>
-                                <li><a class="dropdown-item py-2 rounded-3" href="{% url 'match_requests_dashboard' %}"><i class="fas fa-handshake me-2 text-warning"></i> Match Proposals</a></li>
-                                <li><a class="dropdown-item py-2 rounded-3" href="{% url 'chats_inbox' %}"><i class="fas fa-comments me-2 text-info"></i> Messages</a></li>
+                                <li><a class="dropdown-item py-2 rounded-3" href="{% url 'match_requests_dashboard' %}"><i class="fas fa-handshake me-2 text-warning"></i> Match Proposals</a></li>                                <li>
+                                    <a class="dropdown-item py-2 rounded-3 d-flex align-items-center justify-content-between" href="{% url 'chats_inbox' %}">
+                                        <span><i class="fas fa-comments me-2 text-info"></i> Messages</span>
+                                        {% if navbar_unread_messages_count > 0 %}
+                                            <span class="badge rounded-pill bg-danger" style="font-size: 0.65rem;">{{ navbar_unread_messages_count }}</span>
+                                        {% endif %}
+                                    </a>
+                                </li>
                                 <li><a class="dropdown-item py-2 rounded-3" href="{% url 'profile' %}"><i class="fas fa-user-gear me-2 text-muted"></i> Account Settings</a></li>
                                 <li><hr class="dropdown-divider my-1"></li>
                                 <li>
                                     <form method="POST" action="{% url 'logout' %}">
                                         {% csrf_token %}
                                         <button type="submit" class="dropdown-item py-2 rounded-3 text-danger fw-bold">
-                                            <i class="fas fa-sign-out-alt me-2"></i> Log Out
+                                             <i class="fas fa-sign-out-alt me-2"></i> Log Out
                                         </button>
                                     </form>
                                 </li>
@@ -328,8 +339,18 @@
                     <hr class="my-2 text-muted opacity-25">
                     <a href="{% url 'my_dogs' %}" class="stitch-nav-link py-2"><i class="fas fa-dog me-2 text-muted"></i> My Dogs</a>
                     <a href="{% url 'add_dog' %}" class="stitch-nav-link py-2"><i class="fas fa-plus me-2 text-muted"></i> Register Dog</a>
-                    <a href="{% url 'match_requests_dashboard' %}" class="stitch-nav-link py-2"><i class="fas fa-heart me-2 text-muted"></i> Match Proposals</a>
-                    <a href="{% url 'chats_inbox' %}" class="stitch-nav-link py-2"><i class="fas fa-comments me-2 text-muted"></i> Messages</a>
+                    <a href="{% url 'match_requests_dashboard' %}" class="stitch-nav-link py-2 d-flex align-items-center justify-content-between">
+                        <span><i class="fas fa-heart me-2 text-muted"></i> Match Proposals</span>
+                        {% if navbar_pending_matches_count > 0 %}
+                            <span class="badge rounded-pill bg-danger" style="font-size: 0.65rem;">{{ navbar_pending_matches_count }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{% url 'chats_inbox' %}" class="stitch-nav-link py-2 d-flex align-items-center justify-content-between">
+                        <span><i class="fas fa-comments me-2 text-muted"></i> Messages</span>
+                        {% if navbar_unread_messages_count > 0 %}
+                            <span class="badge rounded-pill bg-danger" style="font-size: 0.65rem;">{{ navbar_unread_messages_count }}</span>
+                        {% endif %}
+                    </a>
                     <a href="{% url 'profile' %}" class="stitch-nav-link py-2"><i class="fas fa-user-gear me-2 text-muted"></i> Settings</a>
                     {% if user.is_staff %}
                         <a href="{% url 'admin_dashboard' %}" class="stitch-nav-link py-2 text-danger"><i class="fas fa-shield-alt me-2"></i> Admin Panel</a>

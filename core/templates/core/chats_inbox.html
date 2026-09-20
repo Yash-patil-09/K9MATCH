@@ -53,6 +53,11 @@
                                         <h5 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 240px;">
                                             {{ conv.other_user.username }}
                                         </h5>
+                                        {% if conv.unread_count > 0 %}
+                                            <span class="badge rounded-pill bg-danger d-inline-flex align-items-center gap-1 shadow-2xs" style="font-size: 0.68rem; padding: 0.22rem 0.6rem;">
+                                                <i class="fas fa-envelope"></i> {{ conv.unread_count }} new
+                                            </span>
+                                        {% endif %}
                                         <span class="badge-verified-mint d-inline-flex align-items-center gap-1" style="font-size: 0.68rem; padding: 0.2rem 0.6rem;">
                                             <i class="fas fa-check-circle text-success"></i> Matched
                                         </span>
