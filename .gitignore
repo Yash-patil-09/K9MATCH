@@ -53,3 +53,4 @@ Thumbs.db
 # Django staticfiles build directory & database dumps
 staticfiles/
 datadump.json
+media/

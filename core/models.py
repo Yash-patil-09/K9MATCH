@@ -299,12 +299,21 @@ class MatchRequest(models.Model):
 class ChatMessage(models.Model):
     match = models.ForeignKey(MatchRequest, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
-    message = models.TextField()
+    message = models.TextField(blank=True)
+    attachment = models.FileField(upload_to='chat_attachments/', blank=True, null=True)
+    attachment_name = models.CharField(max_length=255, blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_edited = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
     is_read = models.BooleanField(default=False, db_index=True)
+
+    @property
+    def is_image_attachment(self):
+        if not self.attachment:
+            return False
+        ext = self.attachment.name.lower().split('.')[-1]
+        return ext in ['jpg', 'jpeg', 'png', 'webp', 'gif']
 
     class Meta:
         ordering = ['timestamp']

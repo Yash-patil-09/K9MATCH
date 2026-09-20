@@ -63,6 +63,21 @@
                                         {% if message.is_deleted %}
                                             <span class="fst-italic opacity-75"><i class="fas fa-ban me-1 small"></i> This message was deleted.</span>
                                         {% else %}
+                                            {% if message.attachment %}
+                                                <div class="mb-2">
+                                                    {% if message.is_image_attachment %}
+                                                        <a href="{{ message.attachment.url }}" target="_blank" class="d-block">
+                                                            <img src="{{ message.attachment.url }}" class="rounded-3 shadow-xs img-fluid" style="max-width: 260px; max-height: 220px; object-fit: cover;">
+                                                        </a>
+                                                    {% else %}
+                                                        <a href="{{ message.attachment.url }}" target="_blank" class="d-inline-flex align-items-center gap-2 p-2 px-3 rounded-3 bg-white text-dark text-decoration-none shadow-xs border">
+                                                            <i class="fas fa-file-pdf text-danger fs-5"></i>
+                                                            <span class="small fw-bold text-truncate" style="max-width: 180px;">{{ message.attachment_name|default:'Document' }}</span>
+                                                            <i class="fas fa-download text-muted small ms-1"></i>
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            {% endif %}
                                             {{ message.message }}
                                         {% endif %}
                                     </div>
@@ -95,6 +110,21 @@
                                     {% if message.is_deleted %}
                                         <span class="fst-italic text-muted opacity-75"><i class="fas fa-ban me-1 small"></i> This message was deleted.</span>
                                     {% else %}
+                                        {% if message.attachment %}
+                                            <div class="mb-2">
+                                                {% if message.is_image_attachment %}
+                                                    <a href="{{ message.attachment.url }}" target="_blank" class="d-block">
+                                                        <img src="{{ message.attachment.url }}" class="rounded-3 shadow-xs img-fluid" style="max-width: 260px; max-height: 220px; object-fit: cover;">
+                                                    </a>
+                                                {% else %}
+                                                    <a href="{{ message.attachment.url }}" target="_blank" class="d-inline-flex align-items-center gap-2 p-2 px-3 rounded-3 bg-light text-dark text-decoration-none shadow-xs border">
+                                                        <i class="fas fa-file-pdf text-danger fs-5"></i>
+                                                        <span class="small fw-bold text-truncate" style="max-width: 180px;">{{ message.attachment_name|default:'Document' }}</span>
+                                                        <i class="fas fa-download text-muted small ms-1"></i>
+                                                    </a>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
                                         {{ message.message }}
                                     {% endif %}
                                 </div>
@@ -136,10 +166,25 @@
             </div>
 
             <div class="card-body p-3 bg-white rounded-bottom-4 pt-2">
-                <form id="chat-form" class="d-flex align-items-end gap-2">
+                <!-- Attachment preview chip -->
+                <div id="attachmentPreview" class="d-none align-items-center gap-2 p-1.5 px-3 mb-2 rounded-pill bg-light border" style="width: fit-content;">
+                    <i class="fas fa-paperclip text-primary small"></i>
+                    <span id="attachmentName" class="small fw-semibold text-dark text-truncate" style="max-width: 220px;"></span>
+                    <button type="button" class="btn btn-link p-0 text-muted hover-scale ms-1" onclick="clearAttachment()" title="Remove attachment">
+                        <i class="fas fa-times small text-danger"></i>
+                    </button>
+                </div>
+
+                <form id="chat-form" class="d-flex align-items-end gap-2" enctype="multipart/form-data">
                     {% csrf_token %}
+                    <input type="file" id="chatAttachmentInput" name="attachment" accept=".jpg,.jpeg,.png,.webp,.pdf" class="d-none" onchange="handleAttachmentSelected(this)">
+                    
+                    <button type="button" class="btn btn-light rounded-circle text-muted flex-shrink-0 d-flex align-items-center justify-content-center shadow-xs" style="width: 44px; height: 44px;" onclick="document.getElementById('chatAttachmentInput').click()" title="Attach image, ultrasound report or PDF (Max 5MB)">
+                        <i class="fas fa-paperclip fs-6"></i>
+                    </button>
+
                     <div class="flex-grow-1 bg-light rounded-4 border px-3 py-1 d-flex align-items-center focus-ring-primary transition-all">
-                        <textarea name="message" id="chat-input" class="form-control border-0 bg-transparent shadow-none" rows="1" placeholder="Type your breeding proposal message..." required style="resize: none; overflow-y: hidden;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
+                        <textarea name="message" id="chat-input" class="form-control border-0 bg-transparent shadow-none" rows="1" placeholder="Type message or attach document..." style="resize: none; overflow-y: hidden;" oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
                     </div>
                     <button type="submit" class="btn btn-primary-stitch rounded-circle p-0 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
                         <i class="fas fa-paper-plane"></i>
@@ -372,12 +417,42 @@
         if (deleteModalEl) deleteModal = new bootstrap.Modal(deleteModalEl);
     });
 
+    function handleAttachmentSelected(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            if (file.size > 5 * 1024 * 1024) {
+                alert("Attachment exceeds the maximum 5MB size limit.");
+                input.value = '';
+                return;
+            }
+            document.getElementById('attachmentName').textContent = file.name;
+            const preview = document.getElementById('attachmentPreview');
+            preview.classList.remove('d-none');
+            preview.classList.add('d-inline-flex');
+        }
+    }
+
+    function clearAttachment() {
+        const input = document.getElementById('chatAttachmentInput');
+        if (input) input.value = '';
+        const preview = document.getElementById('attachmentPreview');
+        if (preview) {
+            preview.classList.remove('d-inline-flex');
+            preview.classList.add('d-none');
+        }
+        const nameEl = document.getElementById('attachmentName');
+        if (nameEl) nameEl.textContent = '';
+    }
+
     // Send Message AJAX
     document.getElementById('chat-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const textarea = document.getElementById('chat-input');
+        const fileInput = document.getElementById('chatAttachmentInput');
         const messageText = textarea.value.trim();
-        if (!messageText) return;
+        const hasFile = fileInput.files && fileInput.files.length > 0;
+
+        if (!messageText && !hasFile) return;
 
         const formData = new FormData(this);
 
@@ -391,6 +466,7 @@
             if (data.status === 'ok') {
                 textarea.value = '';
                 textarea.style.height = 'auto';
+                clearAttachment();
                 
                 const emptyState = document.getElementById('empty-state');
                 if (emptyState) emptyState.remove();
@@ -401,12 +477,17 @@
                     sender: currentUsername,
                     is_me: true,
                     message: data.message,
+                    attachment_url: data.attachment_url,
+                    attachment_name: data.attachment_name,
+                    is_image: data.is_image,
                     timestamp: data.timestamp,
                     is_edited: false,
                     is_deleted: false
                 });
 
                 chatBox.scrollTop = chatBox.scrollHeight;
+            } else {
+                alert(data.error || 'Failed to send message.');
             }
         })
         .catch(err => console.error('Error sending message:', err));
@@ -553,12 +634,36 @@
         messageDiv.id = `msg-row-${msg.id}`;
         messageDiv.dataset.id = msg.id;
 
+        // Build attachment HTML
+        let attachmentHtml = '';
+        if (msg.attachment_url && !msg.is_deleted) {
+            if (msg.is_image) {
+                attachmentHtml = `
+                    <div class="mb-2">
+                        <a href="${msg.attachment_url}" target="_blank" class="d-block">
+                            <img src="${msg.attachment_url}" class="rounded-3 shadow-xs img-fluid" style="max-width: 260px; max-height: 220px; object-fit: cover;">
+                        </a>
+                    </div>
+                `;
+            } else {
+                attachmentHtml = `
+                    <div class="mb-2">
+                        <a href="${msg.attachment_url}" target="_blank" class="d-inline-flex align-items-center gap-2 p-2 px-3 rounded-3 ${msg.is_me ? 'bg-white text-dark' : 'bg-light text-dark'} text-decoration-none shadow-xs border">
+                            <i class="fas fa-file-pdf text-danger fs-5"></i>
+                            <span class="small fw-bold text-truncate" style="max-width: 180px;">${escapeHtml(msg.attachment_name || 'Document')}</span>
+                            <i class="fas fa-download text-muted small ms-1"></i>
+                        </a>
+                    </div>
+                `;
+            }
+        }
+
         if (msg.is_me) {
             messageDiv.className = 'd-flex flex-column align-items-end mb-3 animation-fade-in w-100 message-row';
             messageDiv.innerHTML = `
                 <div class="position-relative message-bubble-wrapper group-hover">
                     <div class="message-bubble-sent" id="msg-text-${msg.id}" style="background-color: #0d6efd !important; color: #ffffff !important; padding: 12px 18px !important; border-radius: 18px 18px 4px 18px !important; max-width: 85% !important; word-break: break-word !important; font-size: 0.95rem !important; line-height: 1.4 !important; min-width: 100px;">
-                        ${msg.is_deleted ? '<span class="fst-italic opacity-75"><i class="fas fa-ban me-1 small"></i> This message was deleted.</span>' : escapeHtml(msg.message)}
+                        ${msg.is_deleted ? '<span class="fst-italic opacity-75"><i class="fas fa-ban me-1 small"></i> This message was deleted.</span>' : `${attachmentHtml}${escapeHtml(msg.message)}`}
                     </div>
                     ${!msg.is_deleted ? `
                         <div class="message-actions position-absolute top-50 start-0 translate-middle-x d-flex gap-1 bg-white shadow-sm rounded-pill px-2 py-1 border" style="left: -40px !important;">
@@ -580,7 +685,7 @@
             messageDiv.className = 'd-flex flex-column align-items-start mb-3 animation-fade-in w-100 message-row';
             messageDiv.innerHTML = `
                 <div style="background-color: #ffffff !important; color: #212529 !important; border: 1px solid #dee2e6 !important; padding: 12px 18px !important; border-radius: 18px 18px 18px 4px !important; max-width: 85% !important; word-break: break-word !important; font-size: 0.95rem !important; line-height: 1.4 !important;" id="msg-text-${msg.id}">
-                    ${msg.is_deleted ? '<span class="fst-italic text-muted opacity-75"><i class="fas fa-ban me-1 small"></i> This message was deleted.</span>' : escapeHtml(msg.message)}
+                    ${msg.is_deleted ? '<span class="fst-italic text-muted opacity-75"><i class="fas fa-ban me-1 small"></i> This message was deleted.</span>' : `${attachmentHtml}${escapeHtml(msg.message)}`}
                 </div>
                 <div class="d-flex align-items-center gap-1 mt-1">
                     <small class="text-muted" style="font-size: 0.7rem;" id="msg-time-${msg.id}">${msg.timestamp}</small>

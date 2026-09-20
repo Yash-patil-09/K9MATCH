@@ -993,30 +993,47 @@ def send_message_api(request, match_id):
             return JsonResponse({'error': 'Unauthorized'}, status=403)
 
         raw_text = request.POST.get('message', '')
-        # 1. Sanitize text: prevent empty whitespace messages
-        stripped_text = raw_text.strip()
-        if not stripped_text:
-            return JsonResponse({'error': 'Cannot send empty or whitespace-only messages.'}, status=400)
+        attachment = request.FILES.get('attachment')
+        attachment_name = None
 
-        # 2. XSS prevention: strip unsafe HTML tags
-        from django.utils.html import escape, strip_tags
-        sanitized_text = strip_tags(stripped_text)
-        if not sanitized_text.strip():
-            return JsonResponse({'error': 'Invalid message content.'}, status=400)
+        if attachment:
+            # 1. Size check: max 5MB
+            if attachment.size > 5 * 1024 * 1024:
+                return JsonResponse({'error': 'Attachment exceeds maximum 5MB size limit.'}, status=400)
+            
+            # 2. Extension validation
+            allowed_exts = ['jpg', 'jpeg', 'png', 'webp', 'pdf']
+            ext = attachment.name.split('.')[-1].lower() if '.' in attachment.name else ''
+            if ext not in allowed_exts:
+                return JsonResponse({'error': f'Unsupported file type ".{ext}". Allowed: JPG, PNG, WEBP, PDF.'}, status=400)
+            attachment_name = attachment.name
+
+        # Validate text if no attachment
+        stripped_text = raw_text.strip()
+        if not stripped_text and not attachment:
+            return JsonResponse({'error': 'Cannot send empty message without an attachment.'}, status=400)
+
+        # XSS prevention: strip unsafe HTML tags
+        from django.utils.html import strip_tags
+        sanitized_text = strip_tags(stripped_text) if stripped_text else ''
 
         msg = ChatMessage.objects.create(
             match=match_req,
             sender=request.user,
             message=sanitized_text,
+            attachment=attachment,
+            attachment_name=attachment_name,
             is_read=False
         )
-        # Convert timestamp to local time zone
         local_time = timezone.localtime(msg.timestamp).strftime('%I:%M %p')
         return JsonResponse({
             'status': 'ok',
             'id': msg.id,
             'sender': msg.sender.username,
             'message': msg.message,
+            'attachment_url': msg.attachment.url if msg.attachment else None,
+            'attachment_name': msg.attachment_name or '',
+            'is_image': msg.is_image_attachment,
             'timestamp': local_time,
             'is_edited': False,
             'is_deleted': False
@@ -1040,6 +1057,9 @@ def get_messages_api(request, match_id):
             'sender': m.sender.username,
             'is_me': m.sender == request.user,
             'message': 'This message was deleted.' if m.is_deleted else m.message,
+            'attachment_url': m.attachment.url if (m.attachment and not m.is_deleted) else None,
+            'attachment_name': m.attachment_name or '',
+            'is_image': m.is_image_attachment if (m.attachment and not m.is_deleted) else False,
             'timestamp': timezone.localtime(m.timestamp).strftime('%I:%M %p'),
             'is_edited': m.is_edited,
             'is_deleted': m.is_deleted
@@ -1047,6 +1067,27 @@ def get_messages_api(request, match_id):
         for m in match_req.messages.all()
     ]
     return JsonResponse({'messages': messages_data})
+
+
+@login_required
+def delete_dog_image_api(request, image_id):
+    """
+    Secure AJAX endpoint allowing owners to delete individual gallery photos from their canine profile.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required.'}, status=405)
+
+    image = get_object_or_404(DogImage, id=image_id)
+    if image.dog.owner != request.user:
+        return JsonResponse({'error': 'Unauthorized. You can only curate photos for your own canine.'}, status=403)
+
+    try:
+        if image.image:
+            image.image.delete(save=False)
+        image.delete()
+        return JsonResponse({'success': True, 'message': 'Photo removed from canine album.'})
+    except Exception as e:
+        return JsonResponse({'error': f'Failed to delete photo: {str(e)}'}, status=500)
 
 
 @login_required

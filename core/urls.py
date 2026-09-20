@@ -18,6 +18,7 @@ urlpatterns = [
     path('dog/<int:dog_id>/', views.dog_detail, name='dog_detail'),
     path('dog/<int:dog_id>/edit/', views.edit_dog, name='edit_dog'),
     path('dog/<int:dog_id>/delete/', views.delete_dog, name='delete_dog'),
+    path('dog/image/<int:image_id>/delete/', views.delete_dog_image_api, name='delete_dog_image_api'),
     path('dog/<int:dog_id>/toggle-availability/', views.toggle_dog_availability, name='toggle_dog_availability'),
     path('dog/<int:dog_id>/passport/pdf/', views.export_dog_passport_pdf, name='export_dog_passport_pdf'),
     path('dog/<int:dog_id>/report/', views.report_dog_listing, name='report_dog_listing'),

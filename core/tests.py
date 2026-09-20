@@ -5,7 +5,7 @@ from django.test import TestCase, Client, RequestFactory, override_settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.conf import settings
-from core.models import DogProfile, VeterinaryClinic, ChatMessage, MatchRequest, ReportListing
+from core.models import DogProfile, VeterinaryClinic, ChatMessage, MatchRequest, ReportListing, DogImage
 from core.forms import DogProfileForm
 from core.utils import get_city_coordinates, haversine_distance
 from core.views import custom_404_view, custom_403_view, custom_500_view
@@ -1822,6 +1822,150 @@ class Phase5LegalAndHealthUtilitiesTests(TestCase):
         self.assertIn('estrus_end', result)
         self.assertIn('next_heat_date', result)
         self.assertEqual(result['cycle_months'], 6)
+
+
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+class Phase6MultimediaAndGalleryTests(TestCase):
+    def setUp(self):
+        self.user_a = User.objects.create_user(username='carol', email='carol@example.com', password='password123')
+        self.user_b = User.objects.create_user(username='dave', email='dave@example.com', password='password123')
+        self.outsider = User.objects.create_user(username='eve', email='eve@example.com', password='password123')
+
+        self.dog_a = DogProfile.objects.create(
+            owner=self.user_a,
+            name='Bruno',
+            breed='Boxer',
+            gender='male',
+            age_years=3,
+            age_months=0,
+            city='Delhi',
+            approval_status='approved',
+            is_available=True,
+            is_vaccinated=True
+        )
+
+        self.dog_b = DogProfile.objects.create(
+            owner=self.user_b,
+            name='Luna',
+            breed='Boxer',
+            gender='female',
+            age_years=2,
+            age_months=6,
+            city='Delhi',
+            approval_status='approved',
+            is_available=True,
+            is_vaccinated=True
+        )
+
+        self.match = MatchRequest.objects.create(
+            sender=self.user_a,
+            receiver=self.user_b,
+            sender_dog=self.dog_a,
+            target_dog=self.dog_b,
+            status='accepted'
+        )
+
+        self.client_a = Client()
+        self.client_a.login(username='carol', password='password123')
+        self.client_b = Client()
+        self.client_b.login(username='dave', password='password123')
+        self.client_outsider = Client()
+        self.client_outsider.login(username='eve', password='password123')
+
+    def test_send_message_with_image_attachment(self):
+        """User can send a chat message with an image attachment."""
+        fake_img = SimpleUploadedFile("dog_photo.jpg", b"\xff\xd8\xff\xe0fakejpegdata", content_type="image/jpeg")
+        url = reverse('send_message_api', args=[self.match.id])
+        res = self.client_a.post(url, {
+            'message': 'Look at this photo of Bruno!',
+            'attachment': fake_img
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'ok')
+        self.assertTrue(data['is_image'])
+        self.assertEqual(data['attachment_name'], 'dog_photo.jpg')
+        self.assertIsNotNone(data['attachment_url'])
+
+    def test_send_message_with_pdf_attachment(self):
+        """User can send a chat message with a PDF medical report without text."""
+        fake_pdf = SimpleUploadedFile("health_report.pdf", b"%PDF-1.4 fakepdfdata", content_type="application/pdf")
+        url = reverse('send_message_api', args=[self.match.id])
+        res = self.client_a.post(url, {
+            'message': '',
+            'attachment': fake_pdf
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertEqual(data['status'], 'ok')
+        self.assertFalse(data['is_image'])
+        self.assertEqual(data['attachment_name'], 'health_report.pdf')
+
+    def test_send_message_oversized_attachment_rejected(self):
+        """Attachments exceeding 5MB are rejected with 400 status."""
+        huge_file = SimpleUploadedFile("large_video.png", b"0" * (5 * 1024 * 1024 + 10), content_type="image/png")
+        url = reverse('send_message_api', args=[self.match.id])
+        res = self.client_a.post(url, {
+            'message': 'Big file',
+            'attachment': huge_file
+        })
+        self.assertEqual(res.status_code, 400)
+        self.assertIn('5MB', res.json().get('error', ''))
+
+    def test_send_message_disallowed_extension_rejected(self):
+        """Disallowed file extensions (e.g. .exe, .zip) are rejected."""
+        bad_file = SimpleUploadedFile("archive.zip", b"PK12345", content_type="application/zip")
+        url = reverse('send_message_api', args=[self.match.id])
+        res = self.client_a.post(url, {
+            'message': 'Dangerous file',
+            'attachment': bad_file
+        })
+        self.assertEqual(res.status_code, 400)
+        self.assertIn('Unsupported file type', res.json().get('error', ''))
+
+    def test_get_messages_api_includes_attachment_metadata(self):
+        """get_messages_api correctly serializes attachment URLs and properties."""
+        fake_img = SimpleUploadedFile("play.png", b"\x89PNG\r\n\x1afakepng", content_type="image/png")
+        msg = ChatMessage.objects.create(
+            match=self.match,
+            sender=self.user_a,
+            message="Check photo",
+            attachment=fake_img,
+            attachment_name="play.png"
+        )
+        url = reverse('get_messages_api', args=[self.match.id])
+        res = self.client_b.get(url)
+        self.assertEqual(res.status_code, 200)
+        messages = res.json()['messages']
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(messages[0]['attachment_name'], 'play.png')
+        self.assertTrue(messages[0]['is_image'])
+        self.assertIsNotNone(messages[0]['attachment_url'])
+
+    def test_delete_dog_image_api_owner_success(self):
+        """Owner can successfully delete an individual photo from their dog's gallery."""
+        fake_img = SimpleUploadedFile("gallery1.jpg", b"fakeimgcontent", content_type="image/jpeg")
+        gallery_img = DogImage.objects.create(dog=self.dog_a, image=fake_img)
+        img_id = gallery_img.id
+
+        url = reverse('delete_dog_image_api', args=[img_id])
+        res = self.client_a.post(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertTrue(res.json().get('success'))
+        self.assertFalse(DogImage.objects.filter(id=img_id).exists())
+
+    def test_delete_dog_image_api_outsider_forbidden(self):
+        """Non-owners are prohibited (403) from deleting photos from another user's canine profile."""
+        fake_img = SimpleUploadedFile("gallery2.jpg", b"fakeimgcontent", content_type="image/jpeg")
+        gallery_img = DogImage.objects.create(dog=self.dog_a, image=fake_img)
+        img_id = gallery_img.id
+
+        url = reverse('delete_dog_image_api', args=[img_id])
+        res = self.client_outsider.post(url)
+        self.assertEqual(res.status_code, 403)
+        self.assertTrue(DogImage.objects.filter(id=img_id).exists())
+
 
 
 
