@@ -317,20 +317,36 @@
                                     </div>
                                 </div>
 
-                                <!-- KCI Document Attachment Button -->
-                                {% if dog.kci_document %}
-                                    <div class="p-2 bg-light rounded-3 border d-inline-flex align-items-center gap-2 mb-3">
-                                        <i class="fas fa-file-pdf text-danger fs-5"></i>
-                                        <span class="small fw-semibold text-dark">KCI Official Certificate Uploaded</span>
-                                        <a href="{{ dog.kci_document.url }}" target="_blank" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold ms-2">
-                                            <i class="fas fa-external-link-alt me-1"></i> View Certificate
-                                        </a>
-                                    </div>
-                                {% elif dog.kci_registered %}
-                                    <div class="alert alert-warning py-1 px-3 rounded-3 small mb-3">
-                                        <i class="fas fa-exclamation-triangle me-1"></i> Dog marked as KCI registered, but no document was uploaded!
-                                    </div>
-                                {% endif %}
+                                <!-- KCI & Health Document Attachment Buttons with Inline Previewer -->
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                                    {% if dog.kci_document %}
+                                        <div class="p-2 bg-light rounded-3 border d-inline-flex align-items-center gap-2 shadow-2xs">
+                                            <i class="fas fa-file-pdf text-danger fs-5"></i>
+                                            <span class="small fw-semibold text-dark">KCI Pedigree Certificate</span>
+                                            <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-bold ms-1 open-doc-preview-btn"
+                                                    data-doc-url="{{ dog.kci_document.url }}"
+                                                    data-doc-title="KCI Pedigree Certificate — {{ dog.name }} (#{{ dog.id }})">
+                                                <i class="fas fa-eye me-1"></i> Preview
+                                            </button>
+                                        </div>
+                                    {% elif dog.kci_registered %}
+                                        <div class="alert alert-warning py-1 px-3 rounded-3 small mb-0">
+                                            <i class="fas fa-exclamation-triangle me-1"></i> Marked as KCI registered, but no certificate uploaded!
+                                        </div>
+                                    {% endif %}
+
+                                    {% if dog.vaccination_record %}
+                                        <div class="p-2 bg-light rounded-3 border d-inline-flex align-items-center gap-2 shadow-2xs">
+                                            <i class="fas fa-file-medical text-success fs-5"></i>
+                                            <span class="small fw-semibold text-dark">Vaccination Booklet</span>
+                                            <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold ms-1 open-doc-preview-btn"
+                                                    data-doc-url="{{ dog.vaccination_record.url }}"
+                                                    data-doc-title="Vaccination Booklet — {{ dog.name }} (#{{ dog.id }})">
+                                                <i class="fas fa-eye me-1"></i> Preview
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                </div>
 
                                 <!-- Rejection Reason Notice if Rejected -->
                                 {% if dog.approval_status == 'rejected' and dog.admin_rejection_reason %}
@@ -429,6 +445,30 @@
     </div>
 </div>
 
+<!-- Admin Document Quick Preview Modal -->
+<div class="modal fade" id="docPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-dark text-white px-4 py-3 border-0 d-flex align-items-center justify-content-between">
+                <h6 class="modal-title fw-bold mb-0 d-flex align-items-center gap-2" id="docPreviewTitle">
+                    <i class="fas fa-file-alt text-warning"></i>
+                    <span>Document Preview</span>
+                </h6>
+                <div class="d-flex align-items-center gap-2">
+                    <a href="#" id="docPreviewExternalLink" target="_blank" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1 fw-semibold small">
+                        <i class="fas fa-external-link-alt me-1"></i> Open in New Tab
+                    </a>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0 bg-dark text-center d-flex align-items-center justify-content-center" style="min-height: 520px; max-height: 80vh; overflow-y: auto;">
+                <iframe id="docPreviewIframe" src="" style="width: 100%; height: 75vh; border: none; display: none;"></iframe>
+                <img id="docPreviewImg" src="" alt="Document" class="img-fluid p-3" style="max-height: 75vh; object-fit: contain; display: none;">
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const rejectModalEl = document.getElementById('rejectModal');
@@ -446,6 +486,44 @@ document.addEventListener("DOMContentLoaded", function () {
                 rejectForm.action = `/admin-dashboard/dog/${dogId}/reject/`;
                 rejectModal.show();
             });
+        });
+    }
+
+    // Document Preview Modal Engine
+    const docModalEl = document.getElementById('docPreviewModal');
+    if (docModalEl) {
+        const docModal = new bootstrap.Modal(docModalEl);
+        const iframe = document.getElementById('docPreviewIframe');
+        const img = document.getElementById('docPreviewImg');
+        const titleEl = document.getElementById('docPreviewTitle');
+        const extLink = document.getElementById('docPreviewExternalLink');
+
+        document.querySelectorAll('.open-doc-preview-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const url = this.dataset.docUrl;
+                const title = this.dataset.docTitle || 'Document Preview';
+                if (titleEl) titleEl.querySelector('span').textContent = title;
+                if (extLink) extLink.href = url;
+
+                const isPdf = url.toLowerCase().includes('.pdf');
+                if (isPdf) {
+                    img.style.display = 'none';
+                    img.src = '';
+                    iframe.style.display = 'block';
+                    iframe.src = url;
+                } else {
+                    iframe.style.display = 'none';
+                    iframe.src = '';
+                    img.style.display = 'inline-block';
+                    img.src = url;
+                }
+                docModal.show();
+            });
+        });
+
+        docModalEl.addEventListener('hidden.bs.modal', function () {
+            iframe.src = '';
+            img.src = '';
         });
     }
 });

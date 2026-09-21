@@ -17,9 +17,10 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .forms import CustomUserCreationForm, DogProfileForm, DogImageForm, ReportListingForm, PUREBRED_CHOICES, CROSSBREED_CHOICES
-from .models import DogProfile, DogImage, MatchRequest, ChatMessage, VeterinaryClinic, EmailOTP, ReportListing
+from .models import DogProfile, DogImage, MatchRequest, ChatMessage, VeterinaryClinic, EmailOTP, ReportListing, Notification
 from .utils import get_city_coordinates, get_state_coordinates, haversine_distance
 from .email_utils import send_otp_email, send_match_proposal_email, send_match_accepted_email, send_match_declined_email
+from .notification_utils import create_notification
 from .pdf_utils import generate_canine_passport_pdf, generate_breeding_contract_pdf
 from .places_service import get_nearby_vets_dynamic
 
@@ -542,14 +543,49 @@ def delete_dog(request, dog_id):
 @login_required
 def profile_view(request):
     if request.method == 'POST':
-        request.user.email = request.POST.get('email')
-        request.user.first_name = request.POST.get('first_name')
-        request.user.last_name = request.POST.get('last_name')
-        request.user.save()
-        messages.success(request, "Your profile details have been updated successfully!")
+        user = request.user
+        user.email = request.POST.get('email', user.email)
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.kennel_name = request.POST.get('kennel_name', user.kennel_name)
+        user.bio = request.POST.get('bio', user.bio)
+        user.city = request.POST.get('city', user.city)
+        user.state = request.POST.get('state', user.state)
+        user.website = request.POST.get('website', user.website)
+        user.instagram = request.POST.get('instagram', user.instagram)
+
+        exp = request.POST.get('experience_years')
+        if exp and exp.isdigit():
+            user.experience_years = int(exp)
+
+        if 'avatar' in request.FILES:
+            user.avatar = request.FILES['avatar']
+
+        user.save()
+        messages.success(request, "Your breeder & guardian profile has been updated successfully!")
         return redirect('profile')
 
     return render(request, 'core/profile.html')
+
+
+def breeder_profile_view(request, username):
+    breeder = get_object_or_404(get_user_model(), username=username)
+    dogs = DogProfile.objects.filter(owner=breeder, approval_status='approved').prefetch_related('images').order_by('-is_available', '-id')
+
+    total_dogs = dogs.count()
+    available_dogs = dogs.filter(is_available=True).count()
+    successful_matches = MatchRequest.objects.filter(
+        (Q(sender=breeder) | Q(receiver=breeder)),
+        status='accepted'
+    ).count()
+
+    return render(request, 'core/breeder_profile.html', {
+        'breeder': breeder,
+        'dogs': dogs,
+        'total_dogs': total_dogs,
+        'available_dogs': available_dogs,
+        'successful_matches': successful_matches,
+    })
 
 
 def explore_dogs(request):
@@ -571,6 +607,9 @@ def explore_dogs(request):
     radius_filter = request.GET.get('radius', '').strip()
     my_dog_id = request.GET.get('my_dog', '').strip()
     kci_only = request.GET.get('kci_only', '').strip()
+    vaccinated_only = request.GET.get('vaccinated_only', '').strip()
+    mating_terms_filter = request.GET.get('mating_terms', '').strip()
+    sort_by = request.GET.get('sort_by', '').strip()
 
     # Apply Structured Filters
     if breed_type_filter:
@@ -590,6 +629,12 @@ def explore_dogs(request):
 
     if kci_only == 'true':
         dogs = dogs.filter(kci_registered=True)
+
+    if vaccinated_only == 'true':
+        dogs = dogs.filter(is_vaccinated=True)
+
+    if mating_terms_filter:
+        dogs = dogs.filter(mating_terms=mating_terms_filter)
 
     # Reference Coordinates for Distance & Radius Filter (Task 3.2)
     ref_lat = None
@@ -677,12 +722,25 @@ def explore_dogs(request):
         except (ValueError, TypeError):
             pass
 
-    # Sort: If distance is available, sort closest first! Otherwise newest first
-    if ref_lat is not None and ref_lng is not None:
+    # Sorting logic:
+    if sort_by == 'newest':
+        dogs_list.sort(key=lambda d: d.id, reverse=True)
+    elif sort_by == 'age_asc':
+        dogs_list.sort(key=lambda d: (d.age_years * 12 + (d.age_months or 0)))
+    elif sort_by == 'age_desc':
+        dogs_list.sort(key=lambda d: (d.age_years * 12 + (d.age_months or 0)), reverse=True)
+    elif sort_by == 'rating_desc':
+        dogs_list.sort(key=lambda d: ((d.dog_friendly_rating or 0) + (d.human_friendly_rating or 0) + (d.energy_level_rating or 0)), reverse=True)
+    elif sort_by == 'distance' or (ref_lat is not None and ref_lng is not None and not sort_by):
         dogs_list.sort(key=lambda d: (d.distance_km is None, d.distance_km if d.distance_km is not None else float('inf')))
+    else:
+        dogs_list.sort(key=lambda d: d.id, reverse=True)
 
     # Count active filters
-    active_filters_count = sum(1 for val in [breed_type_filter, breed_filter, gender_filter, state_filter, city_filter, radius_filter, (kci_only == 'true'), user_lat] if val)
+    active_filters_count = sum(1 for val in [
+        breed_type_filter, breed_filter, gender_filter, state_filter, city_filter, radius_filter,
+        (kci_only == 'true'), (vaccinated_only == 'true'), mating_terms_filter, sort_by, user_lat
+    ] if val)
 
     sent_request_dog_ids = set()
     accepted_match_dog_ids = set()
@@ -728,6 +786,9 @@ def explore_dogs(request):
         'city_filter': city_filter,
         'radius_filter': radius_filter,
         'kci_only': kci_only,
+        'vaccinated_only': vaccinated_only,
+        'mating_terms_filter': mating_terms_filter,
+        'sort_by': sort_by,
         'user_lat': user_lat,
         'user_lng': user_lng,
         'ref_location_label': ref_location_label,
@@ -826,6 +887,16 @@ def send_match_request(request, dog_id):
             # Dispatch transactional email notification
             send_match_proposal_email(match_req, request)
 
+            # Dispatch in-app notification
+            create_notification(
+                recipient=target_dog.owner,
+                sender=request.user,
+                notification_type='match_proposal',
+                title=f"🐾 New Breeding Proposal for {target_dog.name}",
+                message=f"{request.user.username} sent a breeding proposal for {target_dog.name}.",
+                link=reverse('match_requests_dashboard')
+            )
+
             success_msg = f"❤️ Match request sent to {target_dog.name}'s owner ({target_dog.owner.username})!"
             if is_ajax:
                 return JsonResponse({
@@ -883,6 +954,16 @@ def respond_match_request(request, request_id, action):
         # Dispatch match accepted email notification
         send_match_accepted_email(match_req, request)
 
+        # Dispatch in-app notification
+        create_notification(
+            recipient=match_req.sender,
+            sender=request.user,
+            notification_type='match_accepted',
+            title="🎉 Match Proposal Accepted!",
+            message=f"{request.user.username} accepted your breeding proposal for {match_req.target_dog.name}.",
+            link=reverse('chat_room', args=[match_req.id])
+        )
+
         success_msg = f"You accepted the match proposal from {match_req.sender.username} for {match_req.sender_dog.name if match_req.sender_dog else 'their canine'}!"
         if is_ajax:
             return JsonResponse({
@@ -898,6 +979,16 @@ def respond_match_request(request, request_id, action):
 
         # Dispatch match declined email notification
         send_match_declined_email(match_req, request)
+
+        # Dispatch in-app notification
+        create_notification(
+            recipient=match_req.sender,
+            sender=request.user,
+            notification_type='match_declined',
+            title=f"Update on Proposal for {match_req.target_dog.name}",
+            message=f"{request.user.username} was unable to accept your proposal at this time.",
+            link=reverse('explore_dogs')
+        )
 
         info_msg = "Match proposal declined."
         if is_ajax:
@@ -1214,12 +1305,28 @@ def admin_approve_reject_dog(request, dog_id, action):
         dog.approval_status = 'approved'
         dog.admin_rejection_reason = ''
         dog.save()
+        create_notification(
+            recipient=dog.owner,
+            sender=request.user,
+            notification_type='dog_approved',
+            title=f"✅ Canine Listing Approved: {dog.name}",
+            message=f"Your dog {dog.name} has been verified and is now live in the breeding directory!",
+            link=reverse('dog_detail', args=[dog.id])
+        )
         messages.success(request, f"✅ Dog profile '{dog.name}' (ID: #{dog.id}) has been approved and is now live in Find Matches!")
     elif action == 'reject':
         rejection_reason = request.POST.get('rejection_reason', '').strip()
         dog.approval_status = 'rejected'
         dog.admin_rejection_reason = rejection_reason if rejection_reason else 'Profile did not meet verification criteria.'
         dog.save()
+        create_notification(
+            recipient=dog.owner,
+            sender=request.user,
+            notification_type='dog_rejected',
+            title=f"⚠️ Canine Listing Update Required: {dog.name}",
+            message=f"Your dog {dog.name} was rejected: {dog.admin_rejection_reason}",
+            link=reverse('edit_dog', args=[dog.id])
+        )
         messages.warning(request, f"❌ Dog profile '{dog.name}' (ID: #{dog.id}) was rejected.")
     else:
         messages.error(request, "Invalid admin action.")
@@ -1661,3 +1768,22 @@ def heat_calculator_view(request):
         'result': result,
     }
     return render(request, 'core/heat_calculator.html', context)
+
+
+@login_required
+def mark_notification_read_api(request, notification_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required.'}, status=405)
+    notif = get_object_or_404(Notification, id=notification_id, recipient=request.user)
+    notif.is_read = True
+    notif.save()
+    unread_count = request.user.notifications.filter(is_read=False).count()
+    return JsonResponse({'success': True, 'unread_count': unread_count})
+
+
+@login_required
+def mark_all_notifications_read_api(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required.'}, status=405)
+    request.user.notifications.filter(is_read=False).update(is_read=True)
+    return JsonResponse({'success': True, 'unread_count': 0})

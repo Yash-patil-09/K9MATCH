@@ -15,6 +15,14 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='owner')
     phone_number = models.CharField(max_length=10, blank=True, null=True)
     is_verified = models.BooleanField(default=False)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    kennel_name = models.CharField(max_length=150, blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    experience_years = models.PositiveIntegerField(default=0, blank=True, null=True)
+    website = models.URLField(blank=True, null=True)
+    instagram = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
@@ -443,4 +451,34 @@ class ReportListing(models.Model):
         ]
 
     def __str__(self):
-        return f"Report #{self.id} on {self.reported_dog.name} by {self.reporter.username} ({self.get_reason_display()})"
+        return f"Report #{self.id} on {self.reported_dog.name} by {self.reporter.username} ({self.get_reason_display()})"
+
+
+class Notification(models.Model):
+    TYPE_CHOICES = (
+        ('match_proposal', 'Breeding Proposal'),
+        ('match_accepted', 'Proposal Accepted'),
+        ('match_declined', 'Proposal Declined'),
+        ('dog_approved', 'Listing Approved'),
+        ('dog_rejected', 'Listing Update Required'),
+        ('system', 'System Alert'),
+    )
+
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='sent_notifications')
+    notification_type = models.CharField(max_length=50, choices=TYPE_CHOICES, default='system')
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    link = models.CharField(max_length=255, blank=True, null=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', 'is_read']),
+            models.Index(fields=['-created_at']),
+        ]
+
+    def __str__(self):
+        return f"Notification for {self.recipient.username}: {self.title}"

@@ -41,4 +41,7 @@ urlpatterns = [
     path('api/reverse-geocode/', views.reverse_geocode_api, name='reverse_geocode_api'),
     path('match/<int:match_id>/contract/pdf/', views.export_breeding_contract_pdf, name='export_breeding_contract_pdf'),
     path('heat-calculator/', views.heat_calculator_view, name='heat_calculator'),
+    path('breeder/<str:username>/', views.breeder_profile_view, name='breeder_profile'),
+    path('api/notifications/<int:notification_id>/read/', views.mark_notification_read_api, name='mark_notification_read_api'),
+    path('api/notifications/mark-all-read/', views.mark_all_notifications_read_api, name='mark_all_notifications_read_api'),
 ]

@@ -261,26 +261,96 @@
                             <span>Register Dog</span>
                         </a>
 
+                        <!-- In-App Notification Center Dropdown -->
+                        <div class="dropdown me-1">
+                            <button class="btn btn-soft rounded-circle position-relative p-0 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;" data-bs-toggle="dropdown" aria-expanded="false" id="notifDropdownBtn" title="Notifications">
+                                <i class="fas fa-bell text-dark"></i>
+                                {% if unread_notifications_count > 0 %}
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-xs" style="font-size: 0.65rem;" id="nav-notif-badge">
+                                        {{ unread_notifications_count }}
+                                    </span>
+                                {% endif %}
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end border-0 shadow-xl rounded-4 p-0 mt-2 overflow-hidden" style="width: 350px; max-width: 90vw;" aria-labelledby="notifDropdownBtn">
+                                <div class="d-flex align-items-center justify-content-between px-3 py-2.5 bg-light border-bottom">
+                                    <span class="fw-bold text-dark small"><i class="fas fa-bell me-1.5 text-primary"></i> Notifications</span>
+                                    {% if unread_notifications_count > 0 %}
+                                        <button type="button" class="btn btn-link btn-sm p-0 text-primary text-decoration-none fw-semibold" style="font-size: 0.75rem;" onclick="markAllNotificationsRead(event)">
+                                            Mark all read
+                                        </button>
+                                    {% endif %}
+                                </div>
+                                <div class="list-group list-group-flush" id="nav-notif-list" style="max-height: 380px; overflow-y: auto;">
+                                    {% if recent_notifications %}
+                                        {% for n in recent_notifications %}
+                                            <a href="{{ n.link|default:'#' }}" class="list-group-item list-group-item-action p-3 text-decoration-none {% if not n.is_read %}bg-primary-subtle bg-opacity-25{% endif %}" onclick="markNotificationRead({{ n.id }})">
+                                                <div class="d-flex align-items-start gap-2.5">
+                                                    <div class="rounded-circle p-2 d-flex align-items-center justify-content-center shrink-0 {% if n.notification_type == 'match_accepted' or n.notification_type == 'dog_approved' %}bg-success-subtle text-success{% elif n.notification_type == 'match_declined' or n.notification_type == 'dog_rejected' %}bg-danger-subtle text-danger{% else %}bg-primary-subtle text-primary{% endif %}" style="width: 32px; height: 32px;">
+                                                        {% if n.notification_type == 'match_proposal' %}
+                                                            <i class="fas fa-heart small"></i>
+                                                        {% elif n.notification_type == 'match_accepted' %}
+                                                            <i class="fas fa-check small"></i>
+                                                        {% elif n.notification_type == 'match_declined' %}
+                                                            <i class="fas fa-times small"></i>
+                                                        {% elif n.notification_type == 'dog_approved' %}
+                                                            <i class="fas fa-shield-dog small"></i>
+                                                        {% elif n.notification_type == 'dog_rejected' %}
+                                                            <i class="fas fa-exclamation-triangle small"></i>
+                                                        {% else %}
+                                                            <i class="fas fa-bell small"></i>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="flex-grow-1">
+                                                        <div class="d-flex align-items-center justify-content-between mb-0.5">
+                                                            <strong class="text-dark small" style="font-size: 0.82rem;">{{ n.title }}</strong>
+                                                            {% if not n.is_read %}
+                                                                <span class="badge bg-primary rounded-circle p-1" style="width: 7px; height: 7px;"></span>
+                                                            {% endif %}
+                                                        </div>
+                                                        <p class="text-muted small mb-1 lh-sm" style="font-size: 0.76rem;">{{ n.message }}</p>
+                                                        <span class="text-muted" style="font-size: 0.68rem;">{{ n.created_at|timesince }} ago</span>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="p-4 text-center text-muted">
+                                            <i class="fas fa-bell-slash fa-2x opacity-25 mb-2"></i>
+                                            <p class="small mb-0">No notifications yet. You're all caught up!</p>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- User Profile Dropdown -->
                         <div class="dropdown">
                             <button class="btn btn-soft rounded-pill d-flex align-items-center gap-2 py-1 ps-2 pe-3" data-bs-toggle="dropdown" aria-expanded="false">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-xs" style="width: 32px; height: 32px; background-color: var(--color-primary); font-size: 0.85rem;">
-                                    {{ user.username|slice:":1"|upper }}
+                                <div class="position-relative">
+                                    {% if user.avatar %}
+                                        <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="rounded-circle object-fit-cover shadow-xs border" style="width: 32px; height: 32px;">
+                                    {% else %}
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-xs" style="width: 32px; height: 32px; background-color: var(--color-primary); font-size: 0.85rem;">
+                                            {{ user.username|slice:":1"|upper }}
+                                        </div>
+                                    {% endif %}
                                 </div>
                                 <span class="fw-bold small d-none d-md-inline text-dark">{{ user.username }}</span>
                                 <i class="fas fa-chevron-down text-muted" style="font-size: 0.65rem;"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end border-0 shadow-xl rounded-4 p-2 mt-2" style="min-width: 220px;">
                                 <li class="px-3 py-2 border-bottom mb-1">
-                                    <div class="fw-bold text-dark small">{{ user.get_full_name|default:user.username }}</div>
+                                    <div class="fw-bold text-dark small">{{ user.kennel_name|default:user.get_full_name|default:user.username }}</div>
                                     <div class="text-muted small" style="font-size: 0.75rem;">{{ user.get_role_display|default:'Pet Parent' }}</div>
                                 </li>
                                 {% if user.is_staff %}
                                     <li><a class="dropdown-item py-2 rounded-3 text-danger fw-bold" href="{% url 'admin_dashboard' %}"><i class="fas fa-shield-alt me-2"></i> Admin Moderation</a></li>
                                 {% endif %}
+                                <li><a class="dropdown-item py-2 rounded-3" href="{% url 'breeder_profile' user.username %}"><i class="fas fa-id-card me-2 text-primary"></i> Public Breeder Profile</a></li>
                                 <li><a class="dropdown-item py-2 rounded-3" href="{% url 'my_dogs' %}"><i class="fas fa-paw me-2 text-primary"></i> My Canine Registry</a></li>
                                 <li><a class="dropdown-item py-2 rounded-3" href="{% url 'add_dog' %}"><i class="fas fa-plus-circle me-2 text-success"></i> Register New Dog</a></li>
-                                <li><a class="dropdown-item py-2 rounded-3" href="{% url 'match_requests_dashboard' %}"><i class="fas fa-handshake me-2 text-warning"></i> Match Proposals</a></li>                                <li>
+                                <li><a class="dropdown-item py-2 rounded-3" href="{% url 'match_requests_dashboard' %}"><i class="fas fa-handshake me-2 text-warning"></i> Match Proposals</a></li>
+                                <li>
                                     <a class="dropdown-item py-2 rounded-3 d-flex align-items-center justify-content-between" href="{% url 'chats_inbox' %}">
                                         <span><i class="fas fa-comments me-2 text-info"></i> Messages</span>
                                         {% if navbar_unread_messages_count > 0 %}
@@ -339,6 +409,7 @@
                 
                 {% if user.is_authenticated %}
                     <hr class="my-2 text-muted opacity-25">
+                    <a href="{% url 'breeder_profile' user.username %}" class="stitch-nav-link py-2"><i class="fas fa-id-card me-2 text-primary"></i> Public Profile</a>
                     <a href="{% url 'my_dogs' %}" class="stitch-nav-link py-2"><i class="fas fa-dog me-2 text-muted"></i> My Dogs</a>
                     <a href="{% url 'add_dog' %}" class="stitch-nav-link py-2"><i class="fas fa-plus me-2 text-muted"></i> Register Dog</a>
                     <a href="{% url 'match_requests_dashboard' %}" class="stitch-nav-link py-2 d-flex align-items-center justify-content-between">
@@ -659,6 +730,66 @@
                 });
             }, 3500);
         });
+
+        // In-App Notification Center Helpers
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function markNotificationRead(notifId) {
+            const csrfToken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            fetch(`/api/notifications/${notifId}/read/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(r => r.json()).then(d => {
+                if (d.success) {
+                    const badge = document.getElementById('nav-notif-badge');
+                    if (badge) {
+                        if (d.unread_count > 0) {
+                            badge.textContent = d.unread_count;
+                        } else {
+                            badge.remove();
+                        }
+                    }
+                }
+            }).catch(console.error);
+        }
+
+        function markAllNotificationsRead(e) {
+            if (e) e.stopPropagation();
+            const csrfToken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+            fetch('/api/notifications/mark-all-read/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(r => r.json()).then(d => {
+                if (d.success) {
+                    const badge = document.getElementById('nav-notif-badge');
+                    if (badge) badge.remove();
+                    document.querySelectorAll('#nav-notif-list .list-group-item').forEach(el => {
+                        el.classList.remove('bg-primary-subtle', 'bg-opacity-25');
+                        const dot = el.querySelector('.badge.bg-primary.rounded-circle');
+                        if (dot) dot.remove();
+                    });
+                }
+            }).catch(console.error);
+        }
     </script>
     {% block extra_js %}{% endblock %}
 </body>

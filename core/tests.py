@@ -5,7 +5,8 @@ from django.test import TestCase, Client, RequestFactory, override_settings
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.conf import settings
-from core.models import DogProfile, VeterinaryClinic, ChatMessage, MatchRequest, ReportListing, DogImage
+from core.models import DogProfile, VeterinaryClinic, ChatMessage, MatchRequest, ReportListing, DogImage, Notification
+from core.notification_utils import create_notification
 from core.forms import DogProfileForm
 from core.utils import get_city_coordinates, haversine_distance
 from core.views import custom_404_view, custom_403_view, custom_500_view
@@ -1965,6 +1966,236 @@ class Phase6MultimediaAndGalleryTests(TestCase):
         res = self.client_outsider.post(url)
         self.assertEqual(res.status_code, 403)
         self.assertTrue(DogImage.objects.filter(id=img_id).exists())
+
+
+class Phase7CommunityDiscoveryAndAdminTests(TestCase):
+    def setUp(self):
+        self.breeder = User.objects.create_user(
+            username='apex_breeder',
+            email='apex@k9match.com',
+            password='Password123',
+            role='breeder',
+            is_verified=True,
+            kennel_name='Apex Shepherd Kennels',
+            bio='Specializing in working-line German Shepherds with certified hip/elbow clearances.',
+            city='Bengaluru',
+            state='Karnataka',
+            experience_years=8
+        )
+        self.client_breeder = Client()
+        self.client_breeder.login(username='apex_breeder', password='Password123')
+
+        self.seeker = User.objects.create_user(
+            username='pet_seeker',
+            email='seeker@k9match.com',
+            password='Password123'
+        )
+        self.client_seeker = Client()
+        self.client_seeker.login(username='pet_seeker', password='Password123')
+
+        self.admin = User.objects.create_user(
+            username='staff_admin_p7',
+            email='adminp7@k9match.com',
+            password='Password123',
+            is_staff=True
+        )
+        self.client_admin = Client()
+        self.client_admin.login(username='staff_admin_p7', password='Password123')
+
+        # Breeder's dog
+        self.dog_breeder = DogProfile.objects.create(
+            owner=self.breeder,
+            name='Kaiser',
+            breed='German Shepherd',
+            gender='male',
+            age_years=3,
+            age_months=2,
+            weight=36.0,
+            city='Bengaluru',
+            state='Karnataka',
+            approval_status='approved',
+            is_available=True,
+            is_vaccinated=True,
+            kci_registered=True,
+            kci_number='KCI-GSD-77665',
+            mating_terms='stud_fee',
+            stud_fee_amount=25000,
+            dog_friendly_rating=5,
+            human_friendly_rating=5,
+            energy_level_rating=4
+        )
+
+        # Seeker's dog
+        self.dog_seeker = DogProfile.objects.create(
+            owner=self.seeker,
+            name='Bella',
+            breed='German Shepherd',
+            gender='female',
+            age_years=2,
+            age_months=6,
+            weight=30.0,
+            city='Bengaluru',
+            state='Karnataka',
+            approval_status='approved',
+            is_available=True,
+            is_vaccinated=False,
+            mating_terms='want_puppy',
+            dog_friendly_rating=3,
+            human_friendly_rating=4,
+            energy_level_rating=3
+        )
+
+    def test_breeder_public_profile_view(self):
+        """Public breeder profile at /breeder/<username>/ displays kennel stats and public dogs."""
+        url = reverse('breeder_profile', args=[self.breeder.username])
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Apex Shepherd Kennels')
+        self.assertContains(res, 'Certified Breeder')
+        self.assertContains(res, 'Kaiser')
+        self.assertEqual(res.context['total_dogs'], 1)
+        self.assertEqual(res.context['available_dogs'], 1)
+
+    def test_profile_view_updates_breeder_details(self):
+        """User can update their kennel name, bio, city, state, and experience via profile settings."""
+        post_data = {
+            'email': 'updated_apex@k9match.com',
+            'first_name': 'Arjun',
+            'last_name': 'Rao',
+            'kennel_name': 'Apex Canine Academy',
+            'bio': 'Updated breeding philosophy with champion bloodlines.',
+            'city': 'Mysuru',
+            'state': 'Karnataka',
+            'experience_years': '10',
+            'website': 'https://apexcanine.in',
+            'instagram': '@apexcanine'
+        }
+        res = self.client_breeder.post(reverse('profile'), post_data, follow=True)
+        self.assertEqual(res.status_code, 200)
+        self.breeder.refresh_from_db()
+        self.assertEqual(self.breeder.kennel_name, 'Apex Canine Academy')
+        self.assertEqual(self.breeder.city, 'Mysuru')
+        self.assertEqual(self.breeder.experience_years, 10)
+        self.assertEqual(self.breeder.website, 'https://apexcanine.in')
+
+    def test_notification_creation_and_context_processor(self):
+        """In-app notifications populate unread counter and recent list in global_notifications."""
+        notif = create_notification(
+            recipient=self.breeder,
+            sender=self.seeker,
+            notification_type='match_proposal',
+            title='New Proposal for Kaiser',
+            message='Bella wants to mate with Kaiser',
+            link='/requests/'
+        )
+        self.assertIsNotNone(notif)
+        self.assertFalse(notif.is_read)
+
+        factory = RequestFactory()
+        req = factory.get('/')
+        req.user = self.breeder
+        from core.context_processors import global_notifications
+        ctx = global_notifications(req)
+        self.assertEqual(ctx['unread_notifications_count'], 1)
+        self.assertEqual(len(ctx['recent_notifications']), 1)
+        self.assertEqual(ctx['recent_notifications'][0].id, notif.id)
+
+    def test_mark_notification_read_api(self):
+        """POST /api/notifications/<id>/read/ marks notification as read and returns updated unread count."""
+        notif = create_notification(
+            recipient=self.breeder,
+            title='Test Notification',
+            message='Test message content'
+        )
+        url = reverse('mark_notification_read_api', args=[notif.id])
+        res = self.client_breeder.post(url)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['unread_count'], 0)
+        notif.refresh_from_db()
+        self.assertTrue(notif.is_read)
+
+    def test_mark_all_notifications_read_api(self):
+        """POST /api/notifications/mark-all-read/ marks all notifications for current user as read."""
+        for i in range(3):
+            create_notification(
+                recipient=self.breeder,
+                title=f'Notice {i}',
+                message=f'Details {i}'
+            )
+        self.assertEqual(self.breeder.notifications.filter(is_read=False).count(), 3)
+
+        url = reverse('mark_all_notifications_read_api')
+        res = self.client_breeder.post(url)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()['unread_count'], 0)
+        self.assertEqual(self.breeder.notifications.filter(is_read=False).count(), 0)
+
+    def test_advanced_search_filters_vaccinated_and_terms(self):
+        """explore_dogs correctly filters by vaccinated_only and mating_terms."""
+        # Query vaccinated only (should return Kaiser, but not Bella)
+        res_vac = self.client.get(reverse('explore_dogs'), {'vaccinated_only': 'true'})
+        self.assertEqual(res_vac.status_code, 200)
+        vac_dogs = res_vac.context['dogs']
+        self.assertIn(self.dog_breeder, vac_dogs)
+        self.assertNotIn(self.dog_seeker, vac_dogs)
+
+        # Query mating terms 'want_puppy' (should return Bella, not Kaiser)
+        res_terms = self.client.get(reverse('explore_dogs'), {'mating_terms': 'want_puppy'})
+        self.assertEqual(res_terms.status_code, 200)
+        terms_dogs = res_terms.context['dogs']
+        self.assertIn(self.dog_seeker, terms_dogs)
+        self.assertNotIn(self.dog_breeder, terms_dogs)
+
+    def test_advanced_search_sorting(self):
+        """explore_dogs sorts results correctly by newest and age."""
+        # Sort by newest
+        res_newest = self.client.get(reverse('explore_dogs'), {'sort_by': 'newest'})
+        self.assertEqual(res_newest.status_code, 200)
+        self.assertEqual(res_newest.context['dogs'][0].id, self.dog_seeker.id)
+
+        # Sort by age_asc (Bella is 2y6m, Kaiser is 3y2m -> Bella first)
+        res_age = self.client.get(reverse('explore_dogs'), {'sort_by': 'age_asc'})
+        self.assertEqual(res_age.status_code, 200)
+        self.assertEqual(res_age.context['dogs'][0].id, self.dog_seeker.id)
+
+        # Sort by age_desc (Kaiser first)
+        res_age_desc = self.client.get(reverse('explore_dogs'), {'sort_by': 'age_desc'})
+        self.assertEqual(res_age_desc.status_code, 200)
+        self.assertEqual(res_age_desc.context['dogs'][0].id, self.dog_breeder.id)
+
+    def test_match_proposal_and_admin_actions_trigger_notifications(self):
+        """Sending a proposal and admin approvals automatically create in-app notifications."""
+        # 1. Proposal notification
+        url = reverse('send_match_request', args=[self.dog_breeder.id])
+        res = self.client_seeker.post(url, {'sender_dog': self.dog_seeker.id, 'message': 'Hello Kaiser!'})
+        self.assertEqual(res.status_code, 302)
+        
+        breeder_notif = self.breeder.notifications.filter(notification_type='match_proposal').first()
+        self.assertIsNotNone(breeder_notif)
+        self.assertIn('Kaiser', breeder_notif.title)
+        self.assertEqual(breeder_notif.sender, self.seeker)
+
+        # 2. Admin approval notification
+        pending_dog = DogProfile.objects.create(
+            owner=self.seeker,
+            name='Roxy',
+            breed='Boxer',
+            gender='female',
+            age_years=2,
+            age_months=0,
+            city='Bengaluru',
+            approval_status='pending',
+            is_available=True
+        )
+        approve_url = reverse('admin_approve_reject_dog', args=[pending_dog.id, 'approve'])
+        self.client_admin.post(approve_url)
+        
+        seeker_approval_notif = self.seeker.notifications.filter(notification_type='dog_approved').first()
+        self.assertIsNotNone(seeker_approval_notif)
+        self.assertIn('Roxy', seeker_approval_notif.title)
+
 
 
 
