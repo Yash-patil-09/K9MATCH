@@ -4,79 +4,120 @@
 {% block title %}K9Match · Certified Canine Matchmaking & Ethical Registry{% endblock %}
 
 {% block content %}
-<!-- 1. BENTO HERO BANNER (Stitch AI Layout) -->
-<section class="pt-4 pb-5 px-3 px-lg-5 max-w-7xl mx-auto">
+<!-- ==========================================
+     1. BENTO HERO BANNER (Ultra-Premium & Alive)
+     ========================================== -->
+<section class="pt-4 pb-4 px-3 px-lg-5 max-w-7xl mx-auto">
     <div class="container-fluid px-0">
-        <div class="bg-white rounded-5 overflow-hidden shadow-sm border border-light-subtle position-relative" style="border-radius: 2rem !important;">
-            <div class="row g-0 align-items-stretch" style="min-height: 520px;">
+        <div class="bg-white rounded-5 overflow-hidden shadow-sm border border-light-subtle position-relative" style="border-radius: 2.25rem !important;">
+            
+            <!-- Ambient Glow Background Decor -->
+            <div class="position-absolute top-0 start-50 translate-middle-x w-75 h-50 opacity-15 pointer-events-none" 
+                 style="background: radial-gradient(circle, rgba(0, 74, 198, 0.4) 0%, rgba(254, 166, 25, 0.15) 60%, transparent 80%); filter: blur(50px); z-index: 0;">
+            </div>
+
+            <div class="row g-0 align-items-stretch position-relative z-1" style="min-height: 560px;">
                 
                 <!-- Left Hero Content Column -->
-                <div class="col-lg-6 p-4 p-md-5 d-flex flex-column justify-content-center position-relative z-1" data-aos="fade-right">
-                    <!-- Pill Badge -->
-                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill mb-4 shadow-2xs" style="background-color: var(--color-tertiary-light); color: #002113; width: fit-content;">
-                        <i class="fas fa-shield-alt text-success" style="color: var(--color-tertiary) !important;"></i>
-                        <span class="fw-bold small" style="font-size: 0.78rem;">100% DNA Screened &amp; Vet Supervised</span>
+                <div class="col-lg-6 p-4 p-md-5 d-flex flex-column justify-content-center" data-aos="fade-right">
+                    
+                    <!-- Live Operational Pill Badge -->
+                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill mb-4 shadow-2xs" 
+                         style="background: linear-gradient(90deg, #e7eeff 0%, #dcfce7 100%); width: fit-content; border: 1px solid rgba(0, 98, 66, 0.15);">
+                        <span class="spinner-grow spinner-grow-sm text-success" style="width: 8px; height: 8px;" role="status"></span>
+                        <span class="fw-bold text-dark small" style="font-size: 0.78rem;">
+                            100% DNA Screened · India's Premier Ethical K9 Network
+                        </span>
                     </div>
 
-                    <h1 class="display-5 fw-black text-dark tracking-tight mb-3" style="line-height: 1.18; font-weight: 800;">
-                        Find the Perfect Match for Your Best Friend 🐾
+                    <h1 class="display-4 fw-black text-dark tracking-tight mb-3 font-display" style="line-height: 1.12; font-weight: 900;">
+                        Find the Perfect Match for Your <span style="background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Best Friend</span> 🐾
                     </h1>
 
-                    <p class="text-muted fs-6 mb-4 pe-lg-4" style="line-height: 1.65; color: var(--color-text-muted) !important;">
-                        The world’s first DNA-screened, veterinarian-approved canine matchmaking platform. Prioritizing lineage purity, genetic health, and ethical breeding standards.
+                    <p class="text-muted fs-6 mb-4 pe-lg-4" style="line-height: 1.7; font-size: 1.05rem !important;">
+                        The certified standard in pedigree authentication, genetic health screening, and ethical canine breeding management. Verified KCI passports, vet supervision, and legally binding mating agreements.
                     </p>
 
                     <!-- CTAs -->
-                    <div class="d-flex flex-wrap align-items-center gap-3 mb-5">
-                        <a href="{% url 'explore_dogs' %}" class="btn-primary-stitch text-decoration-none px-4 py-2.5 d-inline-flex align-items-center gap-2 fs-6">
+                    <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+                        <a href="{% url 'explore_dogs' %}" class="btn-primary-stitch text-decoration-none px-4 py-3 d-inline-flex align-items-center gap-2 fs-6 shadow-sm">
                             <i class="fas fa-search"></i>
-                            <span>Discover Matches</span>
+                            <span>Discover Compatible Matches</span>
                         </a>
-                        <a href="{% url 'vets_directory' %}" class="btn-soft text-decoration-none px-4 py-2.5 d-inline-flex align-items-center gap-2 fs-6">
+                        <a href="{% url 'vets_directory' %}" class="btn-soft text-decoration-none px-4 py-3 d-inline-flex align-items-center gap-2 fs-6">
                             <i class="fas fa-stethoscope text-success"></i>
-                            <span>Verified Vets</span>
+                            <span>Verified Vet Radar</span>
                         </a>
                     </div>
 
                     <!-- Metric Highlights Strip -->
-                    <div class="row g-3 pt-4 border-top border-light-subtle">
-                        <div class="col-4">
-                            <div class="h3 fw-black mb-0" style="color: var(--color-primary); font-weight: 800;">{{ total_dogs }}+</div>
-                            <div class="text-muted small fw-semibold" style="font-size: 0.75rem;">Verified Dogs</div>
+                    <div class="row g-3 pt-3 border-top border-light-subtle">
+                        <div class="col-3">
+                            <div class="h3 fw-black mb-0 font-display" style="color: var(--color-primary); font-weight: 800;">{{ total_dogs }}+</div>
+                            <div class="text-muted small fw-semibold" style="font-size: 0.72rem;">Verified Dogs</div>
                         </div>
-                        <div class="col-4">
-                            <div class="h3 fw-black mb-0" style="color: var(--color-tertiary); font-weight: 800;">100%</div>
-                            <div class="text-muted small fw-semibold" style="font-size: 0.75rem;">Lineage Verified</div>
+                        <div class="col-3">
+                            <div class="h3 fw-black mb-0 font-display" style="color: var(--color-tertiary); font-weight: 800;">100%</div>
+                            <div class="text-muted small fw-semibold" style="font-size: 0.72rem;">Pedigree Authenticated</div>
                         </div>
-                        <div class="col-4">
-                            <div class="h3 fw-black mb-0" style="color: var(--color-secondary-dark); font-weight: 800;">{{ total_clinics|default:"640" }}+</div>
-                            <div class="text-muted small fw-semibold" style="font-size: 0.75rem;">Partner Clinics</div>
+                        <div class="col-3">
+                            <div class="h3 fw-black mb-0 font-display" style="color: var(--color-secondary-dark); font-weight: 800;">{{ total_clinics|default:"640" }}+</div>
+                            <div class="text-muted small fw-semibold" style="font-size: 0.72rem;">Vet Clinics</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="h3 fw-black mb-0 font-display text-success" style="font-weight: 800;">{{ successful_matches|default:"85" }}+</div>
+                            <div class="text-muted small fw-semibold" style="font-size: 0.72rem;">Litters Born</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Hero Visual with Golden Retriever -->
-                <div class="col-lg-6 position-relative overflow-hidden" style="min-height: 380px;" data-aos="fade-left">
-                    <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqIz55cbF2eL9OQNBZTwjD7rNfNvkl1xzYhpso01KpTUiv3w86P1GJC-PjaUKZ96HsJac3IcogdP-UTcagLBtHEpsfgmAFHH9xrAuZU7ySDtaOZY87w3f9Y45aXmbXJEa0YGenBx7_rm9wmJek0zxh8aGW8KuUhlDNzupEG0BkaB5HjVHWEcIb2b9DngQ9zSFABKXEEbU7QvcNrILCKSJwFU9otpYPE6Zt1lZq_CA8t2c3huV_xuY" 
-                         alt="Joyful Golden Retriever" 
-                         class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover">
+                <!-- Right Hero Visual with High-Res AI Champion Dog -->
+                <div class="col-lg-6 position-relative overflow-hidden" style="min-height: 440px;" data-aos="fade-left">
+                    <img src="{% static 'images/ui/hero_canine_majestic.jpg' %}" 
+                         alt="Champion Golden Retriever in Golden Hour" 
+                         class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover"
+                         style="transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);">
                     
-                    <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 60%);"></div>
+                    <!-- Gradient Overlays for Depth -->
+                    <div class="position-absolute top-0 start-0 w-100 h-100" 
+                         style="background: linear-gradient(180deg, rgba(11,21,40,0.1) 0%, rgba(11,21,40,0.55) 100%);"></div>
 
-                    <!-- Floating Badge: Top Stud -->
-                    <div class="position-absolute top-0 end-0 m-4 glass-card px-3 py-2 rounded-pill shadow-sm d-flex align-items-center gap-2 hover-scale">
-                        <i class="fas fa-award text-warning"></i>
-                        <span class="small fw-bold text-dark" style="font-size: 0.78rem;">Top Stud 2024 · Champion Lineage</span>
+                    <!-- Floating Top Badge: Champion Stud Award -->
+                    <div class="position-absolute top-0 end-0 m-3 m-md-4 glass-card-premium px-3 py-2 rounded-pill shadow-sm d-flex align-items-center gap-2 animate-float">
+                        <div class="rounded-circle bg-warning d-flex align-items-center justify-content-center text-dark" style="width: 26px; height: 26px;">
+                            <i class="fas fa-crown small"></i>
+                        </div>
+                        <div>
+                            <span class="d-block fw-bold text-dark font-display" style="font-size: 0.8rem; line-height: 1.1;">Top Stud 2026</span>
+                            <span class="text-muted" style="font-size: 0.68rem;">Grand Champion Lineage</span>
+                        </div>
                     </div>
 
-                    <!-- Floating Card: Certified Vet Health Clearance -->
-                    <div class="position-absolute bottom-0 start-0 end-0 m-3 m-lg-4 glass-card p-3 rounded-4 shadow-sm" style="max-width: 320px;">
-                        <div class="d-flex align-items-center gap-2 mb-1 fw-bold text-success small">
-                            <i class="fas fa-stethoscope"></i>
-                            <span>Vet Health &amp; Vaccine Cleared</span>
+                    <!-- Floating Left Badge: Dynamic AI Compatibility Meter -->
+                    <div class="position-absolute top-50 start-0 translate-middle-y ms-3 ms-md-4 glass-card-premium p-3 rounded-4 shadow-sm animate-float-delayed" style="max-width: 220px;">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                            <span class="small fw-bold text-dark font-display" style="font-size: 0.78rem;">Lineage Compatibility</span>
+                            <span class="badge bg-success-subtle text-success fw-bold rounded-pill" style="font-size: 0.7rem;">98% Match</span>
                         </div>
-                        <p class="small text-muted mb-0" style="font-size: 0.75rem;">
-                            Verified: Up-to-date Rabies, DHPPiL Vaccinations &amp; Pre-Mating Clearance.
+                        <div class="progress" style="height: 6px; background-color: rgba(0,0,0,0.06);">
+                            <div class="progress-bar bg-success rounded-pill" role="progressbar" style="width: 98%" aria-valuenow="98" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="d-flex align-items-center gap-1 mt-2 text-muted" style="font-size: 0.68rem;">
+                            <i class="fas fa-dna text-primary"></i>
+                            <span>Zero Inbreeding (COI &lt; 2%)</span>
+                        </div>
+                    </div>
+
+                    <!-- Floating Bottom Card: Certified Health Clearance -->
+                    <div class="position-absolute bottom-0 start-0 end-0 m-3 m-lg-4 glass-card-premium p-3 rounded-4 shadow-sm" style="max-width: 360px;">
+                        <div class="d-flex align-items-center gap-2 mb-1.5 fw-bold text-success small font-display">
+                            <div class="rounded-circle bg-success-subtle text-success p-1 d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                                <i class="fas fa-check small"></i>
+                            </div>
+                            <span>Veterinarian Health &amp; Vaccine Cleared</span>
+                        </div>
+                        <p class="small text-muted mb-0" style="font-size: 0.76rem; line-height: 1.4;">
+                            Rabies, DHPPiL, Brucellosis Negative &amp; Pre-Mating Clearance Verified by Board Clinicians.
                         </p>
                     </div>
                 </div>
@@ -86,17 +127,19 @@
     </div>
 </section>
 
-<!-- 2. INTERACTIVE FLOATING SEARCH DOCK -->
-<section class="px-3 px-lg-5 mb-5 max-w-7xl mx-auto position-relative" style="margin-top: -30px; z-index: 10;">
+<!-- ==========================================
+     2. INTERACTIVE SEARCH DOCK
+     ========================================== -->
+<section class="py-3 px-3 px-lg-5 mb-4 max-w-7xl mx-auto">
     <div class="container-fluid px-0">
-        <div class="bg-white rounded-4 shadow-lg p-3 p-md-4 border border-light-subtle">
-            <form action="{% url 'explore_dogs' %}" method="GET" class="row g-2 align-items-center">
+        <div class="bg-white rounded-4 shadow-sm p-3 p-md-4 border border-light-subtle">
+            <form action="{% url 'explore_dogs' %}" method="GET" class="row g-3 align-items-end">
                 <!-- Search Query -->
                 <div class="col-lg-4 col-md-6">
                     <label class="form-label text-muted small fw-bold mb-1 text-uppercase tracking-wider">Search Breeds</label>
                     <div class="input-group">
                         <span class="input-group-text bg-light border-0"><i class="fas fa-search text-muted"></i></span>
-                        <input type="text" name="breed" class="form-control bg-light border-0 py-2" placeholder="e.g. Golden Retriever, Husky...">
+                        <input type="text" name="breed" class="form-control bg-light border-0 py-2" placeholder="e.g. Golden Retriever, Husky, Shepherd...">
                     </div>
                 </div>
 
@@ -120,8 +163,8 @@
                 </div>
 
                 <!-- Search CTA -->
-                <div class="col-lg-2 col-md-6 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary-stitch w-100 py-2 d-flex align-items-center justify-content-center gap-2 mt-md-4">
+                <div class="col-lg-2 col-md-6">
+                    <button type="submit" class="btn btn-primary-stitch w-100 py-2 d-flex align-items-center justify-content-center gap-2">
                         <i class="fas fa-paw"></i>
                         <span>Find Dogs</span>
                     </button>
@@ -143,21 +186,122 @@
                 <a href="{% url 'explore_dogs' %}?gender=female" class="btn btn-soft py-1 px-3 small text-decoration-none" style="font-size: 0.75rem;">
                     <i class="fas fa-venus text-danger me-1"></i> Dams Only
                 </a>
+                <a href="{% url 'explore_dogs' %}?breed=Golden+Retriever" class="btn btn-soft py-1 px-3 small text-decoration-none" style="font-size: 0.75rem;">
+                    <i class="fas fa-paw text-warning me-1"></i> Golden Retrievers
+                </a>
             </div>
         </div>
     </div>
 </section>
 
-<!-- 3. CANINE SPOTLIGHT GRID (Stitch AI Card Design) -->
+<!-- ==========================================
+     4. INTERACTIVE BREED EXPLORER (Visual Photorealistic Tiles)
+     ========================================== -->
+<section class="py-4 px-3 px-lg-5 max-w-7xl mx-auto">
+    <div class="container-fluid px-0">
+        <div class="d-flex flex-column flex-sm-row sm:align-items-end justify-content-between mb-4 gap-2">
+            <div>
+                <span class="badge bg-secondary-subtle text-dark rounded-pill px-3 py-1 fw-bold small mb-2">Curated Lineages</span>
+                <h2 class="fw-black text-dark mb-0 font-display">Explore by Certified Breed</h2>
+                <p class="text-muted small mb-0 mt-1">Discover purebred lineages with authenticated KCI bloodlines and temperament records.</p>
+            </div>
+            <a href="{% url 'explore_dogs' %}" class="fw-bold small text-primary text-decoration-none d-inline-flex align-items-center gap-1 font-display">
+                <span>Browse All Breeds</span>
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <div class="row g-3">
+            <!-- 1. German Shepherd -->
+            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
+                <a href="{% url 'explore_dogs' %}?breed=German+Shepherd" class="text-decoration-none text-dark d-block h-100">
+                    <div class="card h-100 border-0 rounded-4 overflow-hidden position-relative shadow-sm hover-lift" style="min-height: 220px;">
+                        <img src="{% static 'images/ui/breed_gsd.jpg' %}" alt="German Shepherd" class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover hover-scale">
+                        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(11,21,40,0.8) 100%);"></div>
+                        <div class="position-relative z-1 p-4 d-flex flex-column justify-content-end h-100 text-white">
+                            <span class="badge bg-warning text-dark fw-bold rounded-pill px-2.5 py-1 mb-2 align-self-start small" style="font-size: 0.7rem;">Protection &amp; Loyalty</span>
+                            <h4 class="fw-bold mb-1 text-white font-display">German Shepherd</h4>
+                            <p class="text-white-50 small mb-0" style="font-size: 0.78rem;">High intelligence · Working class lineage</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 2. Golden Retriever -->
+            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
+                <a href="{% url 'explore_dogs' %}?breed=Golden+Retriever" class="text-decoration-none text-dark d-block h-100">
+                    <div class="card h-100 border-0 rounded-4 overflow-hidden position-relative shadow-sm hover-lift" style="min-height: 220px;">
+                        <img src="{% static 'images/ui/hero_canine_majestic.jpg' %}" alt="Golden Retriever" class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover hover-scale">
+                        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(11,21,40,0.8) 100%);"></div>
+                        <div class="position-relative z-1 p-4 d-flex flex-column justify-content-end h-100 text-white">
+                            <span class="badge bg-primary fw-bold rounded-pill px-2.5 py-1 mb-2 align-self-start small" style="font-size: 0.7rem;">Family &amp; Therapy</span>
+                            <h4 class="fw-bold mb-1 text-white font-display">Golden Retriever</h4>
+                            <p class="text-white-50 small mb-0" style="font-size: 0.78rem;">Gentle temperament · Champion coats</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 3. Siberian Husky -->
+            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
+                <a href="{% url 'explore_dogs' %}?breed=Siberian+Husky" class="text-decoration-none text-dark d-block h-100">
+                    <div class="card h-100 border-0 rounded-4 overflow-hidden position-relative shadow-sm hover-lift" style="min-height: 220px;">
+                        <img src="{% static 'images/ui/breed_husky.jpg' %}" alt="Siberian Husky" class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover hover-scale">
+                        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(11,21,40,0.8) 100%);"></div>
+                        <div class="position-relative z-1 p-4 d-flex flex-column justify-content-end h-100 text-white">
+                            <span class="badge bg-info text-dark fw-bold rounded-pill px-2.5 py-1 mb-2 align-self-start small" style="font-size: 0.7rem;">Athletic &amp; Arctic</span>
+                            <h4 class="fw-bold mb-1 text-white font-display">Siberian Husky</h4>
+                            <p class="text-white-50 small mb-0" style="font-size: 0.78rem;">Striking blue eyes · High endurance</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 4. Labrador Retriever -->
+            <div class="col-lg-6 col-md-6" data-aos="fade-up" data-aos-delay="400">
+                <a href="{% url 'explore_dogs' %}?breed=Labrador" class="text-decoration-none text-dark d-block h-100">
+                    <div class="card h-100 border-0 rounded-4 overflow-hidden position-relative shadow-sm hover-lift" style="min-height: 220px;">
+                        <img src="{% static 'images/ui/breed_labrador.jpg' %}" alt="Labrador Retriever" class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover hover-scale">
+                        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(11,21,40,0.8) 100%);"></div>
+                        <div class="position-relative z-1 p-4 d-flex flex-column justify-content-end h-100 text-white">
+                            <span class="badge bg-success fw-bold rounded-pill px-2.5 py-1 mb-2 align-self-start small" style="font-size: 0.7rem;">Most Popular Companion</span>
+                            <h4 class="fw-bold mb-1 text-white font-display">Labrador Retriever</h4>
+                            <p class="text-white-50 small mb-0" style="font-size: 0.78rem;">Playful · Loving · Highly trainable</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- 5. Tricolor Beagle -->
+            <div class="col-lg-6 col-md-12" data-aos="fade-up" data-aos-delay="500">
+                <a href="{% url 'explore_dogs' %}?breed=Beagle" class="text-decoration-none text-dark d-block h-100">
+                    <div class="card h-100 border-0 rounded-4 overflow-hidden position-relative shadow-sm hover-lift" style="min-height: 220px;">
+                        <img src="{% static 'images/ui/breed_beagle.jpg' %}" alt="Tricolor Beagle" class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover hover-scale">
+                        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(11,21,40,0.8) 100%);"></div>
+                        <div class="position-relative z-1 p-4 d-flex flex-column justify-content-end h-100 text-white">
+                            <span class="badge bg-warning text-dark fw-bold rounded-pill px-2.5 py-1 mb-2 align-self-start small" style="font-size: 0.7rem;">Scent Hound &amp; Alert</span>
+                            <h4 class="fw-bold mb-1 text-white font-display">Beagle</h4>
+                            <p class="text-white-50 small mb-0" style="font-size: 0.78rem;">Merry disposition · Excellent scent trail pedigree</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================
+     5. CANINE SPOTLIGHT GRID (Verified Dogs)
+     ========================================== -->
 <section class="py-5 px-3 px-lg-5 max-w-7xl mx-auto">
     <div class="container-fluid px-0">
         <div class="d-flex flex-column flex-sm-row sm:align-items-end justify-content-between mb-4 gap-2">
             <div>
-                <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 fw-bold small mb-2">Featured Canines</span>
-                <h2 class="fw-black text-dark mb-0">Certified Matchmaking Spotlight</h2>
+                <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 fw-bold small mb-2">Verified Profiles</span>
+                <h2 class="fw-black text-dark mb-0 font-display">Certified Matchmaking Spotlight</h2>
                 <p class="text-muted small mb-0 mt-1">Explore verified dogs with complete pedigree passports and medical histories.</p>
             </div>
-            <a href="{% url 'explore_dogs' %}" class="fw-bold small text-primary text-decoration-none d-inline-flex align-items-center gap-1">
+            <a href="{% url 'explore_dogs' %}" class="fw-bold small text-primary text-decoration-none d-inline-flex align-items-center gap-1 font-display">
                 <span>View All Registered Dogs</span>
                 <i class="fas fa-arrow-right"></i>
             </a>
@@ -168,12 +312,13 @@
                 <div class="col-xl-4 col-md-6" data-aos="fade-up" data-aos-delay="{{ forloop.counter0 }}00">
                     <div class="bg-white rounded-4 overflow-hidden border border-light-subtle shadow-sm hover-lift d-flex flex-column h-100">
                         <!-- Photo & Badges -->
-                        <div class="position-relative overflow-hidden" style="height: 250px; background-color: var(--color-surface-container);">
+                        <div class="position-relative overflow-hidden" style="height: 260px; background-color: var(--color-surface-container);">
                             {% if dog.images.first %}
                                 <img src="{{ dog.images.first.image.url }}" alt="{{ dog.name }}" class="w-100 h-100 object-fit-cover hover-scale">
                             {% else %}
-                                <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">
-                                    <i class="fas fa-dog fa-4x opacity-25"></i>
+                                <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center text-muted bg-light">
+                                    <i class="fas fa-dog fa-3x opacity-25 mb-2"></i>
+                                    <span class="small text-black-50">Verified Profile</span>
                                 </div>
                             {% endif %}
 
@@ -192,10 +337,23 @@
                                 {% endif %}
                             </div>
 
+                            <!-- Top-right Gender Pill -->
+                            <div class="position-absolute top-0 end-0 m-3">
+                                {% if dog.gender == 'male' %}
+                                    <span class="badge bg-primary text-white rounded-pill px-2.5 py-1 small fw-bold shadow-xs">
+                                        <i class="fas fa-mars me-1"></i> Stud
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 small fw-bold shadow-xs">
+                                        <i class="fas fa-venus me-1"></i> Dam
+                                    </span>
+                                {% endif %}
+                            </div>
+
                             <!-- Bottom-left Mating terms pill -->
                             <div class="position-absolute bottom-0 start-0 m-3">
                                 <span class="badge-stud-fee">
-                                    {{ dog.get_mating_terms_display|default:"Negotiable" }}
+                                    <i class="fas fa-handshake me-1 text-warning"></i> {{ dog.get_mating_terms_display|default:"Negotiable Terms" }}
                                 </span>
                             </div>
                         </div>
@@ -204,7 +362,7 @@
                         <div class="p-4 d-flex flex-column justify-content-between flex-grow-1">
                             <div>
                                 <div class="d-flex align-items-start justify-content-between gap-2 mb-1">
-                                    <h5 class="fw-bold text-dark mb-0 text-truncate">
+                                    <h5 class="fw-bold text-dark mb-0 text-truncate font-display">
                                         <a href="{% url 'dog_detail' dog.id %}" class="text-dark text-decoration-none hover-text-primary">
                                             {{ dog.name }}
                                         </a>
@@ -213,7 +371,7 @@
                                 </div>
 
                                 <p class="text-muted small mb-3">
-                                    <i class="fas fa-map-marker-alt text-danger me-1"></i> {{ dog.city }}{% if dog.state %}, {{ dog.state }}{% endif %} · <span class="fw-semibold">{{ dog.breed }}</span>
+                                    <i class="fas fa-map-marker-alt text-danger me-1"></i> {{ dog.city }}{% if dog.state %}, {{ dog.state }}{% endif %} · <span class="fw-semibold text-dark">{{ dog.breed }}</span>
                                 </p>
 
                                 <!-- Bone Compatibility & Temperament Bar -->
@@ -248,11 +406,11 @@
                             <!-- Action Buttons -->
                             <div class="d-flex align-items-center gap-2 pt-2 border-top border-light-subtle">
                                 <a href="{% url 'dog_detail' dog.id %}" class="btn btn-primary-stitch flex-grow-1 text-center py-2 text-decoration-none small">
-                                    <span>Propose Match</span>
+                                    <span>View Pedigree Passport</span>
                                     <i class="fas fa-paw ms-1"></i>
                                 </a>
-                                <a href="{% url 'dog_detail' dog.id %}" class="btn btn-soft rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;" title="View Pedigree Passport">
-                                    <i class="fas fa-eye small"></i>
+                                <a href="{% url 'dog_detail' dog.id %}" class="btn btn-soft rounded-circle p-0 d-flex align-items-center justify-content-center shrink-0" style="width: 38px; height: 38px;" title="View Details">
+                                    <i class="fas fa-arrow-right small"></i>
                                 </a>
                             </div>
                         </div>
@@ -261,8 +419,8 @@
             {% empty %}
                 <div class="col-12 text-center py-5">
                     <i class="fas fa-dog fa-3x text-muted opacity-50 mb-3"></i>
-                    <h5 class="fw-bold text-dark">No dogs currently spotlighted</h5>
-                    <p class="text-muted small">Be the first to register an ethical breeding profile.</p>
+                    <h5 class="fw-bold text-dark font-display">No dogs currently spotlighted</h5>
+                    <p class="text-muted small">Be the first to register an ethical breeding profile in your city.</p>
                     <a href="{% url 'add_dog' %}" class="btn btn-primary-stitch text-decoration-none">Register Your Dog</a>
                 </div>
             {% endfor %}
@@ -270,14 +428,336 @@
     </div>
 </section>
 
-<!-- 4. THE 4-POINT ETHICAL WELFARE CHARTER FEATURE -->
+<!-- ==========================================
+     6. INTERACTIVE BREEDING READINESS CALCULATOR WIDGET
+     ========================================== -->
 <section class="py-5 px-3 px-lg-5 max-w-7xl mx-auto">
     <div class="container-fluid px-0">
-        <div class="bg-white rounded-5 p-4 p-md-5 border border-light-subtle shadow-sm" style="border-radius: 2rem !important;">
+        <div class="card border-0 rounded-5 shadow-lg overflow-hidden" style="background: linear-gradient(135deg, #0b1528 0%, #004ac6 60%, #2563eb 100%); color: #fff; border-radius: 2.25rem !important;">
+            <div class="row g-0 align-items-center">
+                
+                <!-- Left Column: Interactive Calculator Form -->
+                <div class="col-lg-7 p-4 p-md-5" data-aos="fade-right">
+                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-white bg-opacity-15 mb-3 text-warning small fw-bold font-display">
+                        <i class="fas fa-calculator"></i>
+                        <span>Interactive Diagnostic Widget</span>
+                    </div>
+
+                    <h2 class="display-6 fw-black text-white mb-2 font-display">Ethical Breeding Readiness Calculator</h2>
+                    <p class="text-white-50 small mb-4" style="line-height: 1.6;">
+                        Answer 4 simple questions about your dog's age, pedigree, and health to instantly evaluate biological breeding maturity and K9Match certification eligibility.
+                    </p>
+
+                    <div class="space-y-4">
+                        <!-- Question 1: Dog Age -->
+                        <div class="mb-3">
+                            <label class="form-label text-white fw-semibold small mb-2 d-flex justify-content-between">
+                                <span>1. Dog's Current Age</span>
+                                <span id="ageLabel" class="text-warning fw-bold">2.5 Years</span>
+                            </label>
+                            <input type="range" class="form-range" id="calcAge" min="0.5" max="9.0" step="0.5" value="2.5" oninput="updateBreedingCalculator()">
+                            <div class="d-flex justify-content-between text-white-50" style="font-size: 0.72rem;">
+                                <span>6 Months (Juvenile)</span>
+                                <span>2 - 4 Years (Optimal)</span>
+                                <span>8+ Years (Senior)</span>
+                            </div>
+                        </div>
+
+                        <!-- Question 2: Pedigree Documentation -->
+                        <div class="mb-3">
+                            <label class="form-label text-white fw-semibold small mb-2">2. Lineage &amp; Registration Documentation</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 active calc-btn" data-type="kci" data-val="kci_certified" onclick="selectCalcOption(this, 'kci')">
+                                    <i class="fas fa-certificate text-warning me-1"></i> KCI Registered / Certified
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 calc-btn" data-type="kci" data-val="in_process" onclick="selectCalcOption(this, 'kci')">
+                                    <i class="fas fa-clock text-info me-1"></i> Application In Process
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 calc-btn" data-type="kci" data-val="none" onclick="selectCalcOption(this, 'kci')">
+                                    <i class="fas fa-paw text-white-50 me-1"></i> Pet / Unregistered
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Question 3: Vaccine & Health Records -->
+                        <div class="mb-3">
+                            <label class="form-label text-white fw-semibold small mb-2">3. Immunization &amp; Rabies Status</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 active calc-btn" data-type="vac" data-val="full" onclick="selectCalcOption(this, 'vac')">
+                                    <i class="fas fa-shield-virus text-success me-1"></i> Up to Date (Rabies + DHPPiL)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 calc-btn" data-type="vac" data-val="partial" onclick="selectCalcOption(this, 'vac')">
+                                    <i class="fas fa-exclamation-circle text-warning me-1"></i> Partial / Due Soon
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Question 4: Clinical Pre-Check -->
+                        <div class="mb-2">
+                            <label class="form-label text-white fw-semibold small mb-2">4. Veterinary Reproductive Pre-Mating Check</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 active calc-btn" data-type="vet" data-val="cleared" onclick="selectCalcOption(this, 'vet')">
+                                    <i class="fas fa-stethoscope text-info me-1"></i> Clinical Clearance Done
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-light rounded-pill px-3 py-1.5 calc-btn" data-type="vet" data-val="pending" onclick="selectCalcOption(this, 'vet')">
+                                    <i class="fas fa-calendar-alt text-white-50 me-1"></i> Scheduled / Not Yet Done
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Live Result Meter & Action -->
+                <div class="col-lg-5 p-4 p-md-5 border-start border-white border-opacity-10 text-center" data-aos="fade-left">
+                    <div class="bg-white bg-opacity-10 rounded-4 p-4 p-md-5 backdrop-blur shadow-sm">
+                        
+                        <!-- Readiness Score Circle -->
+                        <div class="position-relative mx-auto mb-3" style="width: 140px; height: 140px;">
+                            <svg viewBox="0 0 36 36" class="w-100 h-100" style="transform: rotate(-90deg);">
+                                <path class="circle-bg"
+                                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                      fill="none"
+                                      stroke="rgba(255,255,255,0.2)"
+                                      stroke-width="3.5" />
+                                <path id="calcCircleProgress"
+                                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                      fill="none"
+                                      stroke="#fea619"
+                                      stroke-width="3.5"
+                                      stroke-dasharray="95, 100"
+                                      style="transition: stroke-dasharray 0.6s ease;" />
+                            </svg>
+                            <div class="position-absolute top-50 start-50 translate-middle text-white">
+                                <span id="calcScoreText" class="display-6 fw-black font-display d-block" style="line-height: 1;">95%</span>
+                                <span class="small text-white-50 text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.05em;">Readiness</span>
+                            </div>
+                        </div>
+
+                        <!-- Status Title -->
+                        <h4 id="calcStatusTitle" class="fw-bold text-white mb-2 font-display">Prime Breeding Candidate</h4>
+                        <p id="calcStatusDesc" class="text-white-50 small mb-4" style="font-size: 0.8rem; line-height: 1.5;">
+                            Your canine meets prime biological age criteria and holds the highest pedigree standard for responsible matchmaking.
+                        </p>
+
+                        <!-- Call to Action -->
+                        <a href="{% url 'add_dog' %}" class="btn btn-secondary-stitch w-100 py-2.5 font-display text-decoration-none shadow-sm d-inline-flex align-items-center justify-content-center gap-2">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Register for Matching</span>
+                        </a>
+
+                        <div class="mt-3 text-white-50 small" style="font-size: 0.72rem;">
+                            <i class="fas fa-shield-alt text-warning me-1"></i> Verified by K9Match Ethics Committee
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================
+     7. K9MATCH CORE INNOVATIONS BENTO GRID
+     ========================================== -->
+<section class="py-5 px-3 px-lg-5 max-w-7xl mx-auto">
+    <div class="container-fluid px-0">
+        <div class="text-center mb-5" data-aos="fade-up">
+            <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 fw-bold small mb-2 font-display">Intelligent Technology</span>
+            <h2 class="display-6 fw-black text-dark font-display">Next-Generation Canine Matchmaking</h2>
+            <p class="text-muted small mx-auto" style="max-width: 600px;">
+                Engineered from the ground up to protect breed genetics, eliminate contract disputes, and simplify reproductive healthcare.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <!-- 1. Heat Cycle & Ovulation Predictor -->
+            <div class="col-lg-6" data-aos="fade-up" data-aos-delay="100">
+                <div class="card h-100 border-0 rounded-4 p-4 p-md-5 shadow-sm hover-lift bg-white position-relative overflow-hidden">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-4 p-3 d-flex align-items-center justify-content-center text-white shrink-0 shadow-sm" 
+                             style="width: 58px; height: 58px; background: linear-gradient(135deg, #e11d48 0%, #fb7185 100%); font-size: 1.4rem;">
+                            <i class="fas fa-fire"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-0.5 small fw-bold mb-2">Automated Tracking</span>
+                            <h4 class="fw-bold text-dark font-display mb-2">Heat Cycle &amp; Ovulation Predictor</h4>
+                            <p class="text-muted small mb-3" style="line-height: 1.6;">
+                                Calculate precise Proestrus and Estrus peak fertility windows. Receive automated alerts before the next cycle so you never miss an optimal breeding opportunity.
+                            </p>
+                            <a href="{% url 'heat_calculator' %}" class="fw-bold small text-danger text-decoration-none d-inline-flex align-items-center gap-1 font-display">
+                                <span>Launch Heat Calculator</span>
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Smart Legal Mating Agreements -->
+            <div class="col-lg-6" data-aos="fade-up" data-aos-delay="200">
+                <div class="card h-100 border-0 rounded-4 p-4 p-md-5 shadow-sm hover-lift bg-white position-relative overflow-hidden">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-4 p-3 d-flex align-items-center justify-content-center text-white shrink-0 shadow-sm" 
+                             style="width: 58px; height: 58px; background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%); font-size: 1.4rem;">
+                            <i class="fas fa-file-contract"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-primary-subtle text-primary rounded-pill px-2.5 py-0.5 small fw-bold mb-2">Legal Security</span>
+                            <h4 class="fw-bold text-dark font-display mb-2">Automated Mating Contracts</h4>
+                            <p class="text-muted small mb-3" style="line-height: 1.6;">
+                                Eliminate misunderstandings with auto-generated legal PDF contracts covering stud fees, puppy pick priority orders, return breeding clauses, and non-refundable deposits.
+                            </p>
+                            <span class="fw-bold small text-primary d-inline-flex align-items-center gap-1 font-display">
+                                <i class="fas fa-lock small"></i>
+                                <span>Legally Binding Digital Agreements</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. KCI Pedigree & Genetic Screening -->
+            <div class="col-lg-6" data-aos="fade-up" data-aos-delay="300">
+                <div class="card h-100 border-0 rounded-4 p-4 p-md-5 shadow-sm hover-lift bg-white position-relative overflow-hidden">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-4 p-3 d-flex align-items-center justify-content-center text-white shrink-0 shadow-sm" 
+                             style="width: 58px; height: 58px; background: linear-gradient(135deg, #006242 0%, #10b981 100%); font-size: 1.4rem;">
+                            <i class="fas fa-dna"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-success-subtle text-success rounded-pill px-2.5 py-0.5 small fw-bold mb-2">Genetic Health</span>
+                            <h4 class="fw-bold text-dark font-display mb-2">KCI Authentication &amp; Pedigree Screening</h4>
+                            <p class="text-muted small mb-3" style="line-height: 1.6;">
+                                Every certified dog undergoes microchip authentication and multi-generation pedigree cross-referencing to monitor the inbreeding coefficient (COI) and protect canine vitality.
+                            </p>
+                            <span class="fw-bold small text-success d-inline-flex align-items-center gap-1 font-display">
+                                <i class="fas fa-check-double small"></i>
+                                <span>Zero-Tolerant Puppy Mill Verification</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. VetRadar™ Geolocation Directory -->
+            <div class="col-lg-6" data-aos="fade-up" data-aos-delay="400">
+                <div class="card h-100 border-0 rounded-4 p-4 p-md-5 shadow-sm hover-lift bg-white position-relative overflow-hidden">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-4 p-3 d-flex align-items-center justify-content-center text-dark shrink-0 shadow-sm" 
+                             style="width: 58px; height: 58px; background: linear-gradient(135deg, #fea619 0%, #f59e0b 100%); font-size: 1.4rem;">
+                            <i class="fas fa-hospital"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-warning-subtle text-dark rounded-pill px-2.5 py-0.5 small fw-bold mb-2">Clinical Network</span>
+                            <h4 class="fw-bold text-dark font-display mb-2">VetRadar™ Partner Clinics</h4>
+                            <p class="text-muted small mb-3" style="line-height: 1.6;">
+                                Instant GPS lookup for certified veterinary facilities offering pre-breeding health certificates, Brucellosis blood testing, ultrasound pregnancy scans, and whelping care.
+                            </p>
+                            <a href="{% url 'vets_directory' %}" class="fw-bold small text-dark text-decoration-none d-inline-flex align-items-center gap-1 font-display">
+                                <span>Find Vets Near You</span>
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================
+     8. VERIFIED SUCCESS STORIES & TESTIMONIALS (Photorealistic Showcase)
+     ========================================== -->
+<section class="py-5 px-3 px-lg-5 max-w-7xl mx-auto">
+    <div class="container-fluid px-0">
+        <div class="bg-white rounded-5 p-4 p-md-5 border border-light-subtle shadow-sm" style="border-radius: 2.25rem !important;">
+            <div class="row align-items-center g-5">
+                
+                <!-- Left: High-Res AI Mother Dog & Litter Showcase -->
+                <div class="col-lg-6" data-aos="fade-right">
+                    <div class="position-relative rounded-4 overflow-hidden shadow-md" style="min-height: 380px;">
+                        <img src="{% static 'images/ui/success_story_pair.jpg' %}" 
+                             alt="Mother Golden Retriever with healthy litter of puppies" 
+                             class="w-100 h-100 object-fit-cover position-absolute top-0 start-0">
+                        <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(to top, rgba(11,21,40,0.7) 0%, transparent 60%);"></div>
+                        
+                        <!-- Floating Badge on Image -->
+                        <div class="position-absolute bottom-0 start-0 m-3 m-md-4 text-white">
+                            <span class="badge bg-success rounded-pill px-3 py-1 fw-bold small mb-2">
+                                <i class="fas fa-check-circle me-1"></i> Verified Healthy Litter
+                            </span>
+                            <h5 class="fw-bold text-white mb-1 font-display">Ares &amp; Cleo · Bengaluru</h5>
+                            <p class="small text-white-50 mb-0">7 Champion Puppies · 100% Genetic Health Screening Passed</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Testimonial Quotes from Verified Owners -->
+                <div class="col-lg-6" data-aos="fade-left">
+                    <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 fw-bold small mb-2 font-display">Community Trust</span>
+                    <h2 class="display-6 fw-black text-dark mb-3 font-display">Real Stories from Ethical Breeders</h2>
+                    <p class="text-muted mb-4" style="line-height: 1.65;">
+                        Hear how verified breeders and devoted pet parents across India use K9Match to ensure transparent contracts, genetic vitality, and healthy puppies.
+                    </p>
+
+                    <!-- Quote 1 -->
+                    <div class="bg-light p-3.5 rounded-4 mb-3 border border-light-subtle">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold small" style="width: 32px; height: 32px;">
+                                    AK
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0 font-display" style="font-size: 0.88rem;">Anand K. · Mumbai</h6>
+                                    <span class="text-muted" style="font-size: 0.72rem;">German Shepherd Owner</span>
+                                </div>
+                            </div>
+                            <div class="text-warning small">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-0 fst-italic" style="font-size: 0.8rem; line-height: 1.5;">
+                            "The automated mating agreement protected both of us. There was no argument over stud fee deposits or puppy pick rights. K9Match is the only platform I trust."
+                        </p>
+                    </div>
+
+                    <!-- Quote 2 -->
+                    <div class="bg-light p-3.5 rounded-4 border border-light-subtle">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold small" style="width: 32px; height: 32px;">
+                                    PS
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-0 font-display" style="font-size: 0.88rem;">Pooja Sharma · New Delhi</h6>
+                                    <span class="text-muted" style="font-size: 0.72rem;">Golden Retriever Breeder</span>
+                                </div>
+                            </div>
+                            <div class="text-warning small">
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-0 fst-italic" style="font-size: 0.8rem; line-height: 1.5;">
+                            "The heat cycle predictor gave us the exact 3-day window for ovulation. We paired Cleo with an authenticated KCI champion stud and had a litter of 7 healthy puppies!"
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================
+     9. THE 4-POINT ETHICAL WELFARE CHARTER FEATURE
+     ========================================== -->
+<section class="py-5 px-3 px-lg-5 max-w-7xl mx-auto">
+    <div class="container-fluid px-0">
+        <div class="bg-white rounded-5 p-4 p-md-5 border border-light-subtle shadow-sm" style="border-radius: 2.25rem !important;">
             <div class="row align-items-center g-5">
                 <div class="col-lg-6" data-aos="fade-right">
-                    <span class="badge bg-success-subtle text-success rounded-pill px-3 py-1 fw-bold small mb-2">Ethical Governance</span>
-                    <h2 class="display-6 fw-black text-dark mb-3">Why Responsible Dog Owners Choose K9Match</h2>
+                    <span class="badge bg-success-subtle text-success rounded-pill px-3 py-1 fw-bold small mb-2 font-display">Ethical Governance</span>
+                    <h2 class="display-6 fw-black text-dark mb-3 font-display">Why Responsible Dog Owners Choose K9Match</h2>
                     <p class="text-muted mb-4" style="line-height: 1.65;">
                         We believe that ethical breeding is healthcare. K9Match eliminates shady puppy mills by requiring identity verification, vaccination validation, and transparent mating terms.
                     </p>
@@ -288,7 +768,7 @@
                                 <i class="fas fa-check small"></i>
                             </div>
                             <div>
-                                <h6 class="fw-bold text-dark mb-0.5">Zero-Tolerance for Backyard Mills</h6>
+                                <h6 class="fw-bold text-dark mb-0.5 font-display">Zero-Tolerance for Backyard Mills</h6>
                                 <p class="text-muted small mb-0">Every dog profile undergoes manual admin moderation and registry validation.</p>
                             </div>
                         </div>
@@ -298,7 +778,7 @@
                                 <i class="fas fa-dna small"></i>
                             </div>
                             <div>
-                                <h6 class="fw-bold text-dark mb-0.5">Lineage &amp; Health Transparency</h6>
+                                <h6 class="fw-bold text-dark mb-0.5 font-display">Lineage &amp; Health Transparency</h6>
                                 <p class="text-muted small mb-0">Track verified pedigrees, registered vet clearances, and canine health profiles.</p>
                             </div>
                         </div>
@@ -308,25 +788,25 @@
                                 <i class="fas fa-handshake small"></i>
                             </div>
                             <div>
-                                <h6 class="fw-bold text-dark mb-0.5">Pre-Agreed Mating Terms</h6>
+                                <h6 class="fw-bold text-dark mb-0.5 font-display">Pre-Agreed Mating Terms</h6>
                                 <p class="text-muted small mb-0">Clear terms for stud fees or puppy picks prevent misunderstandings and protect both owners.</p>
                             </div>
                         </div>
                     </div>
 
-                    <button type="button" class="btn btn-soft rounded-pill fw-bold small px-4 py-2" data-bs-toggle="modal" data-bs-target="#charterModal">
+                    <button type="button" class="btn btn-soft rounded-pill fw-bold small px-4 py-2 font-display" data-bs-toggle="modal" data-bs-target="#charterModal">
                         <i class="fas fa-scroll me-1 text-warning"></i> Read Full 4-Point Welfare Charter
                     </button>
                 </div>
 
                 <div class="col-lg-6" data-aos="fade-left">
-                    <div class="p-4 rounded-4 shadow-sm" style="background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%); color: #fff;">
+                    <div class="p-4 p-md-5 rounded-4 shadow-sm" style="background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%); color: #fff;">
                         <div class="d-flex align-items-center justify-content-between mb-4">
                             <div class="d-flex align-items-center gap-2">
                                 <i class="fas fa-shield-halved fs-3 text-warning"></i>
-                                <h5 class="fw-bold mb-0 text-white">Trust Matrix</h5>
+                                <h5 class="fw-bold mb-0 text-white font-display">K9Match Trust Matrix</h5>
                             </div>
-                            <span class="badge bg-white text-primary rounded-pill fw-bold small">Certified Standard</span>
+                            <span class="badge bg-white text-primary rounded-pill fw-bold small font-display">Certified Standard</span>
                         </div>
 
                         <div class="space-y-3">
@@ -339,7 +819,7 @@
                                 <span class="badge bg-success rounded-pill"><i class="fas fa-check me-1"></i> Verified</span>
                             </div>
                             <div class="bg-white bg-opacity-10 p-3 rounded-3 mb-2 d-flex align-items-center justify-content-between">
-                                <span class="small fw-semibold">Inbreeding Check (COI)</span>
+                                <span class="small fw-semibold">Inbreeding Check (COI &lt; 5%)</span>
                                 <span class="badge bg-success rounded-pill"><i class="fas fa-check me-1"></i> Monitored</span>
                             </div>
                             <div class="bg-white bg-opacity-10 p-3 rounded-3 d-flex align-items-center justify-content-between">
@@ -358,12 +838,14 @@
     </div>
 </section>
 
-<!-- 5. 3-STEP "HOW IT WORKS" -->
+<!-- ==========================================
+     10. 3-STEP "HOW IT WORKS"
+     ========================================== -->
 <section class="py-5 px-3 px-lg-5 max-w-7xl mx-auto">
     <div class="container-fluid px-0">
         <div class="text-center mb-5" data-aos="fade-up">
-            <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 fw-bold small mb-2">Simplicity &amp; Safety</span>
-            <h2 class="fw-black text-dark">How K9Match Works in 3 Steps</h2>
+            <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 fw-bold small mb-2 font-display">Simplicity &amp; Safety</span>
+            <h2 class="fw-black text-dark font-display">How K9Match Works in 3 Steps</h2>
             <p class="text-muted small">From registration to confirmed breeding, everything is transparent and verified.</p>
         </div>
 
@@ -373,7 +855,7 @@
                     <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 shadow-xs" style="width: 64px; height: 64px; background-color: var(--color-surface-container); color: var(--color-primary); font-size: 1.5rem; font-weight: 800;">
                         1
                     </div>
-                    <h5 class="fw-bold text-dark mb-2">Create a Pedigree Profile</h5>
+                    <h5 class="fw-bold text-dark mb-2 font-display">Create a Pedigree Profile</h5>
                     <p class="text-muted small mb-0">Upload high-res photos, vaccination records, KCI certificates, and temperament ratings.</p>
                 </div>
             </div>
@@ -383,7 +865,7 @@
                     <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 shadow-xs" style="width: 64px; height: 64px; background-color: var(--color-surface-container); color: var(--color-tertiary); font-size: 1.5rem; font-weight: 800;">
                         2
                     </div>
-                    <h5 class="fw-bold text-dark mb-2">Discover Compatible Mates</h5>
+                    <h5 class="fw-bold text-dark mb-2 font-display">Discover Compatible Mates</h5>
                     <p class="text-muted small mb-0">Filter by purebred lineage, geographical radius, genetic health clearances, and stud terms.</p>
                 </div>
             </div>
@@ -393,30 +875,33 @@
                     <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 shadow-xs" style="width: 64px; height: 64px; background-color: var(--color-surface-container); color: var(--color-secondary-dark); font-size: 1.5rem; font-weight: 800;">
                         3
                     </div>
-                    <h5 class="fw-bold text-dark mb-2">Propose &amp; Chat Safely</h5>
-                    <p class="text-muted small mb-0">Submit a mating proposal. Once accepted, chat in real-time and coordinate with nearby partner vets.</p>
+                    <h5 class="fw-bold text-dark mb-2 font-display">Propose &amp; Chat Safely</h5>
+                    <p class="text-muted small mb-0">Submit a mating proposal. Once accepted, chat in real-time, sign agreements, and coordinate with partner vets.</p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- 6. FINAL ENERGETIC CTA BANNER -->
+<!-- ==========================================
+     11. FINAL ENERGETIC CTA BANNER
+     ========================================== -->
 <section class="py-5 px-3 px-lg-5 max-w-7xl mx-auto mb-4">
     <div class="container-fluid px-0">
-        <div class="rounded-5 p-5 position-relative overflow-hidden shadow-lg text-white text-center text-md-start" style="background: linear-gradient(135deg, #111c2d 0%, #004ac6 100%); border-radius: 2rem !important;" data-aos="zoom-in">
+        <div class="rounded-5 p-5 position-relative overflow-hidden shadow-lg text-white text-center text-md-start" 
+             style="background: linear-gradient(135deg, #111c2d 0%, #004ac6 100%); border-radius: 2.25rem !important;" data-aos="zoom-in">
             <div class="position-absolute top-0 end-0 p-5 opacity-10 d-none d-lg-block">
                 <i class="fas fa-paw fa-10x"></i>
             </div>
 
             <div class="row align-items-center position-relative z-1">
                 <div class="col-md-8 mb-4 mb-md-0">
-                    <span class="badge bg-warning text-dark fw-bold rounded-pill px-3 py-1 mb-2 small">Start Today</span>
-                    <h2 class="display-6 fw-black text-white mb-2">Ready to list your dog on K9Match?</h2>
-                    <p class="text-white-50 mb-0">Join our growing community of ethical breeders and loving dog parents.</p>
+                    <span class="badge bg-warning text-dark fw-bold rounded-pill px-3 py-1 mb-2 small font-display">Join the Revolution</span>
+                    <h2 class="display-6 fw-black text-white mb-2 font-display">Ready to list your dog on K9Match?</h2>
+                    <p class="text-white-50 mb-0 fs-6">Join our growing community of ethical breeders and loving canine guardians today.</p>
                 </div>
                 <div class="col-md-4 text-md-end">
-                    <a href="{% url 'add_dog' %}" class="btn btn-secondary-stitch px-4 py-3 fs-6 d-inline-flex align-items-center gap-2 text-decoration-none">
+                    <a href="{% url 'add_dog' %}" class="btn btn-secondary-stitch px-4 py-3 fs-6 d-inline-flex align-items-center gap-2 text-decoration-none font-display">
                         <i class="fas fa-plus-circle"></i>
                         <span>Register Your Dog</span>
                     </a>
@@ -425,4 +910,124 @@
         </div>
     </div>
 </section>
+
+<!-- ==========================================
+     CLIENT-SIDE INTERACTIVE CALCULATOR JAVASCRIPT
+     ========================================== -->
+<script>
+    const calcState = {
+        age: 2.5,
+        kci: 'kci_certified',
+        vac: 'full',
+        vet: 'cleared'
+    };
+
+    function selectCalcOption(btn, type) {
+        const group = btn.closest('.d-flex').querySelectorAll('.calc-btn');
+        group.forEach(b => {
+            b.classList.remove('active');
+            b.classList.remove('bg-white', 'text-dark');
+        });
+        btn.classList.add('active');
+        calcState[type] = btn.getAttribute('data-val');
+        updateBreedingCalculator();
+    }
+
+    function updateBreedingCalculator() {
+        const ageInput = document.getElementById('calcAge');
+        if (ageInput) {
+            calcState.age = parseFloat(ageInput.value);
+            const ageLabel = document.getElementById('ageLabel');
+            if (ageLabel) {
+                ageLabel.textContent = calcState.age + (calcState.age === 1 ? ' Year' : ' Years');
+            }
+        }
+
+        let score = 0;
+        let reasons = [];
+
+        // 1. Age scoring (optimal: 2.0 to 5.5 years)
+        if (calcState.age < 1.5) {
+            score += 10;
+            reasons.push("Dog is under 18 months (juvenile); breeding is strictly discouraged.");
+        } else if (calcState.age >= 1.5 && calcState.age < 2.0) {
+            score += 25;
+            reasons.push("Approaching breeding age; final hip/eye clearances recommended.");
+        } else if (calcState.age >= 2.0 && calcState.age <= 5.5) {
+            score += 35;
+            reasons.push("Optimal biological breeding age window.");
+        } else if (calcState.age > 5.5 && calcState.age <= 7.0) {
+            score += 20;
+            reasons.push("Mature age; annual comprehensive cardiac and reproductive checkups required.");
+        } else {
+            score += 5;
+            reasons.push("Senior canine; breeding carries elevated health risks.");
+        }
+
+        // 2. Pedigree scoring
+        if (calcState.kci === 'kci_certified') {
+            score += 30;
+        } else if (calcState.kci === 'in_process') {
+            score += 18;
+        } else {
+            score += 8;
+        }
+
+        // 3. Vaccine scoring
+        if (calcState.vac === 'full') {
+            score += 20;
+        } else {
+            score += 5;
+        }
+
+        // 4. Clinical Pre-check
+        if (calcState.vet === 'cleared') {
+            score += 15;
+        } else {
+            score += 5;
+        }
+
+        // Bound score
+        score = Math.min(100, Math.max(10, score));
+
+        // Update UI
+        const scoreText = document.getElementById('calcScoreText');
+        const circleProgress = document.getElementById('calcCircleProgress');
+        const statusTitle = document.getElementById('calcStatusTitle');
+        const statusDesc = document.getElementById('calcStatusDesc');
+
+        if (scoreText) scoreText.textContent = score + '%';
+        if (circleProgress) {
+            circleProgress.setAttribute('stroke-dasharray', `${score}, 100`);
+            if (score >= 80) {
+                circleProgress.setAttribute('stroke', '#10b981'); // Green
+            } else if (score >= 50) {
+                circleProgress.setAttribute('stroke', '#fea619'); // Yellow
+            } else {
+                circleProgress.setAttribute('stroke', '#ef4444'); // Red
+            }
+        }
+
+        if (statusTitle && statusDesc) {
+            if (score >= 80) {
+                statusTitle.textContent = "Prime Breeding Candidate";
+                statusTitle.className = "fw-bold text-success mb-2 font-display";
+                statusDesc.textContent = "Your canine meets prime biological age criteria and holds the highest pedigree standard for ethical matchmaking.";
+            } else if (score >= 55) {
+                statusTitle.textContent = "Good Potential · Clearances Needed";
+                statusTitle.className = "fw-bold text-warning mb-2 font-display";
+                statusDesc.textContent = "Eligible for registration. We recommend completing remaining vaccination boosters or pedigree documentation.";
+            } else {
+                statusTitle.textContent = "Preparation Required";
+                statusTitle.className = "fw-bold text-danger mb-2 font-display";
+                statusDesc.textContent = "Canine may be too young or missing critical vet health clearances to qualify for ethical breeding at this time.";
+            }
+        }
+    }
+
+    // Initialize calculator on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateBreedingCalculator();
+    });
+</script>
 {% endblock %}
