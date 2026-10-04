@@ -54,3 +54,7 @@ Thumbs.db
 staticfiles/
 datadump.json
 media/
+
+# Documentation archives and temporary Word locks
+docs/archive/
+~$*

@@ -92,14 +92,50 @@
 <script>
     // Auto-focus and only allow digits
     const otpInput = document.getElementById('otp_input');
-    if (otpInput) {
+    const otpForm = document.getElementById('otpForm');
+    if (otpInput && otpForm) {
         otpInput.addEventListener('input', function(e) {
             this.value = this.value.replace(/[^0-9]/g, '');
             if (this.value.length === 6) {
                 // Auto-submit when 6 digits entered
-                document.getElementById('otpForm').submit();
+                const btn = otpForm.querySelector('button[type="submit"]');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Verifying Code...';
+                }
+                otpForm.submit();
             }
         });
+
+        otpForm.addEventListener('submit', function() {
+            const btn = otpForm.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Verifying Code...';
+            }
+        });
+    }
+
+    // 30-second cooldown timer for Resend button to prevent multiple OTP dispatches
+    const resendBtn = document.getElementById('resendBtn');
+    if (resendBtn) {
+        let countdown = 30;
+        resendBtn.disabled = true;
+        resendBtn.classList.add('opacity-50');
+        const originalHtml = resendBtn.innerHTML;
+        resendBtn.innerHTML = `<i class="fas fa-clock me-1"></i> Resend code in <span id="cooldownSec">${countdown}</span>s`;
+
+        const timer = setInterval(() => {
+            countdown--;
+            const span = document.getElementById('cooldownSec');
+            if (span) span.textContent = countdown;
+            if (countdown <= 0) {
+                clearInterval(timer);
+                resendBtn.disabled = false;
+                resendBtn.classList.remove('opacity-50');
+                resendBtn.innerHTML = originalHtml;
+            }
+        }, 1000);
     }
 </script>
 {% endblock %}

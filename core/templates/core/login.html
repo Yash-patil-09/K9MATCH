@@ -47,14 +47,14 @@
                     </div>
                 {% endif %}
 
-                <form method="POST">
+                <form method="POST" id="loginForm" autocomplete="off">
                     {% csrf_token %}
                     
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-uppercase text-muted tracking-wider mb-1">Username</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-0"><i class="fas fa-user text-muted"></i></span>
-                            <input type="text" name="username" class="form-control bg-light border-0 py-2.5" placeholder="Enter your username" required autofocus>
+                            <input type="text" name="username" class="form-control bg-light border-0 py-2.5" placeholder="Enter your username" autocomplete="off" required autofocus>
                         </div>
                     </div>
 
@@ -65,7 +65,7 @@
                         </div>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-0"><i class="fas fa-lock text-muted"></i></span>
-                            <input type="password" name="password" id="loginPassword" class="form-control bg-light border-0 py-2.5" placeholder="Enter your password" required>
+                            <input type="password" name="password" id="loginPassword" class="form-control bg-light border-0 py-2.5" placeholder="Enter your password" autocomplete="new-password" required>
                             <button class="btn btn-light border-0" type="button" onclick="const p = document.getElementById('loginPassword'); p.type = p.type === 'password' ? 'text' : 'password';">
                                 <i class="fas fa-eye text-muted"></i>
                             </button>
@@ -107,4 +107,20 @@
 
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Ensure form inputs are blank upon page reload or back/forward navigation
+    window.addEventListener('pageshow', function () {
+        const form = document.getElementById('loginForm');
+        if (form) {
+            form.reset();
+        }
+        const usernameInput = document.querySelector('input[name="username"]');
+        const passwordInput = document.getElementById('loginPassword');
+        if (usernameInput) usernameInput.value = '';
+        if (passwordInput) passwordInput.value = '';
+    });
+</script>
 {% endblock %}

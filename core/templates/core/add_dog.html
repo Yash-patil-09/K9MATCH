@@ -815,7 +815,7 @@ document.addEventListener("DOMContentLoaded", function () {
             onLocationSelected(e.latlng.lat, e.latlng.lng);
         });
 
-        function onLocationSelected(lat, lon) {
+        function onLocationSelected(lat, lon, searchedAreaName = '') {
             const formattedLat = parseFloat(lat).toFixed(6);
             const formattedLng = parseFloat(lon).toFixed(6);
 
@@ -859,7 +859,8 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             // Call local Django proxy endpoint to guarantee 0% CORS issues and reliable geocoding
-            fetch(`/api/reverse-geocode/?lat=${lat}&lng=${lon}`)
+            const queryParam = searchedAreaName ? `&query=${encodeURIComponent(searchedAreaName)}` : '';
+            fetch(`/api/reverse-geocode/?lat=${lat}&lng=${lon}${queryParam}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.success) {
@@ -880,19 +881,36 @@ document.addEventListener("DOMContentLoaded", function () {
                                     s => s.toLowerCase() === rawState.toLowerCase() || rawState.toLowerCase().includes(s.toLowerCase())
                                 ) || rawState;
 
-                                const bgCandidates = [bgData.city, bgData.locality, bgData.neighbourhood].filter(Boolean);
+                                const stateCities = (detectedState && INDIA_LOCATIONS[detectedState]) ? INDIA_LOCATIONS[detectedState] : [];
                                 let detectedCity = '';
-                                if (detectedState && INDIA_LOCATIONS[detectedState]) {
-                                    const stateCities = INDIA_LOCATIONS[detectedState];
+
+                                // Check administrative hierarchy first for standard city match
+                                const adminList = (bgData.localityInfo && bgData.localityInfo.administrative) || [];
+                                for (const admin of adminList) {
+                                    const adminName = admin.name || '';
+                                    const found = stateCities.find(sc => {
+                                        const baseSc = sc.split('(')[0].trim().toLowerCase();
+                                        return adminName.toLowerCase().includes(baseSc);
+                                    });
+                                    if (found) { detectedCity = found; break; }
+                                }
+
+                                if (!detectedCity) {
+                                    const bgCandidates = [bgData.city, bgData.locality, bgData.neighbourhood].filter(Boolean);
                                     for (const cand of bgCandidates) {
-                                        const found = stateCities.find(sc => sc.toLowerCase() === cand.toLowerCase() || cand.toLowerCase().includes(sc.toLowerCase()));
+                                        const found = stateCities.find(sc => {
+                                            const baseSc = sc.split('(')[0].trim().toLowerCase();
+                                            return cand.toLowerCase() === baseSc || cand.toLowerCase().includes(baseSc);
+                                        });
                                         if (found) { detectedCity = found; break; }
                                     }
                                 }
-                                if (!detectedCity && bgCandidates.length > 0) {
-                                    detectedCity = bgCandidates[0];
+
+                                if (!detectedCity && bgData.city) {
+                                    detectedCity = bgData.city;
                                 }
-                                const locality = [bgData.locality, bgData.neighbourhood].filter(Boolean).join(', ') || detectedCity;
+
+                                const locality = searchedAreaName || [bgData.locality, bgData.neighbourhood].filter(Boolean).filter(l => l.toLowerCase() !== (detectedCity || '').toLowerCase()).join(', ') || searchedAreaName || detectedCity;
                                 handleAddressData(detectedState, detectedCity, locality);
                             }
                         })
@@ -982,7 +1000,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Append India if not already present to bias search accurately
             const searchQuery = query.toLowerCase().includes('india') ? query : `${query}, India`;
-            const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(searchQuery)}`;
+            const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&q=${encodeURIComponent(searchQuery)}`;
 
             fetch(searchUrl)
                 .then(r => r.json())
@@ -1011,7 +1029,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         const shortName = item.display_name.split(',')[0];
                         marker.bindPopup(`<b>${shortName}</b><br>Drag pin to adjust exact spot.`).openPopup();
 
-                        onLocationSelected(lat, lon);
+                        onLocationSelected(lat, lon, query);
 
                         if (searchFeedbackMsg) {
                             searchFeedbackMsg.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i> Jumped to: <strong>${item.display_name.split(',').slice(0, 3).join(', ')}</strong>. Drag the pin if needed.</span>`;

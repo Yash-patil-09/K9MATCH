@@ -4,6 +4,7 @@ import secrets
 import urllib.parse
 import urllib.request
 
+from datetime import timedelta
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate, get_user_model
 from django.contrib.auth.forms import AuthenticationForm
@@ -18,7 +19,7 @@ from django.utils import timezone
 
 from .forms import CustomUserCreationForm, DogProfileForm, DogImageForm, ReportListingForm, PUREBRED_CHOICES, CROSSBREED_CHOICES
 from .models import DogProfile, DogImage, MatchRequest, ChatMessage, VeterinaryClinic, EmailOTP, ReportListing, Notification
-from .utils import get_city_coordinates, get_state_coordinates, haversine_distance
+from .utils import get_city_coordinates, get_state_coordinates, haversine_distance, resolve_location_from_coords
 from .email_utils import send_otp_email, send_match_proposal_email, send_match_accepted_email, send_match_declined_email
 from .notification_utils import create_notification
 from .pdf_utils import generate_canine_passport_pdf, generate_breeding_contract_pdf
@@ -76,9 +77,21 @@ def register_view(request):
             email = form.cleaned_data['email']
             request.session['otp_email'] = email
 
-            # Send verification OTP
-            send_otp_email(email, purpose='signup')
-            messages.info(request, f"A 6-digit verification code has been dispatched to {email}. Please verify below to activate your account.")
+            # Prevent duplicate OTP dispatch on rapid double-clicks/re-submissions (30s window)
+            recent_otp = EmailOTP.objects.filter(
+                email=email,
+                purpose='signup',
+                is_used=False,
+                expires_at__gt=timezone.now(),
+                created_at__gte=timezone.now() - timedelta(seconds=30)
+            ).first()
+
+            if not recent_otp:
+                send_otp_email(email, purpose='signup')
+                messages.info(request, f"A 6-digit verification code has been dispatched to {email}. Please verify below to activate your account.")
+            else:
+                messages.info(request, f"A verification code was just dispatched to {email}. Please check your inbox.")
+
             return redirect('verify_registration_otp')
     else:
         form = CustomUserCreationForm()
@@ -144,9 +157,21 @@ def forgot_password_view(request):
         user = User.objects.filter(email__iexact=email).first()
 
         if user:
-            send_otp_email(user.email, purpose='forgot_password')
+            recent_otp = EmailOTP.objects.filter(
+                email=user.email,
+                purpose='forgot_password',
+                is_used=False,
+                expires_at__gt=timezone.now(),
+                created_at__gte=timezone.now() - timedelta(seconds=30)
+            ).first()
+
+            if not recent_otp:
+                send_otp_email(user.email, purpose='forgot_password')
+                messages.success(request, f"A 6-digit password reset code was sent to {user.email}.")
+            else:
+                messages.info(request, f"A password reset code was just sent to {user.email}. Please check your inbox.")
+
             request.session['reset_password_email'] = user.email
-            messages.success(request, f"A 6-digit password reset code was sent to {user.email}.")
             return redirect('reset_password_otp')
         else:
             messages.error(request, "No registered account found with that email address. Please check your spelling.")
@@ -211,6 +236,17 @@ def resend_otp_view(request):
             redirect_view = 'reset_password_otp'
 
         if email:
+            # Check 30-second cooldown
+            recent_otp = EmailOTP.objects.filter(
+                email=email,
+                purpose=purpose,
+                created_at__gte=timezone.now() - timedelta(seconds=30)
+            ).first()
+
+            if recent_otp:
+                messages.warning(request, "A verification code was already dispatched moments ago. Please wait 30 seconds before requesting another code.")
+                return redirect(redirect_view)
+
             send_otp_email(email, purpose=purpose)
             messages.success(request, f"A fresh 6-digit verification code has been dispatched to {email}.")
             return redirect(redirect_view)
@@ -1511,63 +1547,18 @@ def custom_500_view(request):
 def reverse_geocode_api(request):
     """
     Server-side proxy for reverse geocoding to bypass browser CORS and User-Agent restrictions.
-    Returns detected state, city, and locality.
+    Returns detected state, city, and locality with proper Indian metro and locality resolution.
     """
     lat = request.GET.get('lat')
     lng = request.GET.get('lng') or request.GET.get('lon')
+    query = request.GET.get('query', '')
     if not lat or not lng:
         return JsonResponse({'success': False, 'error': 'Missing coordinates'}, status=400)
 
-    try:
-        url = f"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={lat}&lon={lng}"
-        req = urllib.request.Request(url, headers={'User-Agent': 'K9Match-App/1.0 (support@k9match.com)'})
-        with urllib.request.urlopen(req, timeout=6) as response:
-            data = json.loads(response.read().decode('utf-8'))
-            addr = data.get('address', {})
-            
-            state = addr.get('state') or addr.get('state_district') or addr.get('region') or ''
-            
-            city_candidates = [
-                addr.get('city'),
-                addr.get('town'),
-                addr.get('municipality'),
-                addr.get('suburb'),
-                addr.get('county'),
-                addr.get('city_district'),
-                addr.get('state_district')
-            ]
-            city = ''
-            for cand in city_candidates:
-                if cand:
-                    city = cand.replace('Subdistrict', '').replace('District', '').strip()
-                    break
-            
-            locality = addr.get('suburb') or addr.get('neighbourhood') or addr.get('road') or city or data.get('name') or ''
-            
-            return JsonResponse({
-                'success': True,
-                'state': state,
-                'city': city,
-                'locality': locality
-            })
-    except Exception:
-        # Fallback to BigDataCloud
-        try:
-            bdc_url = f"https://api.bigdatacloud.net/data/reverse-geocode-client?latitude={lat}&longitude={lng}&localityLanguage=en"
-            req2 = urllib.request.Request(bdc_url, headers={'User-Agent': 'K9Match-App/1.0'})
-            with urllib.request.urlopen(req2, timeout=6) as response2:
-                bg_data = json.loads(response2.read().decode('utf-8'))
-                state = bg_data.get('principalSubdivision') or ''
-                city = bg_data.get('city') or bg_data.get('locality') or ''
-                locality = bg_data.get('locality') or bg_data.get('neighbourhood') or city
-                return JsonResponse({
-                    'success': True,
-                    'state': state,
-                    'city': city,
-                    'locality': locality
-                })
-        except Exception as e2:
-            return JsonResponse({'success': False, 'error': str(e2)}, status=500)
+    result = resolve_location_from_coords(lat, lng, query=query)
+    if result.get('success'):
+        return JsonResponse(result)
+    return JsonResponse(result, status=500)
 
 
 @login_required

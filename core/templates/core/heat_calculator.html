@@ -33,7 +33,7 @@
                     {% if user_female_dogs %}
                     <div class="mb-4">
                         <label class="form-label fw-bold text-secondary-dark small text-uppercase">Select Registered Dog</label>
-                        <select name="dog_id" id="dogSelector" class="form-select form-select-lg rounded-3 fs-6" onchange="this.form.submit()">
+                        <select name="dog_id" id="dogSelector" class="form-select form-select-lg rounded-3 fs-6">
                             <option value="">-- Choose Your Female Dog (Optional) --</option>
                             {% for dog in user_female_dogs %}
                             <option value="{{ dog.id }}" {% if selected_dog and selected_dog.id == dog.id %}selected{% endif %}>
@@ -94,11 +94,11 @@
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
                     <div>
                         <span class="badge px-3 py-1 rounded-pill mb-2" style="background: rgba(255, 255, 255, 0.15); color: #6ffbbe; font-size: 0.75rem;">
-                            ESTIMATED BIOLOGICAL PHASE TODAY
+                            ESTIMATED BIOLOGICAL PHASE TODAY{% if selected_dog %} · {{ selected_dog.name|upper }}{% endif %}
                         </span>
                         <h3 class="fw-bold mb-1 text-white">{{ result.current_phase }}</h3>
                         <p class="text-slate-300 small mb-0" style="color: #cbd5e1;">
-                            Calculated from bleeding onset date: <b>{{ result.last_heat|date:"d M, Y" }}</b>
+                            {% if selected_dog %}<b>{{ selected_dog.name }} ({{ selected_dog.breed }})</b> · {% endif %}Calculated from bleeding onset date: <b>{{ result.last_heat|date:"d M, Y" }}</b>
                         </p>
                     </div>
                     {% if result.phase_status == 'active_estrus' %}
