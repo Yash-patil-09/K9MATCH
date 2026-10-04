@@ -2647,7 +2647,7 @@ def build_complete_report():
     # APPENDIX D.2: LIST OF ABBREVIATIONS
     # -------------------------------------------------------------
     doc.add_page_break()
-    add_heading_2(doc, "Appendix D.2: List of Abbreviations")
+    add_heading_2(doc, "Appendix E: List of Abbreviations")
     add_body(
         doc,
         "The following authoritative catalogue defines all technical acronyms, engineering standards, computational metrics, and domain-specific abbreviations utilized across the K9MATCH system analysis, software architecture, database schemas, and codebase implementation:"
@@ -2735,23 +2735,45 @@ def build_complete_report():
         p_ab.paragraph_format.line_spacing = 1.05
 
     # -------------------------------------------------------------
-    # APPENDIX E: PROJECT REPOSITORY & SOURCE CODE
+    # APPENDIX F: PROJECT REPOSITORY & SOURCE CODE
     # -------------------------------------------------------------
-    p_app_e = add_heading_2(doc, "Appendix E: Project Repository & Source Code")
-    p_app_e.paragraph_format.space_before = Pt(16)
-    p_app_e.paragraph_format.space_after = Pt(4)
-    add_body(
-        doc,
-        "The complete source code, commit history, and technical documentation for K9MATCH: Ethical Canine Matching have been securely hosted and version-controlled on GitHub."
-    )
-    add_body(
-        doc,
-        "The repository includes the full application codebase, backend configurations, relational database models, algorithmic proximity matchmaking pipelines, and setup instructions required to deploy the system."
-    )
+    doc.add_page_break()
+    p_app_f = doc.add_paragraph()
+    p_app_f.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p_app_f.paragraph_format.space_before = Pt(24)
+    p_app_f.paragraph_format.space_after = Pt(16)
+    p_app_f.paragraph_format.keep_with_next = True
+    r_hdr = p_app_f.add_run("Appendix F: Project Repository & Source Code")
+    r_hdr.font.name = "Times New Roman"
+    r_hdr.font.size = Pt(14)
+    r_hdr.font.bold = True
+
+    p_desc1 = doc.add_paragraph()
+    p_desc1.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    p_desc1.paragraph_format.line_spacing = 1.3
+    p_desc1.paragraph_format.space_after = Pt(14)
+    r_t1 = p_desc1.add_run("The complete source code, commit history, and technical documentation for ")
+    r_t1.font.name = "Times New Roman"
+    r_t1.font.size = Pt(12)
+    r_sb = p_desc1.add_run("K9MATCH")
+    r_sb.font.name = "Times New Roman"
+    r_sb.font.size = Pt(12)
+    r_sb.font.bold = True
+    r_t2 = p_desc1.add_run(" have been securely hosted and version-controlled on GitHub.")
+    r_t2.font.name = "Times New Roman"
+    r_t2.font.size = Pt(12)
+
+    p_desc2 = doc.add_paragraph()
+    p_desc2.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    p_desc2.paragraph_format.line_spacing = 1.3
+    p_desc2.paragraph_format.space_after = Pt(22)
+    r_t3 = p_desc2.add_run("The repository includes the full application codebase, backend configurations, and setup instructions required to deploy the system.")
+    r_t3.font.name = "Times New Roman"
+    r_t3.font.size = Pt(12)
 
     p_repo = doc.add_paragraph()
-    p_repo.paragraph_format.space_before = Pt(8)
-    p_repo.paragraph_format.space_after = Pt(2)
+    p_repo.paragraph_format.space_before = Pt(12)
+    p_repo.paragraph_format.space_after = Pt(4)
     p_repo.paragraph_format.keep_with_next = True
     r_acc = p_repo.add_run("Access the Repository:")
     r_acc.font.name = "Times New Roman"

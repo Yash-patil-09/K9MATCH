@@ -230,6 +230,29 @@ def add_bullet(doc, text, bold_prefix=None, level=0):
     r.font.size = Pt(12)
     return p
 
+def add_hyperlink(paragraph, url, text, color="0066CC", underline=True):
+    import docx.opc.constants
+    part = paragraph.part
+    r_id = part.relate_to(url, docx.opc.constants.RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
+    hyperlink = parse_xml(f'<w:hyperlink xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" r:id="{r_id}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/>')
+    new_run = parse_xml(f'<w:r xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>')
+    rPr = parse_xml(f'<w:rPr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>')
+    if color:
+        c = parse_xml(f'<w:color xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:val="{color}"/>')
+        rPr.append(c)
+    if underline:
+        u = parse_xml(f'<w:u xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:val="single"/>')
+        rPr.append(u)
+    rFont = parse_xml(f'<w:rFonts xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:ascii="Times New Roman" w:hAnsi="Times New Roman"/>')
+    rPr.append(rFont)
+    sz = parse_xml(f'<w:sz xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:val="24"/>')
+    rPr.append(sz)
+    new_run.append(rPr)
+    new_run_text = parse_xml(f'<w:t xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">{text}</w:t>')
+    new_run.append(new_run_text)
+    hyperlink.append(new_run)
+    paragraph._p.append(hyperlink)
+
 def add_diagram(doc, img_filename, caption_text, desc_text, width_in=6.0):
     img_path = os.path.join(r"d:\K9Match\docs", img_filename)
     if os.path.exists(img_path):
@@ -2562,7 +2585,7 @@ def build_complete_report():
     # APPENDIX D.2: LIST OF ABBREVIATIONS
     # -------------------------------------------------------------
     doc.add_page_break()
-    add_heading_2(doc, "Appendix D.2: List of Abbreviations")
+    add_heading_2(doc, "Appendix E: List of Abbreviations")
     add_body(
         doc,
         "The following authoritative catalogue defines all technical acronyms, engineering standards, computational metrics, and domain-specific abbreviations utilized across the K9MATCH system analysis, software architecture, database schemas, and codebase implementation:"
@@ -2646,6 +2669,61 @@ def build_complete_report():
 
     for abbr_lbl, abbr_def in abbreviations:
         add_bullet(doc, abbr_def, bold_prefix=abbr_lbl)
+
+    # -------------------------------------------------------------
+    # APPENDIX F: PROJECT REPOSITORY & SOURCE CODE
+    # -------------------------------------------------------------
+    doc.add_page_break()
+    p_app_f = doc.add_paragraph()
+    p_app_f.alignment = WD_ALIGN_PARAGRAPH.LEFT
+    p_app_f.paragraph_format.space_before = Pt(24)
+    p_app_f.paragraph_format.space_after = Pt(16)
+    p_app_f.paragraph_format.keep_with_next = True
+    r_hdr = p_app_f.add_run("Appendix F: Project Repository & Source Code")
+    r_hdr.font.name = "Times New Roman"
+    r_hdr.font.size = Pt(14)
+    r_hdr.font.bold = True
+
+    p_desc1 = doc.add_paragraph()
+    p_desc1.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    p_desc1.paragraph_format.line_spacing = 1.3
+    p_desc1.paragraph_format.space_after = Pt(14)
+    r_t1 = p_desc1.add_run("The complete source code, commit history, and technical documentation for ")
+    r_t1.font.name = "Times New Roman"
+    r_t1.font.size = Pt(12)
+    r_sb = p_desc1.add_run("K9MATCH")
+    r_sb.font.name = "Times New Roman"
+    r_sb.font.size = Pt(12)
+    r_sb.font.bold = True
+    r_t2 = p_desc1.add_run(" have been securely hosted and version-controlled on GitHub.")
+    r_t2.font.name = "Times New Roman"
+    r_t2.font.size = Pt(12)
+
+    p_desc2 = doc.add_paragraph()
+    p_desc2.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+    p_desc2.paragraph_format.line_spacing = 1.3
+    p_desc2.paragraph_format.space_after = Pt(22)
+    r_t3 = p_desc2.add_run("The repository includes the full application codebase, backend configurations, and setup instructions required to deploy the system.")
+    r_t3.font.name = "Times New Roman"
+    r_t3.font.size = Pt(12)
+
+    p_repo = doc.add_paragraph()
+    p_repo.paragraph_format.space_before = Pt(12)
+    p_repo.paragraph_format.space_after = Pt(4)
+    p_repo.paragraph_format.keep_with_next = True
+    r_acc = p_repo.add_run("Access the Repository:")
+    r_acc.font.name = "Times New Roman"
+    r_acc.font.size = Pt(12)
+    r_acc.font.bold = True
+
+    p_link = doc.add_paragraph()
+    p_link.paragraph_format.space_before = Pt(2)
+    p_link.paragraph_format.space_after = Pt(12)
+    r_ico = p_link.add_run("🔗 GitHub Link: ")
+    r_ico.font.name = "Times New Roman"
+    r_ico.font.size = Pt(12)
+    r_ico.font.bold = True
+    add_hyperlink(p_link, "https://github.com/Yash-patil-09/K9MATCH", "https://github.com/Yash-patil-09/K9MATCH")
 
     # -------------------------------------------------------------
     # END MATTER: LIST OF TABLES
